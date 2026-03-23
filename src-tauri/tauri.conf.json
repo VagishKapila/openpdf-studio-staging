@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
@@ -50,23 +49,7 @@
     ],
     "category": "Productivity",
     "shortDescription": "Free PDF & Image Editor",
-    "longDescription": "OpenPDF Studio is a free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, OCR scanned documents, and manipulate images — all 100% local, no cloud required.",
-    "windows": {
-      "digestAlgorithm": "sha256",
-      "timestampUrl": "http://timestamp.digicert.com"
-    },
-    "macOS": {
-      "minimumSystemVersion": "10.15"
-    },
-    "linux": {
-      "section": "editors",
-      "priority": "optional"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": true
-    }
+    "longDescription": "OpenPDF Studio is a free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, OCR scanned documents, and manipulate images — all 100% local, no cloud required."
   },
   "plugins": {
     "fs": {
