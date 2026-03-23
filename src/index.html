@@ -224,6 +224,50 @@
       left: 0;
     }
 
+    /* ===== TEXT LAYER (click-to-edit) ===== */
+    #text-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      opacity: 0.35;
+      line-height: 1.0;
+      pointer-events: none;
+      z-index: 5;
+    }
+    #text-layer.active {
+      pointer-events: auto;
+      opacity: 0;
+      z-index: 10;
+    }
+    #text-layer.active:hover {
+      opacity: 0.06;
+    }
+    #text-layer span {
+      position: absolute;
+      white-space: pre;
+      color: transparent;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+    #text-layer.active span:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-radius: 2px;
+    }
+    #text-layer span.editing {
+      color: #000;
+      background: rgba(255, 255, 255, 0.95);
+      outline: 2px solid var(--primary);
+      border-radius: 2px;
+      padding: 1px 2px;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      cursor: text;
+      min-width: 20px;
+    }
+
     /* ===== RIGHT PANEL ===== */
     .right-panel {
       width: 280px;
@@ -731,6 +775,7 @@
       <div class="canvas-wrapper" id="canvas-wrapper" style="display:none;">
         <canvas id="pdf-canvas"></canvas>
         <canvas id="annotation-canvas" class="annotation-canvas"></canvas>
+        <div id="text-layer"></div>
       </div>
     </div>
 
@@ -917,7 +962,9 @@
       signaturePadCtx: null,
       signatureDrawing: false,
       isDocLoaded: false,
-      currentTab: 'pdf-editor'
+      currentTab: 'pdf-editor',
+      textEdits: {},       // { pageNum: [ {origText, newText, x, y, fontSize, fontFamily} ] }
+      textLayerItems: [],  // current page text items from PDF.js
     };
 
     // ===== TOAST NOTIFICATIONS =====
@@ -1030,8 +1077,186 @@
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
+      // Build the editable text layer
+      await buildTextLayer(page, viewport);
+
       initFabricCanvas(viewport.width, viewport.height);
       updateThumbnailActive();
+      updateTextLayerMode();
+    }
+
+    // ===== TEXT LAYER (click-to-edit) =====
+    async function buildTextLayer(page, viewport) {
+      const textLayer = document.getElementById('text-layer');
+      textLayer.innerHTML = '';
+      textLayer.style.width = viewport.width + 'px';
+      textLayer.style.height = viewport.height + 'px';
+
+      const textContent = await page.getTextContent();
+      state.textLayerItems = textContent.items;
+
+      textContent.items.forEach((item, idx) => {
+        if (!item.str || !item.str.trim()) return;
+
+        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
+        const angle = Math.atan2(tx[1], tx[0]);
+
+        const span = document.createElement('span');
+        span.textContent = item.str;
+        span.dataset.idx = idx;
+        span.dataset.origText = item.str;
+        span.style.left = tx[4] + 'px';
+        span.style.top = (tx[5] - fontSize) + 'px';
+        span.style.fontSize = fontSize + 'px';
+        span.style.fontFamily = item.fontName ? (item.fontName.includes('Bold') ? 'Arial, sans-serif' : 'Arial, sans-serif') : 'Arial, sans-serif';
+        if (item.fontName && item.fontName.includes('Bold')) {
+          span.style.fontWeight = 'bold';
+        }
+        if (angle !== 0) {
+          span.style.transform = `rotate(${angle}rad)`;
+        }
+
+        // Check if there's a saved edit for this text item
+        const pageEdits = state.textEdits[state.currentPage];
+        if (pageEdits) {
+          const edit = pageEdits.find(e => e.idx === idx);
+          if (edit) {
+            span.textContent = edit.newText;
+          }
+        }
+
+        span.addEventListener('click', (e) => {
+          if (state.currentTool === 'select' || state.currentTool === 'text') {
+            e.stopPropagation();
+            startEditingSpan(span);
+          }
+        });
+
+        textLayer.appendChild(span);
+      });
+    }
+
+    function startEditingSpan(span) {
+      // Deactivate fabric canvas interaction temporarily
+      if (state.fabricCanvas) {
+        state.fabricCanvas.discardActiveObject();
+        state.fabricCanvas.renderAll();
+      }
+
+      // Remove editing from any other span
+      document.querySelectorAll('#text-layer span.editing').forEach(s => {
+        finishEditingSpan(s);
+      });
+
+      span.classList.add('editing');
+      span.contentEditable = true;
+      span.focus();
+
+      // Select all text in the span
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      // Handle finishing the edit
+      span.addEventListener('blur', () => finishEditingSpan(span), { once: true });
+      span.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          span.blur();
+        }
+        if (e.key === 'Escape') {
+          span.textContent = span.dataset.origText;
+          span.blur();
+        }
+      });
+    }
+
+    function finishEditingSpan(span) {
+      span.classList.remove('editing');
+      span.contentEditable = false;
+
+      const idx = parseInt(span.dataset.idx);
+      const origText = span.dataset.origText;
+      const newText = span.textContent;
+
+      if (newText !== origText) {
+        // Save the edit
+        if (!state.textEdits[state.currentPage]) {
+          state.textEdits[state.currentPage] = [];
+        }
+        const existing = state.textEdits[state.currentPage].find(e => e.idx === idx);
+        if (existing) {
+          existing.newText = newText;
+        } else {
+          const item = state.textLayerItems[idx];
+          state.textEdits[state.currentPage].push({
+            idx,
+            origText,
+            newText,
+            transform: item.transform,
+            fontName: item.fontName,
+          });
+        }
+        // Re-render the page canvas with the edit burned in
+        reRenderWithEdits();
+        showToast('Text edited — changes will be included when you save', 'success');
+      }
+    }
+
+    async function reRenderWithEdits() {
+      // Re-render the base PDF page
+      const page = await state.pdfDoc.getPage(state.currentPage);
+      const viewport = page.getViewport({ scale: state.zoom * 1.5 });
+      const canvas = document.getElementById('pdf-canvas');
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Draw edited text on top (white rect to cover old text, then new text)
+      const pageEdits = state.textEdits[state.currentPage];
+      if (pageEdits && pageEdits.length > 0) {
+        pageEdits.forEach(edit => {
+          const item = state.textLayerItems[edit.idx];
+          if (!item) return;
+
+          const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+          const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
+
+          // Measure original text width to cover it
+          ctx.font = `${fontSize}px Arial, sans-serif`;
+          const origWidth = ctx.measureText(edit.origText).width;
+
+          // White-out the original text
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(tx[4] - 1, tx[5] - fontSize - 1, origWidth + 4, fontSize + 4);
+
+          // Draw new text
+          ctx.fillStyle = '#000000';
+          if (item.fontName && item.fontName.includes('Bold')) {
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+          }
+          ctx.fillText(edit.newText, tx[4], tx[5]);
+        });
+      }
+    }
+
+    function updateTextLayerMode() {
+      const textLayer = document.getElementById('text-layer');
+      const annCanvasEl = document.querySelector('.canvas-container');
+      if (state.currentTool === 'select' || state.currentTool === 'text') {
+        textLayer.classList.add('active');
+        // Let clicks pass through the annotation canvas to text layer
+        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'none';
+      } else {
+        textLayer.classList.remove('active');
+        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
+        // Finish any active editing
+        document.querySelectorAll('#text-layer span.editing').forEach(s => {
+          finishEditingSpan(s);
+        });
+      }
     }
 
     function initFabricCanvas(w, h) {
@@ -1146,6 +1371,7 @@
         }
       }
       setStatus(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+      updateTextLayerMode();
     }
 
     // ===== ZOOM =====
@@ -1220,6 +1446,46 @@
 
         if (state.pdfBytes) {
           const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+          const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+          const helveticaBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+          // Apply text edits to all pages
+          for (const [pageNumStr, edits] of Object.entries(state.textEdits)) {
+            const pageIdx = parseInt(pageNumStr) - 1;
+            const page = pdfDoc.getPage(pageIdx);
+            const { height } = page.getSize();
+
+            for (const edit of edits) {
+              if (edit.newText === edit.origText) continue;
+
+              // Get position from the original transform
+              const t = edit.transform;
+              const fontSize = Math.sqrt(t[0] * t[0] + t[1] * t[1]);
+              const x = t[4];
+              const y = t[5];
+
+              const font = (edit.fontName && edit.fontName.includes('Bold')) ? helveticaBold : helvetica;
+              const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
+
+              // White-out original text
+              page.drawRectangle({
+                x: x - 1,
+                y: y - 2,
+                width: origWidth + 4,
+                height: fontSize + 4,
+                color: PDFLib.rgb(1, 1, 1),
+              });
+
+              // Draw new text
+              page.drawText(edit.newText, {
+                x: x,
+                y: y,
+                size: fontSize,
+                font: font,
+                color: PDFLib.rgb(0, 0, 0),
+              });
+            }
+          }
 
           // Embed annotations as images
           if (state.fabricCanvas && state.fabricCanvas.getObjects().length > 0) {
