@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenPDF Studio - Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --border: #334155;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      margin-bottom: 30px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .header-info {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .refresh-btn.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-change {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 10px;
+    }
+
+    .stat-change.positive {
+      color: var(--success);
+    }
+
+    .stat-change.negative {
+      color: var(--danger);
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .chart-container {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      min-height: 300px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    canvas {
+      max-height: 300px;
+    }
+
+    .table-container {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead {
+      background-color: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 12px 15px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 11px;
+    }
+
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-primary {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    .badge-danger {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .badge-warning {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: #fde047;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    select {
+      padding: 8px 12px;
+      background-color: var(--bg-tertiary);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      padding: 8px 16px;
+      background-color: var(--bg-tertiary);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.2s;
+    }
+
+    button.secondary:hover {
+      background-color: var(--border);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .error-message {
+      background-color: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      padding: 12px;
+      color: #fca5a5;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+
+    .feature-heatmap {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .heatmap-item {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .heatmap-item:hover {
+      transform: translateY(-2px);
+    }
+
+    .heatmap-name {
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .heatmap-value {
+      font-size: 18px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .crash-badge {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .crash-badge.open {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .crash-badge.resolved {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header .container {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .header-info {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px 10px;
+      }
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--text-secondary);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>📊 OpenPDF Studio Analytics</h1>
+      <div class="header-info">
+        <span id="lastUpdate">Loading...</span>
+        <button class="refresh-btn" onclick="refreshData()">Refresh Data</button>
+        <button class="refresh-btn secondary" onclick="exportData()">Export CSV</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Downloads</div>
+        <div class="stat-value" id="totalDownloads">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="stat-change" id="downloadChange"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Active Users</div>
+        <div class="stat-value" id="activeUsers">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="stat-change" id="userChange"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Unresolved Crashes</div>
+        <div class="stat-value" id="crashCount">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="stat-change" id="crashChange"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Total Events</div>
+        <div class="stat-value" id="totalEvents">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="stat-change" id="eventChange"></div>
+      </div>
+    </div>
+
+    <!-- Downloads Section -->
+    <div class="section">
+      <div class="section-title">Downloads Analytics</div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="downloadPeriod">Period:</label>
+          <select id="downloadPeriod" onchange="loadDownloads()">
+            <option value="7">Last 7 Days</option>
+            <option value="30" selected>Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+          </select>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-title">Downloads by Platform</div>
+          <canvas id="platformChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Top Versions</div>
+          <canvas id="versionChart"></canvas>
+        </div>
+        <div class="chart-container full-width">
+          <div class="chart-title">Download Trend (Last 30 Days)</div>
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="section">
+      <div class="section-title">User Activity</div>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-title">Daily Active Users</div>
+          <canvas id="dailyActiveChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Weekly Active Users</div>
+          <canvas id="weeklyActiveChart"></canvas>
+        </div>
+        <div class="chart-container full-width">
+          <div class="chart-title">Monthly Active Users</div>
+          <canvas id="monthlyActiveChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="section">
+      <div class="section-title">Feature Usage</div>
+      <div class="chart-container">
+        <div class="chart-title">Top Features (Last 30 Days)</div>
+        <canvas id="featuresChart"></canvas>
+      </div>
+      <div class="chart-container" style="margin-top: 20px;">
+        <div class="chart-title">Feature Heatmap</div>
+        <div class="feature-heatmap" id="featureHeatmap">
+          <div class="loading">Loading features...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Version Adoption -->
+    <div class="section">
+      <div class="section-title">Version Adoption</div>
+      <div class="chart-container">
+        <div class="chart-title">User Distribution by Version</div>
+        <canvas id="versionAdoptionChart"></canvas>
+      </div>
+      <div class="table-container" style="margin-top: 20px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Users</th>
+              <th>Adoption %</th>
+            </tr>
+          </thead>
+          <tbody id="versionTableBody">
+            <tr><td colspan="3" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Geographic Distribution -->
+    <div class="section">
+      <div class="section-title">Geographic Distribution</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Downloads (30d)</th>
+            </tr>
+          </thead>
+          <tbody id="geoTableBody">
+            <tr><td colspan="2" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Crashes Section -->
+    <div class="section">
+      <div class="section-title">Crash Reports</div>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-title">Crashes by Version</div>
+          <canvas id="crashVersionChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Crashes by Platform</div>
+          <canvas id="crashPlatformChart"></canvas>
+        </div>
+      </div>
+      <div class="table-container" style="margin-top: 20px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Platform</th>
+              <th>Error</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="crashTableBody">
+            <tr><td colspan="5" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let charts = {};
+    let cachedStats = {};
+
+    // Format number with animation
+    function animateNumber(element, target, duration = 1000) {
+      const start = 0;
+      const increment = target / (duration / 16);
+      let current = 0;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          element.textContent = target.toLocaleString();
+          clearInterval(timer);
+        } else {
+          element.textContent = Math.floor(current).toLocaleString();
+        }
+      }, 16);
+    }
+
+    // Get auth header
+    function getAuthHeader() {
+      const username = prompt('Admin username:', 'admin');
+      if (!username) return null;
+      const password = prompt('Admin password:', '');
+      if (!password) return null;
+      const credentials = btoa(`${username}:${password}`);
+      return { 'Authorization': `Basic ${credentials}` };
+    }
+
+    let authHeader = getAuthHeader();
+
+    if (!authHeader) {
+      alert('Authorization required to view analytics dashboard');
+      window.location.href = '/';
+    }
+
+    // Fetch stats
+    async function fetchStats() {
+      try {
+        const response = await fetch(`${API_BASE}/stats`, { headers: authHeader });
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        return null;
+      }
+    }
+
+    // Load overview statistics
+    async function loadOverviewStats() {
+      const stats = await fetchStats();
+      if (!stats) return;
+
+      cachedStats = stats;
+
+      const totalDownloadsEl = document.getElementById('totalDownloads');
+      totalDownloadsEl.innerHTML = '';
+      animateNumber(totalDownloadsEl, stats.totalDownloads);
+
+      const activeUsersEl = document.getElementById('activeUsers');
+      activeUsersEl.innerHTML = '';
+      animateNumber(activeUsersEl, stats.activeUsers);
+
+      document.getElementById('crashCount').textContent = stats.crashCount;
+      document.getElementById('totalEvents').textContent = stats.totalEvents.toLocaleString();
+
+      const lastUpdate = new Date(stats.lastUpdated);
+      document.getElementById('lastUpdate').textContent = `Last updated: ${lastUpdate.toLocaleString()}`;
+    }
+
+    // Load downloads data
+    async function loadDownloads() {
+      const period = document.getElementById('downloadPeriod').value;
+      try {
+        const response = await fetch(`${API_BASE}/stats/downloads?days=${period}`, { headers: authHeader });
+        const data = await response.json();
+
+        // Platform chart
+        if (data.byPlatform.length > 0) {
+          const ctx = document.getElementById('platformChart').getContext('2d');
+          if (charts.platformChart) charts.platformChart.destroy();
+
+          charts.platformChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: data.byPlatform.map(d => d.platform),
+              datasets: [{
+                data: data.byPlatform.map(d => d.count),
+                backgroundColor: [
+                  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
+                ],
+                borderColor: '#1e293b',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 15 } }
+              }
+            }
+          });
+        }
+
+        // Version chart
+        if (data.byVersion.length > 0) {
+          const ctx = document.getElementById('versionChart').getContext('2d');
+          if (charts.versionChart) charts.versionChart.destroy();
+
+          charts.versionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.byVersion.map(d => d.version),
+              datasets: [{
+                label: 'Downloads',
+                data: data.byVersion.map(d => d.count),
+                backgroundColor: '#3b82f6',
+                borderColor: '#2563eb',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Trend chart
+        if (data.overTime.length > 0) {
+          const ctx = document.getElementById('trendChart').getContext('2d');
+          if (charts.trendChart) charts.trendChart.destroy();
+
+          charts.trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.overTime.map(d => d.date),
+              datasets: [{
+                label: 'Daily Downloads',
+                data: data.overTime.map(d => d.count),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor: '#1e293b'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { labels: { color: '#e2e8f0' } }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading downloads:', error);
+      }
+    }
+
+    // Load users data
+    async function loadUsers() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/users`, { headers: authHeader });
+        const data = await response.json();
+
+        // Daily active chart
+        if (data.dailyActive.length > 0) {
+          const ctx = document.getElementById('dailyActiveChart').getContext('2d');
+          if (charts.dailyActiveChart) charts.dailyActiveChart.destroy();
+
+          charts.dailyActiveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.dailyActive.map(d => d.date),
+              datasets: [{
+                label: 'Daily Active Users',
+                data: data.dailyActive.map(d => d.count),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#1e293b'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { labels: { color: '#e2e8f0' } }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Weekly active chart
+        if (data.weeklyActive.length > 0) {
+          const ctx = document.getElementById('weeklyActiveChart').getContext('2d');
+          if (charts.weeklyActiveChart) charts.weeklyActiveChart.destroy();
+
+          charts.weeklyActiveChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.weeklyActive.map(d => d.week),
+              datasets: [{
+                label: 'Weekly Active Users',
+                data: data.weeklyActive.map(d => d.count),
+                backgroundColor: '#10b981',
+                borderColor: '#059669',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Monthly active chart
+        if (data.monthlyActive.length > 0) {
+          const ctx = document.getElementById('monthlyActiveChart').getContext('2d');
+          if (charts.monthlyActiveChart) charts.monthlyActiveChart.destroy();
+
+          charts.monthlyActiveChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.monthlyActive.map(d => d.month),
+              datasets: [{
+                label: 'Monthly Active Users',
+                data: data.monthlyActive.map(d => d.count),
+                backgroundColor: '#10b981',
+                borderColor: '#059669',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    }
+
+    // Load features data
+    async function loadFeatures() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/features`, { headers: authHeader });
+        const data = await response.json();
+
+        // Features chart
+        if (data.features.length > 0) {
+          const ctx = document.getElementById('featuresChart').getContext('2d');
+          if (charts.featuresChart) charts.featuresChart.destroy();
+
+          charts.featuresChart = new Chart(ctx, {
+            type: 'barChart',
+            data: {
+              labels: data.features.map(f => f.feature_name),
+              datasets: [{
+                label: 'Usage Count',
+                data: data.features.map(f => f.usage_count),
+                backgroundColor: '#3b82f6',
+                borderColor: '#2563eb',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Feature heatmap
+        const heatmapEl = document.getElementById('featureHeatmap');
+        heatmapEl.innerHTML = '';
+        data.features.forEach(f => {
+          const item = document.createElement('div');
+          item.className = 'heatmap-item';
+          const percentage = data.features[0].usage_count > 0 ?
+            (f.usage_count / data.features[0].usage_count * 100) : 0;
+          const intensity = Math.max(0.2, Math.min(1, percentage / 100));
+          item.style.backgroundColor = `rgba(59, 130, 246, ${intensity * 0.5})`;
+          item.innerHTML = `
+            <div class="heatmap-name">${f.feature_name}</div>
+            <div class="heatmap-value">${f.usage_count}</div>
+          `;
+          heatmapEl.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Error loading features:', error);
+      }
+    }
+
+    // Load version adoption
+    async function loadVersionAdoption() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/versions`, { headers: authHeader });
+        const data = await response.json();
+
+        // Version adoption chart
+        if (data.versionAdoption.length > 0) {
+          const ctx = document.getElementById('versionAdoptionChart').getContext('2d');
+          if (charts.versionAdoptionChart) charts.versionAdoptionChart.destroy();
+
+          charts.versionAdoptionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.versionAdoption.map(v => v.version),
+              datasets: [{
+                label: 'User %',
+                data: data.versionAdoption.map(v => v.percentage),
+                backgroundColor: '#f59e0b',
+                borderColor: '#d97706',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' },
+                  max: 100
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Version table
+        const tbody = document.getElementById('versionTableBody');
+        tbody.innerHTML = '';
+        data.versionAdoption.forEach(v => {
+          tbody.innerHTML += `
+            <tr>
+              <td><span class="badge badge-primary">${v.version}</span></td>
+              <td>${v.user_count.toLocaleString()}</td>
+              <td>${v.percentage.toFixed(1)}%</td>
+            </tr>
+          `;
+        });
+      } catch (error) {
+        console.error('Error loading version adoption:', error);
+      }
+    }
+
+    // Load geographic data
+    async function loadGeo() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/geo`, { headers: authHeader });
+        const data = await response.json();
+
+        const tbody = document.getElementById('geoTableBody');
+        tbody.innerHTML = '';
+        if (data.topCountries.length > 0) {
+          data.topCountries.forEach(g => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${g.country || 'Unknown'}</td>
+                <td>${g.download_count}</td>
+              </tr>
+            `;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="2">No geographic data available</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading geographic data:', error);
+      }
+    }
+
+    // Load crashes
+    async function loadCrashes() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/crashes`, { headers: authHeader });
+        const data = await response.json();
+
+        // Crashes by version
+        if (data.crashesByVersion.length > 0) {
+          const ctx = document.getElementById('crashVersionChart').getContext('2d');
+          if (charts.crashVersionChart) charts.crashVersionChart.destroy();
+
+          charts.crashVersionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.crashesByVersion.map(c => c.version),
+              datasets: [{
+                label: 'Crashes',
+                data: data.crashesByVersion.map(c => c.count),
+                backgroundColor: '#ef4444',
+                borderColor: '#dc2626',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                },
+                y: {
+                  ticks: { color: '#e2e8f0' },
+                  grid: { color: '#334155' }
+                }
+              }
+            }
+          });
+        }
+
+        // Crashes by platform
+        if (data.crashesByPlatform.length > 0) {
+          const ctx = document.getElementById('crashPlatformChart').getContext('2d');
+          if (charts.crashPlatformChart) charts.crashPlatformChart.destroy();
+
+          charts.crashPlatformChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: data.crashesByPlatform.map(c => c.platform),
+              datasets: [{
+                data: data.crashesByPlatform.map(c => c.count),
+                backgroundColor: ['#ef4444', '#f97316', '#eab308', '#84cc16'],
+                borderColor: '#1e293b',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 15 } }
+              }
+            }
+          });
+        }
+
+        // Crashes table
+        const tbody = document.getElementById('crashTableBody');
+        tbody.innerHTML = '';
+        if (data.recentCrashes.length > 0) {
+          data.recentCrashes.forEach(c => {
+            const time = new Date(c.timestamp).toLocaleString();
+            const statusBadge = c.resolved ?
+              '<span class="crash-badge resolved">Resolved</span>' :
+              '<span class="crash-badge open">Open</span>';
+            tbody.innerHTML += `
+              <tr>
+                <td><span class="badge badge-primary">${c.version}</span></td>
+                <td>${c.platform}</td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${c.error_message || 'Unknown error'}</td>
+                <td>${time}</td>
+                <td>${statusBadge}</td>
+              </tr>
+            `;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">No crashes reported</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading crashes:', error);
+      }
+    }
+
+    // Refresh all data
+    async function refreshData() {
+      const btn = event.target;
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      await Promise.all([
+        loadOverviewStats(),
+        loadDownloads(),
+        loadUsers(),
+        loadFeatures(),
+        loadVersionAdoption(),
+        loadGeo(),
+        loadCrashes()
+      ]);
+
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+
+    // Export data
+    async function exportData() {
+      try {
+        const response = await fetch(`${API_BASE}/export/csv?type=all`, { headers: authHeader });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error exporting data:', error);
+        alert('Failed to export data');
+      }
+    }
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      Promise.all([
+        loadOverviewStats(),
+        loadDownloads(),
+        loadUsers(),
+        loadFeatures(),
+        loadVersionAdoption(),
+        loadGeo(),
+        loadCrashes()
+      ]);
+    });
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+      Promise.all([
+        loadOverviewStats(),
+        loadDownloads(),
+        loadUsers(),
+        loadFeatures(),
+        loadVersionAdoption(),
+        loadGeo(),
+        loadCrashes()
+      ]);
+    }, 5 * 60 * 1000);
+  </script>
+</body>
+</html>

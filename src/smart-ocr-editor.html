@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenPDF Studio - Smart OCR Editor Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+      --text: #f1f5f9; --text2: #94a3b8; --border: #475569;
+      --primary: #2563eb; --accent: #8b5cf6; --success: #22c55e;
+      --danger: #ef4444; --warning: #f59e0b;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; height:100vh; }
+
+    .header { display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:48px; background:var(--bg2); border-bottom:1px solid var(--border); }
+    .logo { font-weight:700; font-size:16px; display:flex; align-items:center; gap:8px; }
+    .badge { background:var(--accent); font-size:10px; padding:2px 6px; border-radius:4px; }
+
+    .toolbar { display:flex; align-items:center; gap:8px; padding:8px 16px; background:var(--bg2); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .btn { padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; display:flex; align-items:center; gap:6px; transition:all 0.2s; }
+    .btn-primary { background:var(--primary); color:white; }
+    .btn-primary:hover { background:#1d4ed8; }
+    .btn-ai { background:linear-gradient(135deg,var(--accent),var(--primary)); color:white; }
+    .btn-ai:hover { opacity:0.9; }
+    .btn-secondary { background:var(--bg3); color:var(--text); }
+    .btn-secondary:hover { background:#475569; }
+    .btn-success { background:var(--success); color:#000; }
+    .btn-danger { background:var(--danger); color:white; }
+    .separator { width:1px; height:24px; background:var(--border); margin:0 4px; }
+
+    .main { display:flex; height:calc(100vh - 48px - 48px - 32px); }
+
+    .canvas-area { flex:1; display:flex; align-items:center; justify-content:center; overflow:auto; background:#0a0f1e; position:relative; }
+    .canvas-wrapper { position:relative; box-shadow:0 4px 24px rgba(0,0,0,0.5); }
+    #pdf-canvas { display:block; }
+    #annotation-canvas { position:absolute; top:0; left:0; }
+
+    .right-panel { width:320px; background:var(--bg2); border-left:1px solid var(--border); overflow-y:auto; display:flex; flex-direction:column; }
+    .panel-section { padding:16px; border-bottom:1px solid var(--border); }
+    .panel-section h3 { font-size:13px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+    .panel-section h3 .icon { font-size:16px; }
+
+    /* OCR Results */
+    .ocr-word-list { max-height:200px; overflow-y:auto; font-size:12px; }
+    .ocr-word-item { display:flex; justify-content:space-between; padding:4px 8px; border-radius:4px; cursor:pointer; }
+    .ocr-word-item:hover { background:var(--bg3); }
+    .ocr-word-item .confidence { color:var(--success); }
+    .ocr-word-item .confidence.low { color:var(--warning); }
+    .ocr-word-item .confidence.very-low { color:var(--danger); }
+
+    /* Progress */
+    .progress-bar { width:100%; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width 0.3s; }
+
+    /* Status Bar */
+    .status-bar { display:flex; align-items:center; justify-content:space-between; padding:4px 16px; background:var(--bg2); border-top:1px solid var(--border); font-size:11px; color:var(--text2); height:32px; }
+
+    /* Drop zone */
+    .drop-zone { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; width:100%; height:100%; cursor:pointer; }
+    .drop-zone h2 { font-size:24px; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .drop-zone p { color:var(--text2); font-size:14px; }
+    .drop-box { width:300px; height:150px; border:2px dashed var(--border); border-radius:16px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; transition:all 0.3s; }
+    .drop-box:hover { border-color:var(--primary); background:rgba(37,99,235,0.05); }
+
+    /* Editable text blocks */
+    .text-block-overlay {
+      position: absolute;
+      border: 1px dashed rgba(37,99,235,0.5);
+      cursor: text;
+      transition: border-color 0.2s;
+    }
+    .text-block-overlay:hover {
+      border-color: var(--primary);
+      background: rgba(37,99,235,0.05);
+    }
+    .text-block-overlay.editing {
+      border-color: var(--accent);
+      background: rgba(139,92,246,0.1);
+    }
+
+    /* Toast */
+    .toast-container { position:fixed; bottom:40px; right:20px; z-index:2000; }
+    .toast { padding:12px 20px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; margin-top:8px; font-size:13px; animation:slideIn 0.3s ease; }
+    .toast.success { border-left:3px solid var(--success); }
+    .toast.error { border-left:3px solid var(--danger); }
+    .toast.info { border-left:3px solid var(--primary); }
+    @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* Stats */
+    .stat-row { display:flex; justify-content:space-between; padding:6px 0; font-size:12px; }
+    .stat-label { color:var(--text2); }
+    .stat-value { font-weight:600; }
+
+    /* Instruction cards */
+    .instruction-card { background:var(--bg3); border-radius:8px; padding:12px; margin-bottom:8px; font-size:12px; line-height:1.5; }
+    .instruction-card strong { color:var(--primary); }
+
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+    input[type="file"] { display:none; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span>OpenPDF Studio</span>
+    <span class="badge">Smart OCR Editor</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-secondary" onclick="openFile()">Open PDF</button>
+    <button class="btn btn-success" onclick="savePDF()" id="save-btn" style="display:none;">Save PDF</button>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbar" style="display:none;">
+  <button class="btn btn-ai" onclick="runSmartOCR()">
+    <span>&#x2728;</span> Smart OCR - Make Editable
+  </button>
+  <div class="separator"></div>
+  <button class="btn btn-secondary" onclick="setMode('select')">Select</button>
+  <button class="btn btn-secondary" onclick="setMode('text')">+ Add Text</button>
+  <button class="btn btn-secondary" onclick="setMode('draw')">Draw</button>
+  <button class="btn btn-secondary" onclick="setMode('highlight')">Highlight</button>
+  <div class="separator"></div>
+  <button class="btn btn-secondary" onclick="undoAction()">Undo</button>
+  <button class="btn btn-secondary" onclick="redoAction()">Redo</button>
+  <div class="separator"></div>
+  <button class="btn btn-danger" onclick="clearEdits()">Clear All Edits</button>
+</div>
+
+<div class="main">
+  <div class="canvas-area" id="canvas-area">
+    <div class="drop-zone" id="drop-zone">
+      <h2>Smart OCR PDF Editor</h2>
+      <p>Open any PDF — scanned or digital — and edit text directly.</p>
+      <div class="drop-box" onclick="openFile()">
+        <span style="font-size:36px;">&#128196;</span>
+        <span style="color:var(--text2);font-size:13px;">Drop PDF here or click to browse</span>
+      </div>
+      <p style="font-size:12px;color:var(--text2);max-width:400px;text-align:center;margin-top:8px;">
+        Works with scanned documents, photos of paper, and any PDF. AI OCR detects text and makes it editable.
+      </p>
+    </div>
+
+    <div class="canvas-wrapper" id="canvas-wrapper" style="display:none;">
+      <canvas id="pdf-canvas"></canvas>
+      <canvas id="annotation-canvas"></canvas>
+    </div>
+  </div>
+
+  <div class="right-panel" id="right-panel">
+    <div class="panel-section">
+      <h3><span class="icon">&#x1F4CA;</span> Document Info</h3>
+      <div id="doc-info">
+        <div class="instruction-card">
+          <strong>How it works:</strong><br>
+          1. Open any PDF (scanned or digital)<br>
+          2. Click "Smart OCR - Make Editable"<br>
+          3. Click any detected text to edit it<br>
+          4. Save your changes
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" id="ocr-panel" style="display:none;">
+      <h3><span class="icon">&#x1F916;</span> OCR Results</h3>
+      <div id="ocr-stats"></div>
+      <div style="margin-top:8px;">
+        <div class="progress-bar" id="ocr-progress" style="display:none;">
+          <div class="progress-fill" id="ocr-progress-fill" style="width:0%"></div>
+        </div>
+        <p id="ocr-status-text" style="font-size:11px;color:var(--text2);margin-top:4px;"></p>
+      </div>
+    </div>
+
+    <div class="panel-section" id="detected-text-panel" style="display:none;">
+      <h3><span class="icon">&#x1F4DD;</span> Detected Text Blocks</h3>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:8px;">Click a block to edit it on the canvas.</p>
+      <div class="ocr-word-list" id="text-block-list"></div>
+    </div>
+
+    <div class="panel-section" id="edit-panel" style="display:none;">
+      <h3><span class="icon">&#x270F;&#xFE0F;</span> Edit Properties</h3>
+      <div class="form-row" style="margin-bottom:8px;">
+        <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Font Size</label>
+        <input type="range" id="font-size-slider" min="8" max="72" value="16" style="width:100%;" onchange="updateSelectedFontSize(this.value)">
+        <span id="font-size-value" style="font-size:11px;color:var(--text2);">16px</span>
+      </div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Font Color</label>
+        <input type="color" id="font-color" value="#000000" onchange="updateSelectedColor(this.value)" style="width:40px;height:30px;border:none;cursor:pointer;">
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;">
+        <button class="btn btn-secondary" style="font-weight:700;padding:6px 12px;" onclick="toggleBold()"><b>B</b></button>
+        <button class="btn btn-secondary" style="font-style:italic;padding:6px 12px;" onclick="toggleItalic()"><i>I</i></button>
+        <button class="btn btn-secondary" style="text-decoration:underline;padding:6px 12px;" onclick="toggleUnderline()"><u>U</u></button>
+      </div>
+    </div>
+
+    <div class="panel-section" id="page-nav-panel" style="display:none;">
+      <h3><span class="icon">&#x1F4C4;</span> Page Navigation</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-secondary" onclick="prevPage()">&#x25C0; Prev</button>
+        <span id="page-indicator" style="font-size:13px;">1 / 1</span>
+        <button class="btn btn-secondary" onclick="nextPage()">Next &#x25B6;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span id="status-text">Ready — Open a PDF to start editing</span>
+  <span id="zoom-text">100%</span>
+</div>
+
+<input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" onchange="handleFile(event)">
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ===== STATE =====
+const state = {
+  pdfDoc: null,
+  pdfBytes: null,
+  currentPage: 1,
+  totalPages: 0,
+  zoom: 1.5,
+  fabricCanvas: null,
+  ocrData: null,
+  mode: 'select',
+  textBlocks: [],
+  history: [],
+  historyIdx: -1,
+};
+
+// ===== UTILITIES =====
+function showToast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function setStatus(text) {
+  document.getElementById('status-text').textContent = text;
+}
+
+// ===== FILE HANDLING =====
+function openFile() { document.getElementById('file-input').click(); }
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') {
+    const ab = await file.arrayBuffer();
+    state.pdfBytes = new Uint8Array(ab);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+    state.totalPages = state.pdfDoc.numPages;
+    state.currentPage = 1;
+
+    document.getElementById('drop-zone').style.display = 'none';
+    document.getElementById('canvas-wrapper').style.display = 'block';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('save-btn').style.display = 'inline-flex';
+    document.getElementById('page-nav-panel').style.display = 'block';
+
+    await renderPage(state.currentPage);
+    updatePageIndicator();
+    setStatus(`Loaded: ${file.name} (${state.totalPages} pages)`);
+    showToast(`Loaded ${file.name}`, 'success');
+
+    document.getElementById('doc-info').innerHTML = `
+      <div class="stat-row"><span class="stat-label">File</span><span class="stat-value">${file.name}</span></div>
+      <div class="stat-row"><span class="stat-label">Pages</span><span class="stat-value">${state.totalPages}</span></div>
+      <div class="stat-row"><span class="stat-label">Size</span><span class="stat-value">${(file.size/1024).toFixed(1)} KB</span></div>
+      <div class="stat-row"><span class="stat-label">OCR Status</span><span class="stat-value" id="ocr-badge" style="color:var(--warning);">Not scanned</span></div>
+      <div class="instruction-card" style="margin-top:8px;">
+        <strong>Next step:</strong> Click "Smart OCR - Make Editable" to detect all text and make it editable.
+      </div>
+    `;
+  } else {
+    // Load image directly
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      document.getElementById('drop-zone').style.display = 'none';
+      document.getElementById('canvas-wrapper').style.display = 'block';
+      document.getElementById('toolbar').style.display = 'flex';
+      document.getElementById('save-btn').style.display = 'inline-flex';
+
+      const c = document.getElementById('pdf-canvas');
+      c.width = img.width;
+      c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      initFabric(img.width, img.height);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+  e.target.value = '';
+}
+
+// ===== PDF RENDERING =====
+async function renderPage(num) {
+  const page = await state.pdfDoc.getPage(num);
+  const vp = page.getViewport({ scale: state.zoom });
+  const c = document.getElementById('pdf-canvas');
+  c.width = vp.width;
+  c.height = vp.height;
+  await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+  initFabric(vp.width, vp.height);
+  state.textBlocks = [];
+  state.ocrData = null;
+  document.getElementById('detected-text-panel').style.display = 'none';
+}
+
+function initFabric(w, h) {
+  const ac = document.getElementById('annotation-canvas');
+  ac.width = w; ac.height = h;
+  if (state.fabricCanvas) state.fabricCanvas.dispose();
+  state.fabricCanvas = new fabric.Canvas('annotation-canvas', { width: w, height: h, selection: true });
+  state.fabricCanvas.freeDrawingBrush.width = 2;
+  state.fabricCanvas.freeDrawingBrush.color = '#000';
+
+  state.fabricCanvas.on('mouse:down', (opt) => {
+    if (state.mode === 'text') {
+      const p = state.fabricCanvas.getPointer(opt.e);
+      const t = new fabric.IText('Type here...', {
+        left: p.x, top: p.y,
+        fontFamily: 'Arial', fontSize: 16, fill: '#000',
+        editable: true, backgroundColor: 'rgba(255,255,255,0.8)',
+      });
+      state.fabricCanvas.add(t);
+      state.fabricCanvas.setActiveObject(t);
+      t.enterEditing();
+      saveHistory();
+    }
+  });
+
+  state.fabricCanvas.on('object:modified', saveHistory);
+}
+
+// ===== SMART OCR =====
+async function runSmartOCR() {
+  if (!state.fabricCanvas) {
+    showToast('Open a document first', 'error');
+    return;
+  }
+
+  setStatus('AI: Running Smart OCR...');
+  showToast('Starting OCR — analyzing document...', 'info');
+
+  const ocrPanel = document.getElementById('ocr-panel');
+  const progressBar = document.getElementById('ocr-progress');
+  const progressFill = document.getElementById('ocr-progress-fill');
+  const statusText = document.getElementById('ocr-status-text');
+
+  ocrPanel.style.display = 'block';
+  progressBar.style.display = 'block';
+
+  try {
+    const canvas = document.getElementById('pdf-canvas');
+
+    const result = await Tesseract.recognize(canvas, 'eng', {
+      logger: m => {
+        if (m.progress !== undefined) {
+          const pct = Math.round(m.progress * 100);
+          progressFill.style.width = pct + '%';
+          statusText.textContent = `${m.status} (${pct}%)`;
+          setStatus(`OCR: ${m.status} (${pct}%)`);
+        }
+      }
+    });
+
+    state.ocrData = result.data;
+    progressBar.style.display = 'none';
+
+    // Display stats
+    const words = result.data.words || [];
+    const lines = result.data.lines || [];
+    const blocks = result.data.blocks || [];
+    const avgConfidence = words.length > 0
+      ? (words.reduce((s, w) => s + w.confidence, 0) / words.length).toFixed(1)
+      : 0;
+
+    document.getElementById('ocr-stats').innerHTML = `
+      <div class="stat-row"><span class="stat-label">Words detected</span><span class="stat-value">${words.length}</span></div>
+      <div class="stat-row"><span class="stat-label">Lines</span><span class="stat-value">${lines.length}</span></div>
+      <div class="stat-row"><span class="stat-label">Text blocks</span><span class="stat-value">${blocks.length}</span></div>
+      <div class="stat-row"><span class="stat-label">Avg confidence</span><span class="stat-value" style="color:${avgConfidence > 80 ? 'var(--success)' : avgConfidence > 50 ? 'var(--warning)' : 'var(--danger)'};">${avgConfidence}%</span></div>
+    `;
+    statusText.textContent = 'OCR complete. Click text blocks to edit them.';
+
+    // Update OCR badge
+    const badge = document.getElementById('ocr-badge');
+    if (badge) {
+      badge.textContent = 'Scanned';
+      badge.style.color = 'var(--success)';
+    }
+
+    // Create editable text blocks on the fabric canvas
+    createEditableTextBlocks(result.data);
+
+    showToast(`OCR complete: ${words.length} words detected with ${avgConfidence}% confidence`, 'success');
+    setStatus(`OCR complete — ${words.length} words detected. Click any text to edit.`);
+    document.getElementById('edit-panel').style.display = 'block';
+
+  } catch (e) {
+    progressBar.style.display = 'none';
+    showToast('OCR error: ' + e.message, 'error');
+    setStatus('OCR failed');
+  }
+}
+
+function createEditableTextBlocks(ocrData) {
+  // Clear previous text blocks
+  state.textBlocks.forEach(tb => state.fabricCanvas.remove(tb));
+  state.textBlocks = [];
+
+  const canvas = document.getElementById('pdf-canvas');
+  const scaleX = canvas.width / (ocrData.width || canvas.width);
+  const scaleY = canvas.height / (ocrData.height || canvas.height);
+
+  // Group words into lines for better editing
+  const lines = ocrData.lines || [];
+  const listContainer = document.getElementById('text-block-list');
+  listContainer.innerHTML = '';
+
+  lines.forEach((line, idx) => {
+    const bbox = line.bbox;
+    const x = bbox.x0 * scaleX;
+    const y = bbox.y0 * scaleY;
+    const w = (bbox.x1 - bbox.x0) * scaleX;
+    const h = (bbox.y1 - bbox.y0) * scaleY;
+
+    // Estimate font size from bounding box height
+    const fontSize = Math.max(10, Math.round(h * 0.75));
+
+    // Create an editable text object positioned exactly over the detected text
+    const textObj = new fabric.IText(line.text, {
+      left: x,
+      top: y,
+      width: w,
+      fontFamily: 'Arial',
+      fontSize: fontSize,
+      fill: '#000000',
+      editable: true,
+      // Semi-transparent white background so the edited text covers the original
+      backgroundColor: 'rgba(255,255,255,0.85)',
+      padding: 2,
+      // Store original OCR data for reference
+      ocrLine: line,
+      ocrIndex: idx,
+    });
+
+    state.fabricCanvas.add(textObj);
+    state.textBlocks.push(textObj);
+
+    // Add to the sidebar list
+    const confidence = line.confidence || 0;
+    const confClass = confidence > 80 ? '' : confidence > 50 ? 'low' : 'very-low';
+    const item = document.createElement('div');
+    item.className = 'ocr-word-item';
+    item.innerHTML = `
+      <span style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${line.text}</span>
+      <span class="confidence ${confClass}">${confidence.toFixed(0)}%</span>
+    `;
+    item.onclick = () => {
+      state.fabricCanvas.setActiveObject(textObj);
+      textObj.enterEditing();
+      state.fabricCanvas.renderAll();
+    };
+    listContainer.appendChild(item);
+  });
+
+  document.getElementById('detected-text-panel').style.display = 'block';
+  state.fabricCanvas.renderAll();
+  saveHistory();
+}
+
+// ===== TEXT EDITING CONTROLS =====
+function updateSelectedFontSize(size) {
+  document.getElementById('font-size-value').textContent = size + 'px';
+  const active = state.fabricCanvas?.getActiveObject();
+  if (active && active.type === 'i-text') {
+    active.set('fontSize', parseInt(size));
+    state.fabricCanvas.renderAll();
+  }
+}
+
+function updateSelectedColor(color) {
+  const active = state.fabricCanvas?.getActiveObject();
+  if (active && active.type === 'i-text') {
+    active.set('fill', color);
+    state.fabricCanvas.renderAll();
+  }
+}
+
+function toggleBold() {
+  const active = state.fabricCanvas?.getActiveObject();
+  if (active && active.type === 'i-text') {
+    active.set('fontWeight', active.fontWeight === 'bold' ? 'normal' : 'bold');
+    state.fabricCanvas.renderAll();
+  }
+}
+
+function toggleItalic() {
+  const active = state.fabricCanvas?.getActiveObject();
+  if (active && active.type === 'i-text') {
+    active.set('fontStyle', active.fontStyle === 'italic' ? 'normal' : 'italic');
+    state.fabricCanvas.renderAll();
+  }
+}
+
+function toggleUnderline() {
+  const active = state.fabricCanvas?.getActiveObject();
+  if (active && active.type === 'i-text') {
+    active.set('underline', !active.underline);
+    state.fabricCanvas.renderAll();
+  }
+}
+
+// ===== TOOL MODES =====
+function setMode(mode) {
+  state.mode = mode;
+  if (state.fabricCanvas) {
+    state.fabricCanvas.isDrawingMode = (mode === 'draw' || mode === 'highlight');
+    if (mode === 'draw') {
+      state.fabricCanvas.freeDrawingBrush.width = 2;
+      state.fabricCanvas.freeDrawingBrush.color = '#000';
+    } else if (mode === 'highlight') {
+      state.fabricCanvas.freeDrawingBrush.width = 20;
+      state.fabricCanvas.freeDrawingBrush.color = 'rgba(255,255,0,0.3)';
+    }
+  }
+  setStatus(`Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`);
+}
+
+// ===== HISTORY =====
+function saveHistory() {
+  if (!state.fabricCanvas) return;
+  const json = state.fabricCanvas.toJSON();
+  state.history = state.history.slice(0, state.historyIdx + 1);
+  state.history.push(json);
+  state.historyIdx = state.history.length - 1;
+}
+
+function undoAction() {
+  if (state.historyIdx > 0) {
+    state.historyIdx--;
+    state.fabricCanvas.loadFromJSON(state.history[state.historyIdx], () => state.fabricCanvas.renderAll());
+  }
+}
+
+function redoAction() {
+  if (state.historyIdx < state.history.length - 1) {
+    state.historyIdx++;
+    state.fabricCanvas.loadFromJSON(state.history[state.historyIdx], () => state.fabricCanvas.renderAll());
+  }
+}
+
+function clearEdits() {
+  if (state.fabricCanvas && confirm('Clear all edits and OCR text?')) {
+    state.fabricCanvas.clear();
+    state.textBlocks = [];
+    document.getElementById('detected-text-panel').style.display = 'none';
+    showToast('All edits cleared', 'info');
+  }
+}
+
+// ===== PAGE NAVIGATION =====
+function updatePageIndicator() {
+  document.getElementById('page-indicator').textContent = `${state.currentPage} / ${state.totalPages}`;
+}
+
+async function prevPage() {
+  if (state.currentPage > 1) { state.currentPage--; await renderPage(state.currentPage); updatePageIndicator(); }
+}
+
+async function nextPage() {
+  if (state.currentPage < state.totalPages) { state.currentPage++; await renderPage(state.currentPage); updatePageIndicator(); }
+}
+
+// ===== SAVE PDF =====
+async function savePDF() {
+  if (!state.pdfBytes) {
+    showToast('No PDF loaded', 'error');
+    return;
+  }
+
+  try {
+    setStatus('Saving...');
+    const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+
+    if (state.fabricCanvas && state.fabricCanvas.getObjects().length > 0) {
+      // Render the annotation canvas (with all edits) as an image overlay
+      const dataUrl = state.fabricCanvas.toDataURL({ format: 'png' });
+      const imgBytes = await fetch(dataUrl).then(r => r.arrayBuffer());
+      const img = await pdfDoc.embedPng(imgBytes);
+      const page = pdfDoc.getPage(state.currentPage - 1);
+      const { width, height } = page.getSize();
+      page.drawImage(img, { x: 0, y: 0, width, height });
+    }
+
+    const savedBytes = await pdfDoc.save();
+    const blob = new Blob([savedBytes], { type: 'application/pdf' });
+    saveAs(blob, 'edited.pdf');
+    showToast('PDF saved successfully!', 'success');
+    setStatus('Saved');
+  } catch (e) {
+    showToast('Save error: ' + e.message, 'error');
+  }
+}
+
+// ===== DRAG & DROP =====
+const canvasArea = document.getElementById('canvas-area');
+['dragenter','dragover','dragleave','drop'].forEach(ev => {
+  canvasArea.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+});
+canvasArea.addEventListener('drop', async (e) => {
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    document.getElementById('file-input').files = files;
+    handleFile({ target: { files, value: '' } });
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoAction(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoAction(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); savePDF(); }
+  if (e.key === 'ArrowRight' && !e.target.closest('input,textarea')) nextPage();
+  if (e.key === 'ArrowLeft' && !e.target.closest('input,textarea')) prevPage();
+});
+</script>
+</body>
+</html>

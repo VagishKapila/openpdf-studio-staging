@@ -1,0 +1,29 @@
+{
+  "name": "openpdf-studio-admin",
+  "version": "1.0.0",
+  "description": "Analytics and admin dashboard for OpenPDF Studio",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed-data.js"
+  },
+  "keywords": ["analytics", "admin", "dashboard"],
+  "author": "OpenPDF Studio",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^9.2.2",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

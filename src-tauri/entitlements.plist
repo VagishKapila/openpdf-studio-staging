@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- File system access for reading/writing PDFs and images -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+  <key>com.apple.security.files.downloads.read-write</key>
+  <true/>
+  <!-- Allow network access for updates and remote resources -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <!-- Allow process spawning for system commands like qpdf -->
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <!-- Camera and microphone access (optional, for future features) -->
+  <key>com.apple.security.device.camera</key>
+  <false/>
+  <key>com.apple.security.device.microphone</key>
+  <false/>
+</dict>
+</plist>

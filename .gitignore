@@ -1,0 +1,49 @@
+# Tauri
+src-tauri/target/
+src-tauri/.cargo/
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Tauri build artifacts
+src-tauri/target/
+.tauri-plugin-cache
+
+# Dependencies
+pnpm-workspace.yaml
+.npmrc
+
+# Signing keys (if any)
+*.pfx
+*.p12
+*.pem
+
+# Temporary files
+*.tmp
+*.log

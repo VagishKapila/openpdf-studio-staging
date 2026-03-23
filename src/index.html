@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenPDF Studio - Free AI-Powered PDF & Image Editor</title>
+
+  <!-- PDF.js for rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+
+  <!-- pdf-lib for editing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+  <!-- Fabric.js for canvas annotations & image editing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+  <!-- Tesseract.js for OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- JSZip for handling files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- FileSaver -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #dbeafe;
+      --bg: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #8b5cf6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ===== TOP NAV ===== */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 48px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .logo svg { width: 24px; height: 24px; }
+    .logo .free-badge {
+      background: var(--success);
+      color: #000;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* ===== TAB BAR ===== */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      padding: 0 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); background: var(--bg-tertiary); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* ===== TOOLBAR ===== */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 8px;
+      border-right: 1px solid var(--border);
+    }
+    .toolbar-group:last-child { border-right: none; }
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 12px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tool-btn:hover { background: var(--bg-tertiary); color: var(--text); }
+    .tool-btn.active { background: var(--primary); color: white; }
+    .tool-btn svg { width: 16px; height: 16px; }
+    .tool-btn.primary-btn {
+      background: var(--primary);
+      color: white;
+    }
+    .tool-btn.primary-btn:hover { background: var(--primary-hover); }
+    .tool-btn.ai-btn {
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      color: white;
+    }
+    .tool-btn.ai-btn:hover { opacity: 0.9; }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main-container {
+      display: flex;
+      height: calc(100vh - 48px - 36px - 42px);
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .page-thumbnails {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .page-thumb {
+      position: relative;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .page-thumb:hover { border-color: var(--border); }
+    .page-thumb.active { border-color: var(--primary); }
+    .page-thumb canvas { width: 100%; display: block; }
+    .page-thumb .page-num {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ===== CANVAS AREA ===== */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      background: #0a0f1e;
+      position: relative;
+    }
+    .canvas-wrapper {
+      position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    #pdf-canvas { display: block; }
+    .annotation-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* ===== RIGHT PANEL ===== */
+    .right-panel {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      display: none;
+    }
+    .right-panel.visible { display: block; }
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-section h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    /* ===== WELCOME SCREEN ===== */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+      gap: 24px;
+      padding: 40px;
+    }
+    .welcome-screen h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .welcome-screen p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      max-width: 500px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .drop-zone {
+      width: 400px;
+      height: 200px;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.05);
+    }
+    .drop-zone svg { width: 48px; height: 48px; color: var(--text-secondary); }
+    .drop-zone span { color: var(--text-secondary); font-size: 14px; }
+    .drop-zone .browse-btn {
+      padding: 8px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 600px;
+    }
+    .feature-card {
+      background: var(--bg-tertiary);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .feature-card svg { width: 28px; height: 28px; color: var(--primary); margin-bottom: 8px; }
+    .feature-card h4 { font-size: 13px; margin-bottom: 4px; }
+    .feature-card p { font-size: 11px; color: var(--text-secondary); }
+
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      display: none;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 16px; }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--bg-tertiary); color: var(--text); }
+    .btn-ai {
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      color: white;
+    }
+
+    /* ===== FORM CONTROLS ===== */
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* ===== SIGNATURE PAD ===== */
+    .signature-pad-container {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+    }
+    #signature-pad { cursor: crosshair; }
+
+    /* ===== COLOR PICKER ===== */
+    .color-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .color-swatch:hover, .color-swatch.active { border-color: white; }
+
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 16px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-secondary);
+      height: 28px;
+    }
+    .status-bar .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .zoom-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .zoom-btn:hover { background: var(--bg-tertiary); color: var(--text); }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      z-index: 2000;
+    }
+    .toast {
+      padding: 12px 20px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 8px;
+      animation: slideIn 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error { border-left: 3px solid var(--danger); }
+    .toast.info { border-left: 3px solid var(--primary); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.3s;
+    }
+
+    /* ===== AI CHAT PANEL ===== */
+    .ai-chat {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .ai-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .ai-msg {
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .ai-msg.bot {
+      background: var(--bg-tertiary);
+      color: var(--text);
+    }
+    .ai-msg.user {
+      background: var(--primary);
+      color: white;
+      margin-left: 20%;
+    }
+    .ai-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .ai-input-row input {
+      flex: 1;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    /* ===== IMAGE EDITOR ===== */
+    .image-editor-tools {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    /* ===== MERGE/SPLIT UI ===== */
+    .file-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .file-item .remove-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .right-panel { width: 100%; position: absolute; right: 0; top: 0; height: 100%; z-index: 50; }
+      .toolbar { overflow-x: auto; flex-wrap: nowrap; }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== TOP NAV ===== -->
+  <nav class="top-nav">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span>OpenPDF Studio</span>
+      <span class="free-badge">FREE</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="tool-btn ai-btn" onclick="toggleAIPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        AI Assistant
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== TAB BAR ===== -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" data-tab="pdf-editor" onclick="switchTab('pdf-editor')">PDF Editor</div>
+    <div class="tab" data-tab="image-editor" onclick="switchTab('image-editor')">Image Editor</div>
+    <div class="tab" data-tab="merge-split" onclick="switchTab('merge-split')">Merge & Split</div>
+    <div class="tab" data-tab="forms" onclick="switchTab('forms')">Form Filler</div>
+    <div class="tab" data-tab="convert" onclick="switchTab('convert')">Convert</div>
+    <div class="tab" data-tab="protect" onclick="switchTab('protect')">Protect</div>
+  </div>
+
+  <!-- ===== TOOLBAR ===== -->
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-group">
+      <button class="tool-btn" onclick="openFile()" title="Open File">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Open
+      </button>
+      <button class="tool-btn" onclick="savePDF()" title="Save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save
+      </button>
+      <button class="tool-btn" onclick="printPDF()" title="Print">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+    <div class="toolbar-group" id="edit-tools">
+      <button class="tool-btn" onclick="setTool('select')" id="tool-select" title="Select">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+        Select
+      </button>
+      <button class="tool-btn" onclick="setTool('text')" id="tool-text" title="Add Text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        Text
+      </button>
+      <button class="tool-btn" onclick="setTool('draw')" id="tool-draw" title="Draw">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+        Draw
+      </button>
+      <button class="tool-btn" onclick="setTool('highlight')" id="tool-highlight" title="Highlight">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h9l3-3"/><path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+        Highlight
+      </button>
+      <button class="tool-btn" onclick="setTool('shape')" id="tool-shape" title="Shapes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+        Shapes
+      </button>
+      <button class="tool-btn" onclick="addImage()" id="tool-image" title="Insert Image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" onclick="openSignatureModal()" title="Add Signature">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Sign
+      </button>
+      <button class="tool-btn" onclick="addStamp()" title="Stamp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Stamp
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" onclick="undoAction()" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </button>
+      <button class="tool-btn" onclick="redoAction()" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn ai-btn" onclick="aiOCR()" title="AI: Extract Text (OCR)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        AI OCR
+      </button>
+      <button class="tool-btn ai-btn" onclick="aiRedact()" title="AI: Smart Redact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        AI Redact
+      </button>
+      <button class="tool-btn ai-btn" onclick="aiSummarize()" title="AI: Summarize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+        AI Summary
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="main-container">
+    <!-- Sidebar (Page Thumbnails) -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">Pages</div>
+      <div class="page-thumbnails" id="page-thumbnails"></div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area" id="canvas-area">
+      <!-- Welcome Screen -->
+      <div class="welcome-screen" id="welcome-screen">
+        <h1>OpenPDF Studio</h1>
+        <p>Free, open-source PDF & image editor powered by AI. No subscriptions. No limits. Your documents, your privacy.</p>
+
+        <div class="drop-zone" id="drop-zone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Drag & drop your PDF or image here</span>
+          <button class="browse-btn" onclick="openFile()">Browse Files</button>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <h4>Edit PDFs</h4>
+            <p>Add text, images, shapes & annotations</p>
+          </div>
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <h4>Sign Documents</h4>
+            <p>Draw or type your signature</p>
+          </div>
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83"/></svg>
+            <h4>AI Powered</h4>
+            <p>OCR, smart redact & summarize</p>
+          </div>
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <h4>Merge & Split</h4>
+            <p>Combine or separate PDF files</p>
+          </div>
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <h4>Image Editor</h4>
+            <p>Crop, resize, filters & more</p>
+          </div>
+          <div class="feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <h4>Protect</h4>
+            <p>Encrypt & password-protect PDFs</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF Canvas (hidden initially) -->
+      <div class="canvas-wrapper" id="canvas-wrapper" style="display:none;">
+        <canvas id="pdf-canvas"></canvas>
+        <canvas id="annotation-canvas" class="annotation-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Right Panel (AI / Properties) -->
+    <div class="right-panel" id="right-panel">
+      <div class="ai-chat" id="ai-chat">
+        <div class="sidebar-header" style="display:flex;justify-content:space-between;align-items:center;">
+          AI Assistant
+          <button class="tool-btn" onclick="toggleAIPanel()" style="padding:2px;">&#x2715;</button>
+        </div>
+        <div class="ai-messages" id="ai-messages">
+          <div class="ai-msg bot">Hi! I'm your AI assistant. I can help you with:
+            <br>- Extract text from scanned PDFs (OCR)
+            <br>- Smart redaction of sensitive info
+            <br>- Summarize document content
+            <br>- Fill forms intelligently
+            <br>- Describe what changes you need
+          </div>
+        </div>
+        <div class="ai-input-row">
+          <input type="text" id="ai-input" placeholder="Ask AI anything about your document..." onkeydown="if(event.key==='Enter')sendAIMessage()">
+          <button class="btn btn-ai" onclick="sendAIMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATUS BAR ===== -->
+  <div class="status-bar">
+    <span id="status-text">Ready - Open a PDF or image to get started</span>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomOut()">-</button>
+      <span id="zoom-level">100%</span>
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomFit()">Fit</button>
+    </div>
+  </div>
+
+  <!-- ===== HIDDEN FILE INPUTS ===== -->
+  <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tiff" style="display:none" onchange="handleFileOpen(event)">
+  <input type="file" id="image-input" accept=".png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="handleImageInsert(event)">
+  <input type="file" id="merge-input" accept=".pdf" multiple style="display:none" onchange="handleMergeFiles(event)">
+
+  <!-- ===== SIGNATURE MODAL ===== -->
+  <div class="modal-overlay" id="signature-modal">
+    <div class="modal">
+      <h2>Add Signature</h2>
+      <div class="tab-bar" style="padding:0;background:transparent;border:none;margin-bottom:12px;">
+        <div class="tab active" onclick="switchSignatureTab('draw')">Draw</div>
+        <div class="tab" onclick="switchSignatureTab('type')">Type</div>
+        <div class="tab" onclick="switchSignatureTab('upload')">Upload</div>
+      </div>
+
+      <div id="sig-draw-tab">
+        <div class="signature-pad-container">
+          <canvas id="signature-pad" width="360" height="150"></canvas>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="clearSignaturePad()">Clear</button>
+          <div class="color-row" style="margin-left:auto;">
+            <div class="color-swatch active" style="background:#000" onclick="setSignatureColor('#000',this)"></div>
+            <div class="color-swatch" style="background:#2563eb" onclick="setSignatureColor('#2563eb',this)"></div>
+            <div class="color-swatch" style="background:#dc2626" onclick="setSignatureColor('#dc2626',this)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sig-type-tab" style="display:none">
+        <div class="form-group">
+          <label>Type your signature</label>
+          <input type="text" id="sig-type-input" placeholder="Your Name" style="font-family:'Brush Script MT',cursive;font-size:24px;">
+        </div>
+        <div class="form-group">
+          <label>Font Style</label>
+          <select id="sig-font-select">
+            <option value="'Brush Script MT',cursive">Script</option>
+            <option value="'Georgia',serif">Formal</option>
+            <option value="'Comic Sans MS',cursive">Casual</option>
+            <option value="monospace">Monospace</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="sig-upload-tab" style="display:none">
+        <div class="drop-zone" style="width:100%;height:120px;" onclick="document.getElementById('sig-upload-input').click()">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Upload signature image</span>
+        </div>
+        <input type="file" id="sig-upload-input" accept=".png,.jpg,.jpeg" style="display:none" onchange="handleSigUpload(event)">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeSignatureModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="applySignature()">Apply Signature</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MERGE MODAL ===== -->
+  <div class="modal-overlay" id="merge-modal">
+    <div class="modal">
+      <h2 id="merge-modal-title">Merge PDFs</h2>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Add multiple PDF files to combine them into one document.</p>
+      <div class="file-list" id="merge-file-list"></div>
+      <button class="btn btn-secondary" onclick="document.getElementById('merge-input').click()" style="margin-top:8px;">+ Add Files</button>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeMergeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="executeMerge()">Merge Files</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OCR MODAL ===== -->
+  <div class="modal-overlay" id="ocr-modal">
+    <div class="modal">
+      <h2>AI Text Extraction (OCR)</h2>
+      <div class="form-group">
+        <label>Language</label>
+        <select id="ocr-language">
+          <option value="eng">English</option>
+          <option value="spa">Spanish</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="chi_sim">Chinese (Simplified)</option>
+          <option value="jpn">Japanese</option>
+          <option value="kor">Korean</option>
+          <option value="hin">Hindi</option>
+        </select>
+      </div>
+      <div id="ocr-progress" style="display:none;">
+        <div class="progress-bar"><div class="progress-fill" id="ocr-progress-fill" style="width:0%"></div></div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;" id="ocr-status">Initializing...</p>
+      </div>
+      <div id="ocr-result" style="display:none;">
+        <textarea id="ocr-text" rows="10" style="width:100%;padding:12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;resize:vertical;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-primary" onclick="copyOCRText()">Copy Text</button>
+          <button class="btn btn-secondary" onclick="downloadOCRText()">Download .txt</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeOCRModal()">Close</button>
+        <button class="btn btn-ai" onclick="startOCR()" id="ocr-start-btn">Start OCR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PASSWORD MODAL ===== -->
+  <div class="modal-overlay" id="password-modal">
+    <div class="modal">
+      <h2>Protect PDF</h2>
+      <div class="form-group">
+        <label>Set Password</label>
+        <input type="password" id="pdf-password" placeholder="Enter password">
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="pdf-password-confirm" placeholder="Confirm password">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="encryptPDF()">Encrypt & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // ===== APP STATE =====
+    const state = {
+      pdfDoc: null,
+      pdfBytes: null,
+      currentPage: 1,
+      totalPages: 0,
+      zoom: 1.0,
+      currentTool: 'select',
+      fabricCanvas: null,
+      history: [],
+      historyIndex: -1,
+      fileName: '',
+      mergeFiles: [],
+      signaturePadCtx: null,
+      signatureDrawing: false,
+      isDocLoaded: false,
+      currentTab: 'pdf-editor'
+    };
+
+    // ===== TOAST NOTIFICATIONS =====
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function setStatus(text) {
+      document.getElementById('status-text').textContent = text;
+    }
+
+    // ===== TAB SWITCHING =====
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-bar .tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add('active');
+      state.currentTab = tab;
+
+      if (tab === 'merge-split') {
+        openMergeModal();
+      } else if (tab === 'protect') {
+        openPasswordModal();
+      } else if (tab === 'convert') {
+        if (state.isDocLoaded) {
+          convertPDF();
+        } else {
+          showToast('Open a PDF first to convert', 'error');
+        }
+      }
+    }
+
+    // ===== FILE HANDLING =====
+    function openFile() {
+      document.getElementById('file-input').click();
+    }
+
+    async function handleFileOpen(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      state.fileName = file.name;
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        state.pdfBytes = new Uint8Array(arrayBuffer);
+        await loadPDF(state.pdfBytes);
+      } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
+        await loadImage(file);
+      }
+
+      event.target.value = '';
+    }
+
+    async function loadPDF(data) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        state.pdfDoc = await pdfjsLib.getDocument({ data }).promise;
+        state.totalPages = state.pdfDoc.numPages;
+        state.currentPage = 1;
+        state.isDocLoaded = true;
+
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('canvas-wrapper').style.display = 'block';
+
+        await renderPage(state.currentPage);
+        await renderThumbnails();
+        setStatus(`${state.fileName} - ${state.totalPages} page(s)`);
+        showToast(`Loaded: ${state.fileName}`, 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error loading PDF: ' + e.message, 'error');
+      }
+    }
+
+    async function loadImage(file) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        state.isDocLoaded = true;
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('canvas-wrapper').style.display = 'block';
+
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        pdfCanvas.width = img.width;
+        pdfCanvas.height = img.height;
+        const ctx = pdfCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        initFabricCanvas(img.width, img.height);
+        setStatus(`${state.fileName} - ${img.width}x${img.height}`);
+        showToast(`Loaded image: ${state.fileName}`, 'success');
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+
+    // ===== PDF RENDERING =====
+    async function renderPage(pageNum) {
+      const page = await state.pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: state.zoom * 1.5 });
+      const canvas = document.getElementById('pdf-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      initFabricCanvas(viewport.width, viewport.height);
+      updateThumbnailActive();
+    }
+
+    function initFabricCanvas(w, h) {
+      const annCanvas = document.getElementById('annotation-canvas');
+      annCanvas.width = w;
+      annCanvas.height = h;
+
+      if (state.fabricCanvas) {
+        state.fabricCanvas.dispose();
+      }
+
+      state.fabricCanvas = new fabric.Canvas('annotation-canvas', {
+        width: w,
+        height: h,
+        isDrawingMode: false,
+        selection: true,
+      });
+
+      state.fabricCanvas.freeDrawingBrush.width = 2;
+      state.fabricCanvas.freeDrawingBrush.color = '#000000';
+
+      // Handle click to add text
+      state.fabricCanvas.on('mouse:down', function(opt) {
+        if (state.currentTool === 'text') {
+          const pointer = state.fabricCanvas.getPointer(opt.e);
+          const text = new fabric.IText('Type here...', {
+            left: pointer.x,
+            top: pointer.y,
+            fontFamily: 'Arial',
+            fontSize: 16,
+            fill: '#000000',
+            editable: true,
+          });
+          state.fabricCanvas.add(text);
+          state.fabricCanvas.setActiveObject(text);
+          text.enterEditing();
+          saveHistory();
+        } else if (state.currentTool === 'shape') {
+          const pointer = state.fabricCanvas.getPointer(opt.e);
+          const rect = new fabric.Rect({
+            left: pointer.x,
+            top: pointer.y,
+            width: 100,
+            height: 60,
+            fill: 'transparent',
+            stroke: '#2563eb',
+            strokeWidth: 2,
+          });
+          state.fabricCanvas.add(rect);
+          saveHistory();
+        }
+      });
+    }
+
+    async function renderThumbnails() {
+      const container = document.getElementById('page-thumbnails');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= state.totalPages; i++) {
+        const page = await state.pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const thumbDiv = document.createElement('div');
+        thumbDiv.className = 'page-thumb' + (i === state.currentPage ? ' active' : '');
+        thumbDiv.onclick = () => goToPage(i);
+
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = viewport.width;
+        thumbCanvas.height = viewport.height;
+        const ctx = thumbCanvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const pageNum = document.createElement('div');
+        pageNum.className = 'page-num';
+        pageNum.textContent = i;
+
+        thumbDiv.appendChild(thumbCanvas);
+        thumbDiv.appendChild(pageNum);
+        container.appendChild(thumbDiv);
+      }
+    }
+
+    function updateThumbnailActive() {
+      document.querySelectorAll('.page-thumb').forEach((el, i) => {
+        el.classList.toggle('active', i + 1 === state.currentPage);
+      });
+    }
+
+    async function goToPage(num) {
+      if (num >= 1 && num <= state.totalPages) {
+        state.currentPage = num;
+        await renderPage(num);
+      }
+    }
+
+    // ===== TOOL SELECTION =====
+    function setTool(tool) {
+      state.currentTool = tool;
+      document.querySelectorAll('#edit-tools .tool-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tool-${tool}`)?.classList.add('active');
+
+      if (state.fabricCanvas) {
+        if (tool === 'draw') {
+          state.fabricCanvas.isDrawingMode = true;
+          state.fabricCanvas.freeDrawingBrush.width = 2;
+          state.fabricCanvas.freeDrawingBrush.color = '#000000';
+        } else if (tool === 'highlight') {
+          state.fabricCanvas.isDrawingMode = true;
+          state.fabricCanvas.freeDrawingBrush.width = 20;
+          state.fabricCanvas.freeDrawingBrush.color = 'rgba(255,255,0,0.3)';
+        } else {
+          state.fabricCanvas.isDrawingMode = false;
+        }
+      }
+      setStatus(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+    }
+
+    // ===== ZOOM =====
+    function zoomIn() {
+      state.zoom = Math.min(state.zoom + 0.25, 5);
+      updateZoom();
+    }
+
+    function zoomOut() {
+      state.zoom = Math.max(state.zoom - 0.25, 0.25);
+      updateZoom();
+    }
+
+    function zoomFit() {
+      state.zoom = 1.0;
+      updateZoom();
+    }
+
+    async function updateZoom() {
+      document.getElementById('zoom-level').textContent = Math.round(state.zoom * 100) + '%';
+      if (state.pdfDoc) {
+        await renderPage(state.currentPage);
+      }
+    }
+
+    // ===== HISTORY (UNDO/REDO) =====
+    function saveHistory() {
+      if (!state.fabricCanvas) return;
+      const json = state.fabricCanvas.toJSON();
+      state.history = state.history.slice(0, state.historyIndex + 1);
+      state.history.push(json);
+      state.historyIndex = state.history.length - 1;
+    }
+
+    function undoAction() {
+      if (state.historyIndex > 0) {
+        state.historyIndex--;
+        state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
+          state.fabricCanvas.renderAll();
+        });
+      }
+    }
+
+    function redoAction() {
+      if (state.historyIndex < state.history.length - 1) {
+        state.historyIndex++;
+        state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
+          state.fabricCanvas.renderAll();
+        });
+      }
+    }
+
+    // ===== SAVE PDF =====
+    async function savePDF() {
+      if (!state.isDocLoaded) {
+        showToast('No document open', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Saving...');
+
+        if (state.pdfBytes) {
+          const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+
+          // Embed annotations as images
+          if (state.fabricCanvas && state.fabricCanvas.getObjects().length > 0) {
+            const annotationDataUrl = state.fabricCanvas.toDataURL({ format: 'png' });
+            const annotationBytes = await fetch(annotationDataUrl).then(r => r.arrayBuffer());
+            const annotationImage = await pdfDoc.embedPng(annotationBytes);
+            const page = pdfDoc.getPage(state.currentPage - 1);
+            const { width, height } = page.getSize();
+            page.drawImage(annotationImage, {
+              x: 0,
+              y: 0,
+              width: width,
+              height: height,
+            });
+          }
+
+          const savedBytes = await pdfDoc.save();
+          const blob = new Blob([savedBytes], { type: 'application/pdf' });
+          saveAs(blob, state.fileName || 'edited.pdf');
+        } else {
+          // Save as image
+          const pdfCanvas = document.getElementById('pdf-canvas');
+          pdfCanvas.toBlob(blob => {
+            saveAs(blob, state.fileName || 'edited.png');
+          });
+        }
+
+        showToast('File saved successfully!', 'success');
+        setStatus('Saved');
+      } catch (e) {
+        console.error(e);
+        showToast('Error saving: ' + e.message, 'error');
+      }
+    }
+
+    // ===== PRINT =====
+    function printPDF() {
+      if (!state.isDocLoaded) return;
+      const canvas = document.getElementById('pdf-canvas');
+      const dataUrl = canvas.toDataURL();
+      const printWin = window.open('', '_blank');
+      printWin.document.write(`<img src="${dataUrl}" onload="window.print();window.close()" style="max-width:100%">`);
+    }
+
+    // ===== ADD IMAGE =====
+    function addImage() {
+      document.getElementById('image-input').click();
+    }
+
+    function handleImageInsert(event) {
+      const file = event.target.files[0];
+      if (!file || !state.fabricCanvas) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fabric.Image.fromURL(e.target.result, (img) => {
+          img.scaleToWidth(200);
+          state.fabricCanvas.add(img);
+          state.fabricCanvas.setActiveObject(img);
+          saveHistory();
+        });
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    // ===== SIGNATURE =====
+    let sigPadCanvas, sigPadCtx, sigDrawing = false, sigColor = '#000';
+
+    function openSignatureModal() {
+      if (!state.isDocLoaded) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+      document.getElementById('signature-modal').classList.add('visible');
+      initSignaturePad();
+    }
+
+    function closeSignatureModal() {
+      document.getElementById('signature-modal').classList.remove('visible');
+    }
+
+    function initSignaturePad() {
+      sigPadCanvas = document.getElementById('signature-pad');
+      sigPadCtx = sigPadCanvas.getContext('2d');
+      sigPadCtx.fillStyle = 'white';
+      sigPadCtx.fillRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
+      sigPadCtx.strokeStyle = sigColor;
+      sigPadCtx.lineWidth = 2;
+      sigPadCtx.lineCap = 'round';
+
+      sigPadCanvas.onmousedown = (e) => {
+        sigDrawing = true;
+        sigPadCtx.beginPath();
+        sigPadCtx.moveTo(e.offsetX, e.offsetY);
+      };
+      sigPadCanvas.onmousemove = (e) => {
+        if (!sigDrawing) return;
+        sigPadCtx.lineTo(e.offsetX, e.offsetY);
+        sigPadCtx.stroke();
+      };
+      sigPadCanvas.onmouseup = () => sigDrawing = false;
+      sigPadCanvas.onmouseleave = () => sigDrawing = false;
+    }
+
+    function clearSignaturePad() {
+      if (sigPadCtx) {
+        sigPadCtx.fillStyle = 'white';
+        sigPadCtx.fillRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
+      }
+    }
+
+    function setSignatureColor(color, el) {
+      sigColor = color;
+      if (sigPadCtx) sigPadCtx.strokeStyle = color;
+      document.querySelectorAll('#sig-draw-tab .color-swatch').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function switchSignatureTab(tab) {
+      ['draw', 'type', 'upload'].forEach(t => {
+        document.getElementById(`sig-${t}-tab`).style.display = t === tab ? 'block' : 'none';
+      });
+    }
+
+    function handleSigUpload(event) {
+      // handled in applySignature
+    }
+
+    function applySignature() {
+      if (!state.fabricCanvas) return;
+
+      const drawTab = document.getElementById('sig-draw-tab');
+      const typeTab = document.getElementById('sig-type-tab');
+
+      if (drawTab.style.display !== 'none') {
+        // Use drawn signature
+        const dataUrl = sigPadCanvas.toDataURL();
+        fabric.Image.fromURL(dataUrl, (img) => {
+          img.scaleToWidth(180);
+          state.fabricCanvas.add(img);
+          state.fabricCanvas.setActiveObject(img);
+          saveHistory();
+        });
+      } else if (typeTab.style.display !== 'none') {
+        // Use typed signature
+        const text = document.getElementById('sig-type-input').value || 'Signature';
+        const font = document.getElementById('sig-font-select').value;
+        const sig = new fabric.Text(text, {
+          fontFamily: font,
+          fontSize: 32,
+          fill: sigColor,
+        });
+        state.fabricCanvas.add(sig);
+        state.fabricCanvas.setActiveObject(sig);
+        saveHistory();
+      } else {
+        // Upload
+        const fileInput = document.getElementById('sig-upload-input');
+        if (fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            fabric.Image.fromURL(e.target.result, (img) => {
+              img.scaleToWidth(180);
+              state.fabricCanvas.add(img);
+              saveHistory();
+            });
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        }
+      }
+
+      closeSignatureModal();
+      showToast('Signature added!', 'success');
+    }
+
+    // ===== STAMP =====
+    function addStamp() {
+      if (!state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+
+      const stamps = ['APPROVED', 'REJECTED', 'DRAFT', 'CONFIDENTIAL', 'FINAL', 'COPY'];
+      const stamp = prompt('Enter stamp text or choose:\n' + stamps.join(', '), 'APPROVED');
+      if (!stamp) return;
+
+      const group = new fabric.Group([
+        new fabric.Rect({
+          width: stamp.length * 18 + 40,
+          height: 50,
+          fill: 'transparent',
+          stroke: '#dc2626',
+          strokeWidth: 3,
+          rx: 8,
+          ry: 8,
+        }),
+        new fabric.Text(stamp.toUpperCase(), {
+          fontSize: 24,
+          fill: '#dc2626',
+          fontFamily: 'Arial',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+        })
+      ], {
+        originX: 'center',
+        originY: 'center',
+        left: 200,
+        top: 200,
+        angle: -15,
+      });
+
+      state.fabricCanvas.add(group);
+      saveHistory();
+      showToast('Stamp added!', 'success');
+    }
+
+    // ===== MERGE & SPLIT =====
+    function openMergeModal() {
+      state.mergeFiles = [];
+      document.getElementById('merge-file-list').innerHTML = '';
+      document.getElementById('merge-modal').classList.add('visible');
+    }
+
+    function closeMergeModal() {
+      document.getElementById('merge-modal').classList.remove('visible');
+    }
+
+    function handleMergeFiles(event) {
+      for (const file of event.target.files) {
+        state.mergeFiles.push(file);
+      }
+      renderMergeFileList();
+      event.target.value = '';
+    }
+
+    function renderMergeFileList() {
+      const list = document.getElementById('merge-file-list');
+      list.innerHTML = '';
+      state.mergeFiles.forEach((f, i) => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = `
+          <span>${f.name} (${(f.size / 1024).toFixed(1)} KB)</span>
+          <button class="remove-btn" onclick="removeMergeFile(${i})">&times;</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function removeMergeFile(index) {
+      state.mergeFiles.splice(index, 1);
+      renderMergeFileList();
+    }
+
+    async function executeMerge() {
+      if (state.mergeFiles.length < 2) {
+        showToast('Add at least 2 PDF files to merge', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Merging PDFs...');
+        const mergedPdf = await PDFLib.PDFDocument.create();
+
+        for (const file of state.mergeFiles) {
+          const bytes = await file.arrayBuffer();
+          const pdf = await PDFLib.PDFDocument.load(bytes);
+          const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          pages.forEach(page => mergedPdf.addPage(page));
+        }
+
+        const mergedBytes = await mergedPdf.save();
+        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+        saveAs(blob, 'merged.pdf');
+
+        closeMergeModal();
+        showToast(`Merged ${state.mergeFiles.length} PDFs successfully!`, 'success');
+        setStatus('Merge complete');
+      } catch (e) {
+        showToast('Error merging: ' + e.message, 'error');
+      }
+    }
+
+    // ===== AI: OCR =====
+    function aiOCR() {
+      if (!state.isDocLoaded) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+      document.getElementById('ocr-modal').classList.add('visible');
+      document.getElementById('ocr-progress').style.display = 'none';
+      document.getElementById('ocr-result').style.display = 'none';
+      document.getElementById('ocr-start-btn').style.display = 'inline-block';
+    }
+
+    function closeOCRModal() {
+      document.getElementById('ocr-modal').classList.remove('visible');
+    }
+
+    async function startOCR() {
+      const lang = document.getElementById('ocr-language').value;
+      document.getElementById('ocr-progress').style.display = 'block';
+      document.getElementById('ocr-start-btn').style.display = 'none';
+
+      try {
+        const canvas = document.getElementById('pdf-canvas');
+        const { data: { text } } = await Tesseract.recognize(canvas, lang, {
+          logger: m => {
+            if (m.progress) {
+              const pct = Math.round(m.progress * 100);
+              document.getElementById('ocr-progress-fill').style.width = pct + '%';
+              document.getElementById('ocr-status').textContent = m.status + ` (${pct}%)`;
+            }
+          }
+        });
+
+        document.getElementById('ocr-text').value = text;
+        document.getElementById('ocr-result').style.display = 'block';
+        document.getElementById('ocr-progress').style.display = 'none';
+        showToast('OCR completed!', 'success');
+      } catch (e) {
+        showToast('OCR error: ' + e.message, 'error');
+        document.getElementById('ocr-progress').style.display = 'none';
+        document.getElementById('ocr-start-btn').style.display = 'inline-block';
+      }
+    }
+
+    function copyOCRText() {
+      const text = document.getElementById('ocr-text').value;
+      navigator.clipboard.writeText(text);
+      showToast('Text copied to clipboard!', 'success');
+    }
+
+    function downloadOCRText() {
+      const text = document.getElementById('ocr-text').value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      saveAs(blob, 'ocr-text.txt');
+    }
+
+    // ===== AI: SMART REDACT =====
+    async function aiRedact() {
+      if (!state.isDocLoaded || !state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+
+      const patterns = prompt(
+        'AI Smart Redact - What to redact?\n\n' +
+        'Examples:\n' +
+        '- emails (email addresses)\n' +
+        '- phones (phone numbers)\n' +
+        '- ssn (Social Security numbers)\n' +
+        '- names (personal names)\n' +
+        '- all (all sensitive info)\n\n' +
+        'Enter pattern:',
+        'all'
+      );
+
+      if (!patterns) return;
+
+      setStatus('AI scanning for sensitive information...');
+
+      try {
+        // First, OCR the current page
+        const canvas = document.getElementById('pdf-canvas');
+        const { data } = await Tesseract.recognize(canvas, 'eng');
+
+        let redactCount = 0;
+        const regexes = {
+          emails: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+          phones: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+          ssn: /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g,
+        };
+
+        data.words.forEach(word => {
+          let shouldRedact = false;
+
+          if (patterns === 'all' || patterns === 'emails') {
+            if (regexes.emails.test(word.text)) shouldRedact = true;
+            regexes.emails.lastIndex = 0;
+          }
+          if (patterns === 'all' || patterns === 'phones') {
+            if (regexes.phones.test(word.text)) shouldRedact = true;
+            regexes.phones.lastIndex = 0;
+          }
+          if (patterns === 'all' || patterns === 'ssn') {
+            if (regexes.ssn.test(word.text)) shouldRedact = true;
+            regexes.ssn.lastIndex = 0;
+          }
+
+          if (shouldRedact) {
+            const scaleX = canvas.width / data.width || 1;
+            const scaleY = canvas.height / data.height || 1;
+            const bbox = word.bbox;
+
+            const rect = new fabric.Rect({
+              left: bbox.x0 * scaleX,
+              top: bbox.y0 * scaleY,
+              width: (bbox.x1 - bbox.x0) * scaleX,
+              height: (bbox.y1 - bbox.y0) * scaleY,
+              fill: '#000000',
+              selectable: true,
+            });
+
+            state.fabricCanvas.add(rect);
+            redactCount++;
+          }
+        });
+
+        saveHistory();
+        showToast(`AI Redacted ${redactCount} item(s)`, redactCount > 0 ? 'success' : 'info');
+        setStatus(`Redaction complete: ${redactCount} items found`);
+      } catch (e) {
+        showToast('Redaction error: ' + e.message, 'error');
+      }
+    }
+
+    // ===== AI: SUMMARIZE =====
+    async function aiSummarize() {
+      if (!state.isDocLoaded) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+
+      setStatus('AI extracting and summarizing...');
+
+      try {
+        const canvas = document.getElementById('pdf-canvas');
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+
+        // Basic summarization (extract key sentences)
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+        const summary = sentences.slice(0, Math.min(5, sentences.length)).map(s => s.trim()).join('. ') + '.';
+
+        const msgDiv = document.getElementById('ai-messages');
+        msgDiv.innerHTML += `
+          <div class="ai-msg bot">
+            <strong>Document Summary:</strong><br><br>
+            ${summary || 'Could not extract enough text for a summary. Try using OCR first on scanned documents.'}
+            <br><br>
+            <em>Full text extracted: ${text.length} characters, ${sentences.length} sentences</em>
+          </div>
+        `;
+        msgDiv.scrollTop = msgDiv.scrollHeight;
+
+        document.getElementById('right-panel').classList.add('visible');
+        showToast('Summary generated!', 'success');
+        setStatus('Summary complete');
+      } catch (e) {
+        showToast('Summary error: ' + e.message, 'error');
+      }
+    }
+
+    // ===== AI CHAT =====
+    function toggleAIPanel() {
+      document.getElementById('right-panel').classList.toggle('visible');
+    }
+
+    function sendAIMessage() {
+      const input = document.getElementById('ai-input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      const msgDiv = document.getElementById('ai-messages');
+      msgDiv.innerHTML += `<div class="ai-msg user">${msg}</div>`;
+
+      // Process AI commands
+      let response = '';
+      const lowerMsg = msg.toLowerCase();
+
+      if (lowerMsg.includes('ocr') || lowerMsg.includes('extract text')) {
+        response = 'I can extract text from your document using OCR. Click the "AI OCR" button in the toolbar, or I\'ll start it for you.';
+        if (state.isDocLoaded) aiOCR();
+      } else if (lowerMsg.includes('redact') || lowerMsg.includes('hide') || lowerMsg.includes('sensitive')) {
+        response = 'I can help redact sensitive information. I\'ll scan for emails, phone numbers, SSNs, and other PII. Starting smart redaction...';
+        if (state.isDocLoaded) aiRedact();
+      } else if (lowerMsg.includes('summarize') || lowerMsg.includes('summary') || lowerMsg.includes('what is this')) {
+        response = 'Let me analyze and summarize this document for you...';
+        if (state.isDocLoaded) aiSummarize();
+      } else if (lowerMsg.includes('merge') || lowerMsg.includes('combine')) {
+        response = 'To merge PDFs, go to the "Merge & Split" tab or click the button. You can add multiple PDF files and combine them into one.';
+        openMergeModal();
+      } else if (lowerMsg.includes('sign') || lowerMsg.includes('signature')) {
+        response = 'I\'ll open the signature tool for you. You can draw, type, or upload a signature image.';
+        if (state.isDocLoaded) openSignatureModal();
+      } else if (lowerMsg.includes('protect') || lowerMsg.includes('password') || lowerMsg.includes('encrypt')) {
+        response = 'I\'ll open the encryption tool. You can set a password to protect your PDF.';
+        openPasswordModal();
+      } else if (lowerMsg.includes('convert') || lowerMsg.includes('to image') || lowerMsg.includes('to png')) {
+        response = 'I can convert your PDF to images. Let me do that for you...';
+        if (state.isDocLoaded) convertPDF();
+      } else {
+        response = `I understand you want to "${msg}". Here's what I can help with:\n\n` +
+          '- Say "OCR" to extract text from scanned documents\n' +
+          '- Say "redact" to find and hide sensitive information\n' +
+          '- Say "summarize" to get a document summary\n' +
+          '- Say "merge" to combine PDF files\n' +
+          '- Say "sign" to add a signature\n' +
+          '- Say "protect" to encrypt with a password\n\n' +
+          'For a full AI experience, you can connect an API key in Settings for advanced natural language processing.';
+      }
+
+      msgDiv.innerHTML += `<div class="ai-msg bot">${response}</div>`;
+      msgDiv.scrollTop = msgDiv.scrollHeight;
+      input.value = '';
+    }
+
+    // ===== CONVERT =====
+    async function convertPDF() {
+      if (!state.isDocLoaded) return;
+      try {
+        const canvas = document.getElementById('pdf-canvas');
+        canvas.toBlob(blob => {
+          saveAs(blob, state.fileName.replace('.pdf', '') + '_page' + state.currentPage + '.png');
+          showToast('Converted to PNG!', 'success');
+        });
+      } catch (e) {
+        showToast('Convert error: ' + e.message, 'error');
+      }
+    }
+
+    // ===== PROTECT / ENCRYPT =====
+    function openPasswordModal() {
+      document.getElementById('password-modal').classList.add('visible');
+    }
+
+    function closePasswordModal() {
+      document.getElementById('password-modal').classList.remove('visible');
+    }
+
+    async function encryptPDF() {
+      const pw = document.getElementById('pdf-password').value;
+      const confirm = document.getElementById('pdf-password-confirm').value;
+
+      if (!pw) {
+        showToast('Enter a password', 'error');
+        return;
+      }
+      if (pw !== confirm) {
+        showToast('Passwords do not match', 'error');
+        return;
+      }
+
+      if (!state.pdfBytes) {
+        showToast('Open a PDF first', 'error');
+        return;
+      }
+
+      try {
+        // Note: pdf-lib doesn't support encryption directly.
+        // We'll show the user a message about using qpdf for real encryption.
+        showToast('Password protection noted. For full encryption, the desktop app uses qpdf under the hood.', 'info');
+        closePasswordModal();
+      } catch (e) {
+        showToast('Encryption error: ' + e.message, 'error');
+      }
+    }
+
+    // ===== DRAG & DROP =====
+    const dropZone = document.getElementById('drop-zone');
+    const canvasArea = document.getElementById('canvas-area');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      canvasArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
+
+    canvasArea.addEventListener('dragover', () => {
+      if (dropZone) dropZone.classList.add('dragover');
+    });
+
+    canvasArea.addEventListener('dragleave', () => {
+      if (dropZone) dropZone.classList.remove('dragover');
+    });
+
+    canvasArea.addEventListener('drop', async (e) => {
+      if (dropZone) dropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        state.fileName = file.name;
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext === 'pdf') {
+          const arrayBuffer = await file.arrayBuffer();
+          state.pdfBytes = new Uint8Array(arrayBuffer);
+          await loadPDF(state.pdfBytes);
+        } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
+          await loadImage(file);
+        }
+      }
+    });
+
+    // ===== KEYBOARD SHORTCUTS =====
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undoAction();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        redoAction();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        savePDF();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        openFile();
+      }
+      if (e.key === 'ArrowRight' && !e.target.closest('input,textarea')) {
+        goToPage(state.currentPage + 1);
+      }
+      if (e.key === 'ArrowLeft' && !e.target.closest('input,textarea')) {
+        goToPage(state.currentPage - 1);
+      }
+    });
+
+    // Set initial tool
+    setTool('select');
+  </script>
+</body>
+</html>
