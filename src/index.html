@@ -150,7 +150,9 @@
     /* ===== MAIN LAYOUT ===== */
     .main-container {
       display: flex;
+      flex: 1;
       height: calc(100vh - 48px - 36px - 42px);
+      min-height: 0;
     }
 
     /* ===== SIDEBAR ===== */
@@ -204,15 +206,16 @@
     .canvas-area {
       flex: 1;
       display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: auto;
       background: #0a0f1e;
       position: relative;
+      min-height: 0;
     }
     .canvas-wrapper {
       position: relative;
       box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      margin: auto;
+      flex-shrink: 0;
     }
     #pdf-canvas { display: block; }
     .annotation-canvas {
@@ -984,7 +987,7 @@
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('canvas-wrapper').style.display = 'block';
 
-        await renderPage(state.currentPage);
+        await zoomFit();
         await renderThumbnails();
         setStatus(`${state.fileName} - ${state.totalPages} page(s)`);
         showToast(`Loaded: ${state.fileName}`, 'success');
@@ -1156,8 +1159,18 @@
       updateZoom();
     }
 
-    function zoomFit() {
-      state.zoom = 1.0;
+    async function zoomFit() {
+      if (state.pdfDoc) {
+        const page = await state.pdfDoc.getPage(state.currentPage);
+        const baseViewport = page.getViewport({ scale: 1.5 });
+        const canvasArea = document.getElementById('canvas-area');
+        const availW = canvasArea.clientWidth - 40;
+        const availH = canvasArea.clientHeight - 40;
+        const fitScale = Math.min(availW / baseViewport.width, availH / baseViewport.height);
+        state.zoom = Math.max(0.25, Math.min(fitScale, 3.0));
+      } else {
+        state.zoom = 1.0;
+      }
       updateZoom();
     }
 
