@@ -72,14 +72,6 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
-      # Generate default Tauri icons if missing
-      - name: Generate icons (if needed)
-        run: |
-          if [ ! -f src-tauri/icons/icon.ico ]; then
-            npx @tauri-apps/cli icon --output src-tauri/icons
-          fi
-        shell: bash
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
