@@ -943,6 +943,54 @@
     </div>
   </div>
 
+  <!-- Convert Modal -->
+  <div class="modal-overlay" id="convert-modal">
+    <div class="modal" style="max-width: 520px;">
+      <h2>Convert PDF</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Choose an output format for your document</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button class="btn btn-secondary" onclick="convertTo('png')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">🖼️</span>
+          <strong>PNG Image</strong>
+          <small style="color:var(--text-secondary)">High quality, transparent</small>
+        </button>
+        <button class="btn btn-secondary" onclick="convertTo('jpg')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">📷</span>
+          <strong>JPG Image</strong>
+          <small style="color:var(--text-secondary)">Smaller file, photos</small>
+        </button>
+        <button class="btn btn-secondary" onclick="convertTo('svg')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">📐</span>
+          <strong>SVG Vector</strong>
+          <small style="color:var(--text-secondary)">Scalable graphics</small>
+        </button>
+        <button class="btn btn-secondary" onclick="convertTo('webp')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">🌐</span>
+          <strong>WebP Image</strong>
+          <small style="color:var(--text-secondary)">Modern web format</small>
+        </button>
+        <button class="btn btn-secondary" onclick="convertTo('txt')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">📝</span>
+          <strong>Plain Text</strong>
+          <small style="color:var(--text-secondary)">Extract all text</small>
+        </button>
+        <button class="btn btn-secondary" onclick="convertTo('html')" style="padding: 14px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <span style="font-size:22px;">🌍</span>
+          <strong>HTML Page</strong>
+          <small style="color:var(--text-secondary)">Web-ready document</small>
+        </button>
+      </div>
+      <div style="margin-top: 12px;">
+        <label style="display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:13px;">
+          <input type="checkbox" id="convert-all-pages"> Convert all pages (image formats export current page by default)
+        </label>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn btn-secondary" onclick="closeConvertModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -994,7 +1042,7 @@
         openPasswordModal();
       } else if (tab === 'convert') {
         if (state.isDocLoaded) {
-          convertPDF();
+          openConvertModal();
         } else {
           showToast('Open a PDF first to convert', 'error');
         }
@@ -1015,8 +1063,8 @@
 
       if (ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
-        state.pdfBytes = new Uint8Array(arrayBuffer);
-        await loadPDF(state.pdfBytes);
+        state.pdfBytes = new Uint8Array(arrayBuffer.slice(0));
+        await loadPDF(new Uint8Array(arrayBuffer.slice(0)));
       } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
         await loadImage(file);
       }
@@ -1130,7 +1178,7 @@
         span.addEventListener('click', (e) => {
           if (state.currentTool === 'select' || state.currentTool === 'text') {
             e.stopPropagation();
-            startEditingSpan(span);
+            startEditingSpan(span, e);
           }
         });
 
@@ -1138,7 +1186,7 @@
       });
     }
 
-    function startEditingSpan(span) {
+    function startEditingSpan(span, clickEvent) {
       // Deactivate fabric canvas interaction temporarily
       if (state.fabricCanvas) {
         state.fabricCanvas.discardActiveObject();
@@ -1147,19 +1195,32 @@
 
       // Remove editing from any other span
       document.querySelectorAll('#text-layer span.editing').forEach(s => {
-        finishEditingSpan(s);
+        if (s !== span) finishEditingSpan(s);
       });
+
+      if (span.classList.contains('editing')) return; // Already editing
 
       span.classList.add('editing');
       span.contentEditable = true;
       span.focus();
 
-      // Select all text in the span
-      const range = document.createRange();
-      range.selectNodeContents(span);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
+      // Place cursor at click position instead of selecting all text
+      if (clickEvent && clickEvent.clientX) {
+        const caretRange = document.caretRangeFromPoint(clickEvent.clientX, clickEvent.clientY);
+        if (caretRange) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(caretRange);
+        }
+      } else {
+        // Fallback: place cursor at end
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
 
       // Handle finishing the edit
       span.addEventListener('blur', () => finishEditingSpan(span), { once: true });
@@ -1446,20 +1507,49 @@
         setStatus('Saving...');
 
         if (state.pdfBytes) {
-          const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+          // Use a fresh copy of bytes for pdf-lib to avoid detached buffer issues
+          const bytesToLoad = new Uint8Array(state.pdfBytes);
+          let pdfDoc;
+          try {
+            pdfDoc = await PDFLib.PDFDocument.load(bytesToLoad, { ignoreEncryption: true });
+          } catch (loadErr) {
+            console.warn('pdf-lib could not load the PDF directly, trying with updateMetadata off:', loadErr);
+            try {
+              pdfDoc = await PDFLib.PDFDocument.load(bytesToLoad, { ignoreEncryption: true, updateMetadata: false });
+            } catch (loadErr2) {
+              console.error('pdf-lib cannot parse this PDF:', loadErr2);
+              // Fallback: create a fresh PDF from the rendered canvas pages
+              showToast('Rebuilding PDF from rendered pages...', 'info');
+              pdfDoc = await PDFLib.PDFDocument.create();
+              for (let p = 1; p <= state.totalPages; p++) {
+                const page = await state.pdfDoc.getPage(p);
+                const vp = page.getViewport({ scale: 2 });
+                const tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = vp.width;
+                tmpCanvas.height = vp.height;
+                const tmpCtx = tmpCanvas.getContext('2d');
+                await page.render({ canvasContext: tmpCtx, viewport: vp }).promise;
+                const imgData = tmpCanvas.toDataURL('image/png');
+                const imgBytes = await fetch(imgData).then(r => r.arrayBuffer());
+                const img = await pdfDoc.embedPng(imgBytes);
+                const newPage = pdfDoc.addPage([vp.width / 2, vp.height / 2]);
+                newPage.drawImage(img, { x: 0, y: 0, width: vp.width / 2, height: vp.height / 2 });
+              }
+            }
+          }
+
           const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
           const helveticaBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
 
           // Apply text edits to all pages
           for (const [pageNumStr, edits] of Object.entries(state.textEdits)) {
             const pageIdx = parseInt(pageNumStr) - 1;
+            if (pageIdx >= pdfDoc.getPageCount()) continue;
             const page = pdfDoc.getPage(pageIdx);
-            const { height } = page.getSize();
 
             for (const edit of edits) {
               if (edit.newText === edit.origText) continue;
 
-              // Get position from the original transform
               const t = edit.transform;
               const fontSize = Math.sqrt(t[0] * t[0] + t[1] * t[1]);
               const x = t[4];
@@ -1517,8 +1607,9 @@
         showToast('File saved successfully!', 'success');
         setStatus('Saved');
       } catch (e) {
-        console.error(e);
+        console.error('Save error:', e);
         showToast('Error saving: ' + e.message, 'error');
+        setStatus('Save failed');
       }
     }
 
@@ -1978,8 +2069,8 @@
         response = 'I\'ll open the encryption tool. You can set a password to protect your PDF.';
         openPasswordModal();
       } else if (lowerMsg.includes('convert') || lowerMsg.includes('to image') || lowerMsg.includes('to png')) {
-        response = 'I can convert your PDF to images. Let me do that for you...';
-        if (state.isDocLoaded) convertPDF();
+        response = 'I can convert your PDF to various formats. Let me open the conversion options for you...';
+        if (state.isDocLoaded) openConvertModal();
       } else {
         response = `I understand you want to "${msg}". Here's what I can help with:\n\n` +
           '- Say "OCR" to extract text from scanned documents\n' +
@@ -1997,16 +2088,113 @@
     }
 
     // ===== CONVERT =====
-    async function convertPDF() {
+    function openConvertModal() {
+      document.getElementById('convert-modal').classList.add('visible');
+    }
+    function closeConvertModal() {
+      document.getElementById('convert-modal').classList.remove('visible');
+    }
+
+    async function convertTo(format) {
       if (!state.isDocLoaded) return;
+      closeConvertModal();
+      const baseName = (state.fileName || 'document').replace(/\.[^/.]+$/, '');
+      const allPages = document.getElementById('convert-all-pages').checked;
+
       try {
-        const canvas = document.getElementById('pdf-canvas');
-        canvas.toBlob(blob => {
-          saveAs(blob, state.fileName.replace('.pdf', '') + '_page' + state.currentPage + '.png');
-          showToast('Converted to PNG!', 'success');
-        });
+        setStatus('Converting to ' + format.toUpperCase() + '...');
+
+        if (format === 'txt') {
+          // Extract text from all pages
+          let fullText = '';
+          for (let p = 1; p <= state.totalPages; p++) {
+            const page = await state.pdfDoc.getPage(p);
+            const content = await page.getTextContent();
+            const pageText = content.items.map(item => item.str).join(' ');
+            fullText += (p > 1 ? '\n\n--- Page ' + p + ' ---\n\n' : '') + pageText;
+          }
+          const blob = new Blob([fullText], { type: 'text/plain' });
+          saveAs(blob, baseName + '.txt');
+          showToast('Converted to text!', 'success');
+
+        } else if (format === 'html') {
+          // Build an HTML document with all pages
+          let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + baseName + '</title>';
+          html += '<style>body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;line-height:1.6;color:#333;} .page{margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid #ddd;} h2.page-header{color:#555;font-size:14px;margin-bottom:12px;}</style></head><body>';
+          html += '<h1>' + baseName + '</h1>';
+          for (let p = 1; p <= state.totalPages; p++) {
+            const page = await state.pdfDoc.getPage(p);
+            const content = await page.getTextContent();
+            const lines = [];
+            let currentLine = '';
+            let lastY = null;
+            content.items.forEach(item => {
+              const y = item.transform[5];
+              if (lastY !== null && Math.abs(y - lastY) > 5) {
+                if (currentLine.trim()) lines.push(currentLine.trim());
+                currentLine = '';
+              }
+              currentLine += item.str + ' ';
+              lastY = y;
+            });
+            if (currentLine.trim()) lines.push(currentLine.trim());
+            html += '<div class="page">';
+            if (state.totalPages > 1) html += '<h2 class="page-header">Page ' + p + '</h2>';
+            lines.forEach(line => { html += '<p>' + line.replace(/</g, '&lt;') + '</p>'; });
+            html += '</div>';
+          }
+          html += '</body></html>';
+          const blob = new Blob([html], { type: 'text/html' });
+          saveAs(blob, baseName + '.html');
+          showToast('Converted to HTML!', 'success');
+
+        } else if (format === 'svg') {
+          // Convert current page canvas to SVG-wrapped image
+          const canvas = document.getElementById('pdf-canvas');
+          const dataUrl = canvas.toDataURL('image/png');
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}"><image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+          const blob = new Blob([svg], { type: 'image/svg+xml' });
+          saveAs(blob, baseName + '_page' + state.currentPage + '.svg');
+          showToast('Converted to SVG!', 'success');
+
+        } else {
+          // Image formats: png, jpg, webp
+          const mimeMap = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+          const mime = mimeMap[format] || 'image/png';
+
+          if (allPages && state.totalPages > 1) {
+            // Export all pages as images in a zip
+            const zip = new JSZip();
+            for (let p = 1; p <= state.totalPages; p++) {
+              const page = await state.pdfDoc.getPage(p);
+              const vp = page.getViewport({ scale: 2 });
+              const tmpCanvas = document.createElement('canvas');
+              tmpCanvas.width = vp.width;
+              tmpCanvas.height = vp.height;
+              const tmpCtx = tmpCanvas.getContext('2d');
+              await page.render({ canvasContext: tmpCtx, viewport: vp }).promise;
+              const dataUrl = tmpCanvas.toDataURL(mime, 0.92);
+              const base64 = dataUrl.split(',')[1];
+              zip.file(baseName + '_page' + p + '.' + format, base64, { base64: true });
+              setStatus('Converting page ' + p + '/' + state.totalPages + '...');
+            }
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            saveAs(zipBlob, baseName + '_all_pages.' + format + '.zip');
+            showToast('All ' + state.totalPages + ' pages converted to ' + format.toUpperCase() + '!', 'success');
+          } else {
+            // Single current page
+            const canvas = document.getElementById('pdf-canvas');
+            canvas.toBlob(blob => {
+              saveAs(blob, baseName + '_page' + state.currentPage + '.' + format);
+              showToast('Converted to ' + format.toUpperCase() + '!', 'success');
+            }, mime, 0.92);
+          }
+        }
+        setStatus('Ready');
       } catch (e) {
+        console.error('Convert error:', e);
         showToast('Convert error: ' + e.message, 'error');
+        setStatus('Ready');
       }
     }
 
@@ -2076,8 +2264,8 @@
 
         if (ext === 'pdf') {
           const arrayBuffer = await file.arrayBuffer();
-          state.pdfBytes = new Uint8Array(arrayBuffer);
-          await loadPDF(state.pdfBytes);
+          state.pdfBytes = new Uint8Array(arrayBuffer.slice(0));
+          await loadPDF(new Uint8Array(arrayBuffer.slice(0)));
         } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
           await loadImage(file);
         }
