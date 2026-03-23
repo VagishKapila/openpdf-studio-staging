@@ -569,6 +569,51 @@
       flex-wrap: wrap;
       margin-bottom: 12px;
     }
+    .image-editor-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      z-index: 50;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .image-editor-panel.active {
+      display: flex;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-start;
+    }
+    .filter-group label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .filter-group input[type="range"] {
+      width: 100px;
+      height: 4px;
+      accent-color: var(--primary);
+    }
+    .page-management-buttons {
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .page-management-buttons .tool-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
 
     /* ===== MERGE/SPLIT UI ===== */
     .file-list {
@@ -694,6 +739,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         Stamp
       </button>
+      <button class="tool-btn" onclick="setToolAndWait('note')" title="Add Sticky Note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M12 8v8M8 12h8"/></svg>
+        Note
+      </button>
+      <button class="tool-btn" onclick="addWatermark()" title="Add Watermark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M8 6l8 8M16 6l-8 8" stroke-linecap="round"/></svg>
+        Watermark
+      </button>
     </div>
 
     <div class="toolbar-group">
@@ -734,6 +787,20 @@
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">Pages</div>
       <div class="page-thumbnails" id="page-thumbnails"></div>
+      <div class="page-management-buttons">
+        <button class="tool-btn" onclick="rotatePage()" title="Rotate page 90° clockwise">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64"/><path d="M3.51 15A9 9 0 0 0 18.36 18.36"/></svg>
+        </button>
+        <button class="tool-btn" onclick="movePageUp()" title="Move page up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/><path d="M6 15h12"/></svg>
+        </button>
+        <button class="tool-btn" onclick="movePageDown()" title="Move page down">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/><path d="M18 9H6"/></svg>
+        </button>
+        <button class="tool-btn" onclick="deletePage()" title="Delete page" style="color: var(--danger);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Canvas Area -->
@@ -788,6 +855,46 @@
         <canvas id="pdf-canvas"></canvas>
         <canvas id="annotation-canvas" class="annotation-canvas"></canvas>
         <div id="text-layer"></div>
+        <!-- Image Editor Panel -->
+        <div class="image-editor-panel" id="image-editor-panel">
+          <div class="filter-group">
+            <label>Brightness</label>
+            <input type="range" min="0" max="200" value="100" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-brightness">
+          </div>
+          <div class="filter-group">
+            <label>Contrast</label>
+            <input type="range" min="0" max="200" value="100" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-contrast">
+          </div>
+          <div class="filter-group">
+            <label>Saturation</label>
+            <input type="range" min="0" max="200" value="100" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-saturate">
+          </div>
+          <div class="filter-group">
+            <label>Blur</label>
+            <input type="range" min="0" max="10" value="0" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-blur">
+          </div>
+          <div class="filter-group">
+            <label>Grayscale</label>
+            <input type="range" min="0" max="100" value="0" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-grayscale">
+          </div>
+          <div class="filter-group">
+            <label>Sepia</label>
+            <input type="range" min="0" max="100" value="0" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-sepia">
+          </div>
+          <div class="filter-group">
+            <label>Hue Rotate</label>
+            <input type="range" min="0" max="360" value="0" onchange="updateImageFilters()" oninput="updateImageFilters()" id="filter-hue">
+          </div>
+          <button class="tool-btn" onclick="flipImageHorizontal()" title="Flip Horizontal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64"/><path d="M3.51 15A9 9 0 0 0 18.36 18.36"/></svg>
+            H-Flip
+          </button>
+          <button class="tool-btn" onclick="flipImageVertical()" title="Flip Vertical">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64"/><path d="M3.51 15A9 9 0 0 0 18.36 18.36"/></svg>
+            V-Flip
+          </button>
+          <button class="tool-btn" onclick="resetImageFilters()" title="Reset all filters">Reset</button>
+        </div>
       </div>
     </div>
 
@@ -1085,6 +1192,7 @@
       currentTab: 'pdf-editor',
       textEdits: {},       // { pageNum: [ {origText, newText, x, y, fontSize, fontFamily} ] }
       textLayerItems: [],  // current page text items from PDF.js
+      imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
     };
 
     // ===== TOAST NOTIFICATIONS =====
@@ -1106,6 +1214,14 @@
       document.querySelectorAll('.tab-bar .tab').forEach(t => t.classList.remove('active'));
       document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add('active');
       state.currentTab = tab;
+
+      // Show/hide image editor panel
+      const imagePanel = document.getElementById('image-editor-panel');
+      if (tab === 'image-editor' && state.isDocLoaded) {
+        imagePanel?.classList.add('active');
+      } else {
+        imagePanel?.classList.remove('active');
+      }
 
       if (tab === 'merge-split') {
         openMergeModal();
@@ -1440,6 +1556,9 @@
           });
           state.fabricCanvas.add(rect);
           saveHistory();
+        } else if (state.currentTool === 'note') {
+          const pointer = state.fabricCanvas.getPointer(opt.e);
+          addStickyNote(pointer.x, pointer.y, '');
         }
       });
     }
@@ -2520,6 +2639,233 @@
       // Clear form
       document.getElementById('feedback-text').value = '';
       document.getElementById('feedback-email').value = '';
+    }
+
+    // ===== PAGE MANAGEMENT =====
+    async function rotatePage() {
+      if (!state.pdfBytes || state.totalPages < 1) {
+        showToast('No document loaded', 'error');
+        return;
+      }
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(new Uint8Array(state.pdfBytes));
+        const page = pdfDoc.getPage(state.currentPage - 1);
+        const currentRotation = page.getRotation().angle || 0;
+        page.setRotation(PDFLib.degrees(currentRotation + 90));
+        state.pdfBytes = await pdfDoc.save();
+        await loadPDF(new Uint8Array(state.pdfBytes));
+        await goToPage(state.currentPage);
+        showToast('Page rotated 90°', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function deletePage() {
+      if (!state.pdfBytes || state.totalPages < 1) {
+        showToast('No document loaded', 'error');
+        return;
+      }
+      if (state.totalPages === 1) {
+        showToast('Cannot delete the last page', 'error');
+        return;
+      }
+      if (!confirm(`Delete page ${state.currentPage}?`)) return;
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(new Uint8Array(state.pdfBytes));
+        pdfDoc.removePage(state.currentPage - 1);
+        state.pdfBytes = await pdfDoc.save();
+        await loadPDF(new Uint8Array(state.pdfBytes));
+        const newPage = Math.min(state.currentPage, state.totalPages);
+        await goToPage(newPage);
+        showToast('Page deleted', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function movePageUp() {
+      if (!state.pdfBytes || state.currentPage <= 1) {
+        showToast('Cannot move page up', 'error');
+        return;
+      }
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(new Uint8Array(state.pdfBytes));
+        const pages = pdfDoc.getPages();
+        const currentIdx = state.currentPage - 1;
+        const prevIdx = currentIdx - 1;
+
+        // Swap pages by creating new document with reordered pages
+        const newPdf = await PDFLib.PDFDocument.create();
+        for (let i = 0; i < pages.length; i++) {
+          let pageIdx = i;
+          if (i === prevIdx) pageIdx = currentIdx;
+          else if (i === currentIdx) pageIdx = prevIdx;
+          const [movedPage] = await newPdf.copyPages(pdfDoc, [pageIdx]);
+          newPdf.addPage(movedPage);
+        }
+        state.pdfBytes = await newPdf.save();
+        await loadPDF(new Uint8Array(state.pdfBytes));
+        await goToPage(state.currentPage - 1);
+        showToast('Page moved up', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function movePageDown() {
+      if (!state.pdfBytes || state.currentPage >= state.totalPages) {
+        showToast('Cannot move page down', 'error');
+        return;
+      }
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(new Uint8Array(state.pdfBytes));
+        const pages = pdfDoc.getPages();
+        const currentIdx = state.currentPage - 1;
+        const nextIdx = currentIdx + 1;
+
+        // Swap pages by creating new document with reordered pages
+        const newPdf = await PDFLib.PDFDocument.create();
+        for (let i = 0; i < pages.length; i++) {
+          let pageIdx = i;
+          if (i === currentIdx) pageIdx = nextIdx;
+          else if (i === nextIdx) pageIdx = currentIdx;
+          const [movedPage] = await newPdf.copyPages(pdfDoc, [pageIdx]);
+          newPdf.addPage(movedPage);
+        }
+        state.pdfBytes = await newPdf.save();
+        await loadPDF(new Uint8Array(state.pdfBytes));
+        await goToPage(state.currentPage + 1);
+        showToast('Page moved down', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    // ===== STICKY NOTES =====
+    function setToolAndWait(tool) {
+      state.currentTool = tool;
+      if (tool === 'note') {
+        showToast('Click on the page to add a sticky note', 'info');
+      }
+    }
+
+    function addStickyNote(x, y, text) {
+      if (!state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+      const rect = new fabric.Rect({
+        width: 180,
+        height: 100,
+        fill: '#fef3c7',
+        stroke: '#f59e0b',
+        strokeWidth: 1,
+        rx: 4,
+        ry: 4,
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.15)', blur: 8, offsetX: 2, offsetY: 2 })
+      });
+      const noteText = new fabric.Textbox(text || 'Note...', {
+        width: 170,
+        fontSize: 12,
+        fontFamily: 'Arial',
+        fill: '#92400e',
+        top: 8,
+        left: 5
+      });
+      const group = new fabric.Group([rect, noteText], { left: x || 100, top: y || 100 });
+      state.fabricCanvas.add(group);
+      state.fabricCanvas.setActiveObject(group);
+      state.fabricCanvas.renderAll();
+      saveHistory();
+    }
+
+    // ===== IMAGE FILTERS =====
+    function updateImageFilters() {
+      const brightness = document.getElementById('filter-brightness')?.value || 100;
+      const contrast = document.getElementById('filter-contrast')?.value || 100;
+      const saturate = document.getElementById('filter-saturate')?.value || 100;
+      const blur = document.getElementById('filter-blur')?.value || 0;
+      const grayscale = document.getElementById('filter-grayscale')?.value || 0;
+      const sepia = document.getElementById('filter-sepia')?.value || 0;
+      const hueRotate = document.getElementById('filter-hue')?.value || 0;
+
+      state.imageFilters = { brightness, contrast, saturate, blur, grayscale, sepia, hueRotate };
+
+      const canvas = document.getElementById('pdf-canvas');
+      if (canvas) {
+        canvas.style.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) blur(${blur}px) grayscale(${grayscale}%) sepia(${sepia}%) hue-rotate(${hueRotate}deg)`;
+      }
+    }
+
+    function resetImageFilters() {
+      document.getElementById('filter-brightness').value = 100;
+      document.getElementById('filter-contrast').value = 100;
+      document.getElementById('filter-saturate').value = 100;
+      document.getElementById('filter-blur').value = 0;
+      document.getElementById('filter-grayscale').value = 0;
+      document.getElementById('filter-sepia').value = 0;
+      document.getElementById('filter-hue').value = 0;
+
+      state.imageFilters = { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 };
+
+      const canvas = document.getElementById('pdf-canvas');
+      if (canvas) {
+        canvas.style.filter = 'none';
+      }
+      showToast('Filters reset', 'success');
+    }
+
+    function flipImageHorizontal() {
+      if (!state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+      showToast('Flip feature - use annotation tools for now', 'info');
+    }
+
+    function flipImageVertical() {
+      if (!state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+      showToast('Flip feature - use annotation tools for now', 'info');
+    }
+
+    // ===== WATERMARK =====
+    function addWatermark() {
+      if (!state.fabricCanvas) {
+        showToast('Open a document first', 'error');
+        return;
+      }
+
+      const text = prompt('Enter watermark text:', 'WATERMARK');
+      if (!text) return;
+
+      const watermarkText = new fabric.Text(text.toUpperCase(), {
+        fontSize: 48,
+        fill: 'rgba(0, 0, 0, 0.15)',
+        fontFamily: 'Arial',
+        fontWeight: 'bold',
+        angle: -45,
+        left: 100,
+        top: 100,
+        selectable: false,
+        evented: false
+      });
+
+      state.fabricCanvas.add(watermarkText);
+      state.fabricCanvas.sendToBack();
+      state.fabricCanvas.renderAll();
+      saveHistory();
+      showToast('Watermark added!', 'success');
     }
 
     // ===== DRAG & DROP =====
