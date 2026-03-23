@@ -620,6 +620,10 @@
       <span class="free-badge">FREE</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+      <button class="tool-btn" onclick="openFeedbackModal()" title="Send feedback or request features" style="font-size:12px; padding:6px 12px; border:1px solid var(--border);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Feedback
+      </button>
       <button class="tool-btn ai-btn" onclick="toggleAIPanel()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
         AI Assistant
@@ -713,6 +717,13 @@
       <button class="tool-btn ai-btn" onclick="aiSummarize()" title="AI: Summarize">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
         AI Summary
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" onclick="openCompressModal()" title="Compress PDF to reduce file size">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        Compress
       </button>
     </div>
   </div>
@@ -939,6 +950,66 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
         <button class="btn btn-primary" onclick="encryptPDF()">Encrypt & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compress Modal -->
+  <div class="modal-overlay" id="compress-modal">
+    <div class="modal" style="max-width: 480px;">
+      <h2>Compress PDF</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Reduce file size while maintaining quality</p>
+      <div id="compress-info" style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="color: var(--text-secondary); font-size: 13px;">Current file size:</span>
+          <strong id="compress-original-size">--</strong>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn btn-secondary" onclick="compressPDF('low')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+          <div><strong>Light Compression</strong><br><small style="color:var(--text-secondary)">Best quality, ~10-20% reduction</small></div>
+          <span style="color: var(--success); font-weight: bold; font-size: 13px;">High Quality</span>
+        </button>
+        <button class="btn btn-primary" onclick="compressPDF('medium')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+          <div><strong>Recommended</strong><br><small style="color:rgba(255,255,255,0.7)">Good quality, ~40-60% reduction</small></div>
+          <span style="font-weight: bold; font-size: 13px;">Balanced</span>
+        </button>
+        <button class="btn btn-secondary" onclick="compressPDF('high')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+          <div><strong>Maximum Compression</strong><br><small style="color:var(--text-secondary)">Smaller file, lower image quality</small></div>
+          <span style="color: var(--warning); font-weight: bold; font-size: 13px;">Smallest</span>
+        </button>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn btn-secondary" onclick="closeCompressModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Modal -->
+  <div class="modal-overlay" id="feedback-modal">
+    <div class="modal" style="max-width: 520px;">
+      <h2>Feature Request / Feedback</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Help us make OpenPDF Studio better! Your feedback goes directly to our team.</p>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="feedback-type" style="width:100%; padding:10px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:8px;">
+          <option value="feature">Feature Request</option>
+          <option value="bug">Bug Report</option>
+          <option value="improvement">Improvement Suggestion</option>
+          <option value="other">Other Feedback</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Email (optional)</label>
+        <input type="email" id="feedback-email" placeholder="you@example.com" style="width:100%; padding:10px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:8px;">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="feedback-text" rows="4" placeholder="Describe the feature you'd like, the bug you found, or any suggestions..." style="width:100%; padding:10px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:8px; resize:vertical; font-family:inherit;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
       </div>
     </div>
   </div>
@@ -2046,40 +2117,126 @@
       const msgDiv = document.getElementById('ai-messages');
       msgDiv.innerHTML += `<div class="ai-msg user">${msg}</div>`;
 
-      // Process AI commands
       let response = '';
       const lowerMsg = msg.toLowerCase();
+      const docLoaded = state.isDocLoaded;
 
-      if (lowerMsg.includes('ocr') || lowerMsg.includes('extract text')) {
-        response = 'I can extract text from your document using OCR. Click the "AI OCR" button in the toolbar, or I\'ll start it for you.';
-        if (state.isDocLoaded) aiOCR();
-      } else if (lowerMsg.includes('redact') || lowerMsg.includes('hide') || lowerMsg.includes('sensitive')) {
-        response = 'I can help redact sensitive information. I\'ll scan for emails, phone numbers, SSNs, and other PII. Starting smart redaction...';
-        if (state.isDocLoaded) aiRedact();
-      } else if (lowerMsg.includes('summarize') || lowerMsg.includes('summary') || lowerMsg.includes('what is this')) {
-        response = 'Let me analyze and summarize this document for you...';
-        if (state.isDocLoaded) aiSummarize();
-      } else if (lowerMsg.includes('merge') || lowerMsg.includes('combine')) {
-        response = 'To merge PDFs, go to the "Merge & Split" tab or click the button. You can add multiple PDF files and combine them into one.';
-        openMergeModal();
-      } else if (lowerMsg.includes('sign') || lowerMsg.includes('signature')) {
-        response = 'I\'ll open the signature tool for you. You can draw, type, or upload a signature image.';
-        if (state.isDocLoaded) openSignatureModal();
-      } else if (lowerMsg.includes('protect') || lowerMsg.includes('password') || lowerMsg.includes('encrypt')) {
-        response = 'I\'ll open the encryption tool. You can set a password to protect your PDF.';
-        openPasswordModal();
-      } else if (lowerMsg.includes('convert') || lowerMsg.includes('to image') || lowerMsg.includes('to png')) {
-        response = 'I can convert your PDF to various formats. Let me open the conversion options for you...';
-        if (state.isDocLoaded) openConvertModal();
-      } else {
-        response = `I understand you want to "${msg}". Here's what I can help with:\n\n` +
-          '- Say "OCR" to extract text from scanned documents\n' +
-          '- Say "redact" to find and hide sensitive information\n' +
-          '- Say "summarize" to get a document summary\n' +
-          '- Say "merge" to combine PDF files\n' +
-          '- Say "sign" to add a signature\n' +
-          '- Say "protect" to encrypt with a password\n\n' +
-          'For a full AI experience, you can connect an API key in Settings for advanced natural language processing.';
+      // Smart pattern matching for natural language commands
+      const patterns = [
+        { match: /\b(ocr|extract\s*text|scan|read\s*text|text\s*from\s*image)\b/, action: () => {
+          if (docLoaded) { aiOCR(); return 'Running OCR to extract text from your document. This works great on scanned pages and images embedded in PDFs.'; }
+          return 'Open a PDF first, then I can extract text using OCR. This is especially useful for scanned documents.';
+        }},
+        { match: /\b(redact|hide|remove\s*sensitive|black\s*out|censor|pii|personal\s*info)\b/, action: () => {
+          if (docLoaded) { aiRedact(); return 'Scanning for sensitive information (emails, phone numbers, SSNs, credit cards) to redact. I\'ll highlight what I find.'; }
+          return 'Open a PDF first, then I can find and redact sensitive information automatically.';
+        }},
+        { match: /\b(summar|what.*about|what.*say|overview|key\s*points|tldr|explain\s*this)\b/, action: () => {
+          if (docLoaded) { aiSummarize(); return 'Analyzing your document to create a summary of the key points...'; }
+          return 'Open a PDF first, then I can summarize its contents for you.';
+        }},
+        { match: /\b(merge|combine|join|put\s*together)\b/, action: () => {
+          openMergeModal(); return 'I\'ve opened the merge tool. You can drag and drop multiple PDF files to combine them into a single document.';
+        }},
+        { match: /\b(split|separate|extract\s*page|break\s*apart)\b/, action: () => {
+          openMergeModal(); return 'I\'ve opened the merge/split tool. You can extract specific pages or split your PDF into separate files.';
+        }},
+        { match: /\b(sign|signature|autograph|initial)\b/, action: () => {
+          if (docLoaded) { openSignatureModal(); return 'Signature tool is open! You can draw your signature, type it, or upload an image of it.'; }
+          return 'Open a PDF first, then you can add your signature.';
+        }},
+        { match: /\b(protect|password|encrypt|secure|lock)\b/, action: () => {
+          openPasswordModal(); return 'Password protection dialog is open. Set a password to secure your PDF from unauthorized access.';
+        }},
+        { match: /\b(convert|export|to\s*(png|jpg|image|html|text|svg|webp))\b/, action: () => {
+          if (docLoaded) { openConvertModal(); return 'Here are your conversion options — you can export to PNG, JPG, WebP, SVG, plain text, or HTML.'; }
+          return 'Open a PDF first, then I can convert it to various formats.';
+        }},
+        { match: /\b(compress|shrink|reduce\s*size|smaller|file\s*size|optimize)\b/, action: () => {
+          if (docLoaded) { openCompressModal(); return 'Compression options are open! Choose a level based on your needs — Recommended gets ~40-60% size reduction while keeping good quality.'; }
+          return 'Open a PDF first, then I can compress it to reduce file size.';
+        }},
+        { match: /\b(add\s*(image|logo|picture|photo)|insert\s*(image|logo|picture|photo)|logo)\b/, action: () => {
+          if (docLoaded) { addImage(); return 'Image picker is open — select an image or logo file to insert onto your PDF. You can then drag to position and resize it.'; }
+          return 'Open a PDF first, then I can help you insert images.';
+        }},
+        { match: /\b(highlight|mark\s*up|underline)\b/, action: () => {
+          if (docLoaded) { setTool('highlight'); return 'Highlight tool is active! Click and drag over text to highlight it. Great for marking important sections.'; }
+          return 'Open a document first to use the highlight tool.';
+        }},
+        { match: /\b(draw|sketch|pen|freehand|annotate)\b/, action: () => {
+          if (docLoaded) { setTool('draw'); return 'Drawing tool is active. You can freehand draw on the document. Use the toolbar to change color and brush size.'; }
+          return 'Open a document first to use the drawing tool.';
+        }},
+        { match: /\b(add\s*text|type|new\s*text|write)\b/, action: () => {
+          if (docLoaded) { setTool('text'); return 'Text tool is active. Click anywhere on the document to add a new text box. Or click on existing text to edit it.'; }
+          return 'Open a document first to add text.';
+        }},
+        { match: /\b(edit\s*text|change\s*text|modify|click.*edit)\b/, action: () => {
+          if (docLoaded) { setTool('select'); return 'Select tool is active — just click on any text in your PDF to edit it directly. You can change words, fix typos, or rewrite content.'; }
+          return 'Open a PDF first, then click on any text to edit it inline.';
+        }},
+        { match: /\b(save|download|export\s*pdf)\b/, action: () => {
+          if (docLoaded) { savePDF(); return 'Saving your PDF with all edits included. The file will download to your computer.'; }
+          return 'No document open to save.';
+        }},
+        { match: /\b(print)\b/, action: () => {
+          if (docLoaded) { printPDF(); return 'Opening print dialog...'; }
+          return 'Open a document first to print it.';
+        }},
+        { match: /\b(shape|rectangle|circle|arrow|line)\b/, action: () => {
+          if (docLoaded) { setTool('shape'); return 'Shapes tool is active. You can add rectangles, circles, arrows, and lines to your document.'; }
+          return 'Open a document first to add shapes.';
+        }},
+        { match: /\b(stamp|watermark)\b/, action: () => {
+          if (docLoaded) { return 'Use the Stamp tool in the toolbar to add stamps like "APPROVED", "CONFIDENTIAL", "DRAFT" etc. to your document.'; }
+          return 'Open a PDF first to add stamps or watermarks.';
+        }},
+        { match: /\b(page|pages|how\s*many)\b/, action: () => {
+          if (docLoaded) { return 'Your document has ' + state.totalPages + ' page(s). You\'re currently viewing page ' + state.currentPage + '.'; }
+          return 'No document open. Open a PDF to see page information.';
+        }},
+        { match: /\b(help|what\s*can|features|how\s*to|guide)\b/, action: () => {
+          return 'Here\'s what I can do for you:\n\n' +
+            '<b>Editing:</b> "edit text", "add text", "add image", "add logo", "draw", "highlight", "add shapes"\n' +
+            '<b>AI Tools:</b> "extract text (OCR)", "redact sensitive info", "summarize document"\n' +
+            '<b>Document:</b> "merge PDFs", "split pages", "compress file", "convert to PNG/HTML/text"\n' +
+            '<b>Security:</b> "add signature", "protect with password", "add stamp"\n' +
+            '<b>Other:</b> "save", "print", "how many pages"\n\n' +
+            'Just describe what you want in plain English and I\'ll help!';
+        }},
+        { match: /\b(feedback|suggest|request|feature|bug|improve)\b/, action: () => {
+          openFeedbackModal();
+          return 'Feedback form is open! You can submit feature requests, bug reports, or suggestions. We review every submission.';
+        }},
+        { match: /\b(hi|hello|hey|greetings|good\s*(morning|afternoon|evening))\b/, action: () => {
+          return 'Hello! I\'m your PDF assistant. I can help you edit text, add images, compress files, convert formats, and much more. Just tell me what you need!';
+        }},
+        { match: /\b(thank|thanks|thx|appreciate)\b/, action: () => {
+          return 'You\'re welcome! Let me know if there\'s anything else I can help with.';
+        }},
+      ];
+
+      // Try matching patterns
+      let matched = false;
+      for (const pattern of patterns) {
+        if (pattern.match.test(lowerMsg)) {
+          response = pattern.action();
+          matched = true;
+          break;
+        }
+      }
+
+      if (!matched) {
+        response = 'I\'m not sure about "' + msg.substring(0, 50) + '", but I can help with many things! Try asking me to:\n\n' +
+          '• <b>Edit text</b> — click any text to change it\n' +
+          '• <b>Add an image/logo</b> to your PDF\n' +
+          '• <b>Compress</b> to reduce file size\n' +
+          '• <b>Convert</b> to PNG, JPG, HTML, or text\n' +
+          '• <b>OCR</b> to extract text from scans\n' +
+          '• <b>Redact</b> sensitive information\n' +
+          '• <b>Summarize</b> the document\n' +
+          '• Type <b>"help"</b> for full feature list';
       }
 
       msgDiv.innerHTML += `<div class="ai-msg bot">${response}</div>`;
@@ -2233,6 +2390,136 @@
       } catch (e) {
         showToast('Encryption error: ' + e.message, 'error');
       }
+    }
+
+    // ===== PDF COMPRESSION =====
+    function openCompressModal() {
+      if (!state.isDocLoaded || !state.pdfBytes) {
+        showToast('Open a PDF first to compress', 'error');
+        return;
+      }
+      const sizeKB = (state.pdfBytes.length / 1024).toFixed(1);
+      const sizeMB = (state.pdfBytes.length / (1024 * 1024)).toFixed(2);
+      const display = state.pdfBytes.length > 1024 * 1024 ? sizeMB + ' MB' : sizeKB + ' KB';
+      document.getElementById('compress-original-size').textContent = display;
+      document.getElementById('compress-modal').classList.add('visible');
+    }
+
+    function closeCompressModal() {
+      document.getElementById('compress-modal').classList.remove('visible');
+    }
+
+    async function compressPDF(level) {
+      closeCompressModal();
+      setStatus('Compressing PDF...');
+      const originalSize = state.pdfBytes.length;
+
+      try {
+        // Quality settings per level
+        const qualityMap = { low: 0.85, medium: 0.6, high: 0.35 };
+        const scaleMap = { low: 1.5, medium: 1.2, high: 0.9 };
+        const quality = qualityMap[level];
+        const renderScale = scaleMap[level];
+
+        // Re-render each page to a JPEG image at reduced quality, then build a new PDF
+        const newPdfDoc = await PDFLib.PDFDocument.create();
+
+        for (let p = 1; p <= state.totalPages; p++) {
+          setStatus('Compressing page ' + p + '/' + state.totalPages + '...');
+          const page = await state.pdfDoc.getPage(p);
+          const origVp = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: renderScale });
+
+          const tmpCanvas = document.createElement('canvas');
+          tmpCanvas.width = vp.width;
+          tmpCanvas.height = vp.height;
+          const tmpCtx = tmpCanvas.getContext('2d');
+
+          // White background
+          tmpCtx.fillStyle = '#fff';
+          tmpCtx.fillRect(0, 0, vp.width, vp.height);
+
+          await page.render({ canvasContext: tmpCtx, viewport: vp }).promise;
+
+          // Convert to JPEG at specified quality
+          const jpegDataUrl = tmpCanvas.toDataURL('image/jpeg', quality);
+          const jpegBytes = await fetch(jpegDataUrl).then(r => r.arrayBuffer());
+          const jpegImage = await newPdfDoc.embedJpg(new Uint8Array(jpegBytes));
+
+          // Use original page dimensions (in PDF points)
+          const newPage = newPdfDoc.addPage([origVp.width, origVp.height]);
+          newPage.drawImage(jpegImage, {
+            x: 0,
+            y: 0,
+            width: origVp.width,
+            height: origVp.height,
+          });
+        }
+
+        const compressedBytes = await newPdfDoc.save();
+        const newSize = compressedBytes.length;
+        const reduction = Math.round((1 - newSize / originalSize) * 100);
+
+        const blob = new Blob([compressedBytes], { type: 'application/pdf' });
+        const baseName = (state.fileName || 'document').replace(/\.[^/.]+$/, '');
+        saveAs(blob, baseName + '_compressed.pdf');
+
+        const newSizeDisplay = newSize > 1024 * 1024
+          ? (newSize / (1024 * 1024)).toFixed(2) + ' MB'
+          : (newSize / 1024).toFixed(1) + ' KB';
+        const origDisplay = originalSize > 1024 * 1024
+          ? (originalSize / (1024 * 1024)).toFixed(2) + ' MB'
+          : (originalSize / 1024).toFixed(1) + ' KB';
+
+        showToast('Compressed! ' + origDisplay + ' → ' + newSizeDisplay + ' (' + reduction + '% smaller)', 'success');
+        setStatus('Ready');
+      } catch (e) {
+        console.error('Compression error:', e);
+        showToast('Compression error: ' + e.message, 'error');
+        setStatus('Ready');
+      }
+    }
+
+    // ===== FEEDBACK SYSTEM =====
+    function openFeedbackModal() {
+      document.getElementById('feedback-modal').classList.add('visible');
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedback-modal').classList.remove('visible');
+    }
+
+    function submitFeedback() {
+      const type = document.getElementById('feedback-type').value;
+      const email = document.getElementById('feedback-email').value;
+      const text = document.getElementById('feedback-text').value;
+
+      if (!text.trim()) {
+        showToast('Please enter your feedback', 'error');
+        return;
+      }
+
+      // Create a GitHub issue via URL (pre-filled)
+      const title = encodeURIComponent('[' + type.charAt(0).toUpperCase() + type.slice(1) + '] ' + text.substring(0, 60));
+      const body = encodeURIComponent(
+        '## ' + type.charAt(0).toUpperCase() + type.slice(1) + '\n\n' +
+        text + '\n\n' +
+        '---\n' +
+        (email ? 'Submitted by: ' + email + '\n' : '') +
+        'Submitted from: OpenPDF Studio Web App\n' +
+        'User Agent: ' + navigator.userAgent.substring(0, 80) + '\n' +
+        'Date: ' + new Date().toISOString()
+      );
+
+      const issueUrl = 'https://github.com/VagishKapila/openpdf-studio/issues/new?title=' + title + '&body=' + body + '&labels=' + type;
+      window.open(issueUrl, '_blank');
+
+      showToast('Redirecting to submit your feedback on GitHub...', 'success');
+      closeFeedbackModal();
+
+      // Clear form
+      document.getElementById('feedback-text').value = '';
+      document.getElementById('feedback-email').value = '';
     }
 
     // ===== DRAG & DROP =====
