@@ -31,12 +31,12 @@
       --primary: #6B5CE7;
       --primary-hover: #5A4BD6;
       --primary-light: #EDE9FE;
-      --bg: #F7F5F2;
+      --bg: #FAFAFA;
       --bg-secondary: #FFFFFF;
-      --bg-tertiary: #F0EDE8;
+      --bg-tertiary: #F5F3F0;
       --text: #2D2B2E;
       --text-secondary: #6B6A6D;
-      --border: #E5E2DC;
+      --border: #E8E5E0;
       --success: #16A34A;
       --warning: #D97706;
       --danger: #DC2626;
@@ -209,7 +209,7 @@
       flex: 1;
       display: flex;
       overflow: auto;
-      background: #EDEAE5;
+      background: #F0EEEB;
       position: relative;
       min-height: 0;
     }
@@ -234,40 +234,60 @@
       z-index: 8;
     }
 
-    /* ===== ANNOTATION ACTION BAR ===== */
+    /* ===== ANNOTATION ACTION BAR (top sub-heading style) ===== */
     .annotation-action-bar {
       display: none;
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #fff;
-      border: 1px solid #e2e0dc;
-      border-radius: 12px;
-      padding: 8px 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-      z-index: 1000;
-      gap: 8px;
+      width: 100%;
+      background: linear-gradient(135deg, #EDE9FE 0%, #f0ebff 100%);
+      border-bottom: 2px solid var(--primary);
+      padding: 6px 16px;
+      z-index: 99;
+      gap: 12px;
       align-items: center;
       font-family: 'Inter', sans-serif;
       font-size: 13px;
-      color: #555;
+      color: var(--text);
     }
     .annotation-action-bar.visible { display: flex; }
+    .annotation-action-bar .ann-label {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 4px;
+    }
+    .annotation-action-bar .ann-separator {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
     .annotation-action-bar button {
-      background: none;
-      border: 1px solid #e2e0dc;
-      border-radius: 8px;
-      padding: 6px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-family: 'Inter', sans-serif;
       color: #333;
       transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .annotation-action-bar button:hover { background: #f3f1ee; }
+    .annotation-action-bar button:hover { background: #f3f1ee; border-color: var(--primary); }
     .annotation-action-bar .delete-btn { color: #dc2626; border-color: #fca5a5; }
     .annotation-action-bar .delete-btn:hover { background: #fef2f2; }
+    .annotation-action-bar .opacity-display {
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
 
     /* ===== TEXT LAYER (click-to-edit) ===== */
     #text-layer {
@@ -819,6 +839,34 @@
     </div>
   </div>
 
+  <!-- Annotation Action Bar (sub-heading below toolbar when annotation selected) -->
+  <div class="annotation-action-bar" id="annotation-action-bar">
+    <span class="ann-label">Selected</span>
+    <div class="ann-separator"></div>
+    <button onclick="changeAnnotationOpacity(-10)" title="Decrease opacity">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
+    </button>
+    <span class="opacity-display" id="ann-opacity-display">100%</span>
+    <button onclick="changeAnnotationOpacity(10)" title="Increase opacity">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+    </button>
+    <div class="ann-separator"></div>
+    <button onclick="bringAnnotationForward()" title="Bring forward">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 6 12 10"/></svg>
+      Forward
+    </button>
+    <button onclick="sendAnnotationBackward()" title="Send backward">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+      Back
+    </button>
+    <div class="ann-separator"></div>
+    <button class="delete-btn" onclick="deleteSelectedAnnotation()" title="Delete (Del key)">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 13 6"/><path d="M5.5 6V4.5a1 1 0 011-1h3a1 1 0 011 1V6"/><path d="M4 6l.7 7.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 6"/></svg>
+      Delete
+    </button>
+    <span style="color:var(--text-secondary);font-size:11px;margin-left:auto;">Press Delete key or Esc to deselect</span>
+  </div>
+
   <!-- ===== MAIN CONTENT ===== -->
   <div class="main-container">
     <!-- Sidebar (Page Thumbnails) -->
@@ -1129,25 +1177,45 @@
   <div class="modal-overlay" id="compress-modal">
     <div class="modal" style="max-width: 480px;">
       <h2>Compress PDF</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Reduce file size while maintaining quality</p>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Select a compression level — file will compress automatically</p>
       <div id="compress-info" style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
           <span style="color: var(--text-secondary); font-size: 13px;">Current file size:</span>
           <strong id="compress-original-size">--</strong>
         </div>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn btn-secondary" onclick="compressPDF('low')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-          <div><strong>Light Compression</strong><br><small style="color:var(--text-secondary)">Best quality, ~10-20% reduction</small></div>
-          <span style="color: var(--success); font-weight: bold; font-size: 13px;">High Quality</span>
+      <div style="display: flex; flex-direction: column; gap: 10px;" id="compress-options">
+        <button class="btn btn-secondary compress-option" data-level="low" onclick="selectAndCompress('low')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center; position:relative;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="compress-radio" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"></span>
+            <div><strong>Light Compression</strong><br><small style="color:var(--text-secondary)">Best quality, ~10-20% reduction</small></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="color: var(--success); font-weight: bold; font-size: 13px;">High Quality</span><br>
+            <small id="compress-est-low" style="color:var(--text-secondary);">Est: --</small>
+          </div>
         </button>
-        <button class="btn btn-primary" onclick="compressPDF('medium')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-          <div><strong>Recommended</strong><br><small style="color:rgba(255,255,255,0.7)">Good quality, ~40-60% reduction</small></div>
-          <span style="font-weight: bold; font-size: 13px;">Balanced</span>
+        <button class="btn btn-secondary compress-option selected" data-level="medium" onclick="selectAndCompress('medium')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center; position:relative; border-color: var(--primary); background: var(--primary-light);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="compress-radio" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--primary);">
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="white" stroke-width="2.5"><polyline points="3 8 7 12 13 4"/></svg>
+            </span>
+            <div><strong>Recommended</strong><br><small style="color:var(--text-secondary)">Good quality, ~40-60% reduction</small></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="color: var(--primary); font-weight: bold; font-size: 13px;">Balanced</span><br>
+            <small id="compress-est-medium" style="color:var(--text-secondary);">Est: --</small>
+          </div>
         </button>
-        <button class="btn btn-secondary" onclick="compressPDF('high')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-          <div><strong>Maximum Compression</strong><br><small style="color:var(--text-secondary)">Smaller file, lower image quality</small></div>
-          <span style="color: var(--warning); font-weight: bold; font-size: 13px;">Smallest</span>
+        <button class="btn btn-secondary compress-option" data-level="high" onclick="selectAndCompress('high')" style="padding:14px; text-align:left; display:flex; justify-content:space-between; align-items:center; position:relative;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="compress-radio" style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"></span>
+            <div><strong>Maximum Compression</strong><br><small style="color:var(--text-secondary)">Smaller file, lower image quality</small></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="color: var(--warning); font-weight: bold; font-size: 13px;">Smallest</span><br>
+            <small id="compress-est-high" style="color:var(--text-secondary);">Est: --</small>
+          </div>
         </button>
       </div>
       <div class="modal-actions" style="margin-top:16px;">
@@ -1235,14 +1303,6 @@
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
-
-  <!-- Annotation Action Bar (appears when annotation is selected) -->
-  <div class="annotation-action-bar" id="annotation-action-bar">
-    <span>Selected annotation:</span>
-    <button onclick="changeAnnotationOpacity()">Opacity</button>
-    <button class="delete-btn" onclick="deleteSelectedAnnotation()">🗑 Delete</button>
-    <span style="color:#aaa;font-size:11px">or press Delete key</span>
-  </div>
 
   <script>
     // ===== APP STATE =====
@@ -1567,15 +1627,16 @@
       const textLayer = document.getElementById('text-layer');
       const annCanvasEl = document.querySelector('.canvas-container');
       if (state.currentTool === 'text') {
-        // Text editing mode: text layer on top, annotation canvas disabled
-        textLayer.classList.add('active');
-        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'none';
-      } else if (state.currentTool === 'select') {
-        // Select mode: check if there are annotations to interact with
-        // Annotation canvas gets priority so watermarks/stamps/notes can be moved
+        // Text add mode: annotation canvas active so user can click to place text
         textLayer.classList.remove('active');
         if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
-        // Finish any active text editing
+        document.querySelectorAll('#text-layer span.editing').forEach(s => {
+          finishEditingSpan(s);
+        });
+      } else if (state.currentTool === 'select') {
+        // Select mode: annotation canvas gets priority so watermarks/stamps/notes can be moved
+        textLayer.classList.remove('active');
+        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
         document.querySelectorAll('#text-layer span.editing').forEach(s => {
           finishEditingSpan(s);
         });
@@ -1603,6 +1664,16 @@
         height: h,
         isDrawingMode: false,
         selection: true,
+      });
+
+      // Set default controls to circle for all fabric objects
+      fabric.Object.prototype.set({
+        cornerStyle: 'circle',
+        cornerSize: 10,
+        cornerColor: '#6B5CE7',
+        transparentCorners: false,
+        borderColor: '#6B5CE7',
+        padding: 5,
       });
 
       state.fabricCanvas.freeDrawingBrush.width = 2;
@@ -1706,8 +1777,27 @@
         } else {
           state.fabricCanvas.isDrawingMode = false;
         }
+        // Update canvas cursor based on tool
+        const upperCanvas = state.fabricCanvas.upperCanvasEl;
+        if (tool === 'text') {
+          upperCanvas.style.cursor = 'text';
+        } else if (tool === 'note') {
+          upperCanvas.style.cursor = 'crosshair';
+        } else if (tool === 'draw' || tool === 'highlight') {
+          upperCanvas.style.cursor = 'crosshair';
+        } else {
+          upperCanvas.style.cursor = 'default';
+        }
       }
-      setStatus(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+      const toolHints = {
+        text: 'Click on the document to add text',
+        note: 'Click on the document to place a sticky note',
+        draw: 'Draw freely on the document',
+        highlight: 'Draw to highlight text',
+        select: 'Click annotations to select, drag to move',
+        shape: 'Click to add a rectangle shape',
+      };
+      setStatus(toolHints[tool] || `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
       updateTextLayerMode();
     }
 
@@ -2279,8 +2369,8 @@
         '- emails (email addresses)\n' +
         '- phones (phone numbers)\n' +
         '- ssn (Social Security numbers)\n' +
-        '- names (personal names)\n' +
-        '- all (all sensitive info)\n\n' +
+        '- all (all sensitive info)\n' +
+        '- custom text (type exact text to redact)\n\n' +
         'Enter pattern:',
         'all'
       );
@@ -2290,57 +2380,104 @@
       setStatus('AI scanning for sensitive information...');
 
       try {
-        // First, OCR the current page
         const canvas = document.getElementById('pdf-canvas');
         const { data } = await Tesseract.recognize(canvas, 'eng');
 
+        const scaleX = canvas.width / (data.width || canvas.width);
+        const scaleY = canvas.height / (data.height || canvas.height);
         let redactCount = 0;
-        const regexes = {
-          emails: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-          phones: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
-          ssn: /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g,
-        };
 
-        data.words.forEach(word => {
-          let shouldRedact = false;
+        // Build full text from lines for multi-word pattern matching
+        const fullText = data.text || '';
 
-          if (patterns === 'all' || patterns === 'emails') {
-            if (regexes.emails.test(word.text)) shouldRedact = true;
-            regexes.emails.lastIndex = 0;
+        const regexes = {};
+        if (patterns === 'all' || patterns === 'emails') {
+          regexes.emails = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+        }
+        if (patterns === 'all' || patterns === 'phones') {
+          regexes.phones = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+        }
+        if (patterns === 'all' || patterns === 'ssn') {
+          regexes.ssn = /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g;
+        }
+
+        // Collect all matched text strings from full text
+        const matchedTexts = new Set();
+        for (const [key, regex] of Object.entries(regexes)) {
+          let match;
+          while ((match = regex.exec(fullText)) !== null) {
+            matchedTexts.add(match[0]);
           }
-          if (patterns === 'all' || patterns === 'phones') {
-            if (regexes.phones.test(word.text)) shouldRedact = true;
-            regexes.phones.lastIndex = 0;
+        }
+
+        // If custom pattern (not a preset), search for that text
+        if (!['all', 'emails', 'phones', 'ssn', 'names'].includes(patterns)) {
+          if (fullText.toLowerCase().includes(patterns.toLowerCase())) {
+            matchedTexts.add(patterns);
           }
-          if (patterns === 'all' || patterns === 'ssn') {
-            if (regexes.ssn.test(word.text)) shouldRedact = true;
-            regexes.ssn.lastIndex = 0;
-          }
+        }
 
-          if (shouldRedact) {
-            const scaleX = canvas.width / data.width || 1;
-            const scaleY = canvas.height / data.height || 1;
-            const bbox = word.bbox;
+        // For each matched text, find overlapping words and redact them
+        if (matchedTexts.size > 0) {
+          data.words.forEach(word => {
+            for (const mt of matchedTexts) {
+              if (mt.toLowerCase().includes(word.text.toLowerCase()) || word.text.toLowerCase().includes(mt.toLowerCase())) {
+                const bbox = word.bbox;
+                const rect = new fabric.Rect({
+                  left: bbox.x0 * scaleX,
+                  top: bbox.y0 * scaleY,
+                  width: (bbox.x1 - bbox.x0) * scaleX + 4,
+                  height: (bbox.y1 - bbox.y0) * scaleY + 2,
+                  fill: '#000000',
+                  selectable: true,
+                  cornerStyle: 'circle',
+                  cornerSize: 8,
+                  cornerColor: '#dc2626',
+                  transparentCorners: false,
+                  borderColor: '#dc2626',
+                  _isRedaction: true,
+                });
+                state.fabricCanvas.add(rect);
+                redactCount++;
+                break;
+              }
+            }
+          });
+        }
 
-            const rect = new fabric.Rect({
-              left: bbox.x0 * scaleX,
-              top: bbox.y0 * scaleY,
-              width: (bbox.x1 - bbox.x0) * scaleX,
-              height: (bbox.y1 - bbox.y0) * scaleY,
-              fill: '#000000',
-              selectable: true,
-            });
+        // Also try per-word matching for single-word patterns
+        if (redactCount === 0) {
+          data.words.forEach(word => {
+            let shouldRedact = false;
+            for (const [key, regex] of Object.entries(regexes)) {
+              regex.lastIndex = 0;
+              if (regex.test(word.text)) { shouldRedact = true; break; }
+              regex.lastIndex = 0;
+            }
+            if (shouldRedact) {
+              const bbox = word.bbox;
+              const rect = new fabric.Rect({
+                left: bbox.x0 * scaleX,
+                top: bbox.y0 * scaleY,
+                width: (bbox.x1 - bbox.x0) * scaleX + 4,
+                height: (bbox.y1 - bbox.y0) * scaleY + 2,
+                fill: '#000000',
+                selectable: true,
+                _isRedaction: true,
+              });
+              state.fabricCanvas.add(rect);
+              redactCount++;
+            }
+          });
+        }
 
-            state.fabricCanvas.add(rect);
-            redactCount++;
-          }
-        });
-
+        state.fabricCanvas.renderAll();
         saveHistory();
-        showToast(`AI Redacted ${redactCount} item(s)`, redactCount > 0 ? 'success' : 'info');
-        setStatus(`Redaction complete: ${redactCount} items found`);
+        showToast(`AI Redacted ${redactCount} item(s)` + (redactCount === 0 ? ' — no sensitive data found on this page' : ''), redactCount > 0 ? 'success' : 'info');
+        setStatus(redactCount > 0 ? `Redaction complete: ${redactCount} items found` : 'No sensitive information found');
       } catch (e) {
         showToast('Redaction error: ' + e.message, 'error');
+        setStatus('Ready');
       }
     }
 
@@ -2669,20 +2806,51 @@
     }
 
     // ===== PDF COMPRESSION =====
+    function formatFileSize(bytes) {
+      if (bytes > 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+      return (bytes / 1024).toFixed(1) + ' KB';
+    }
+
     function openCompressModal() {
       if (!state.isDocLoaded || !state.pdfBytes) {
         showToast('Open a PDF first to compress', 'error');
         return;
       }
-      const sizeKB = (state.pdfBytes.length / 1024).toFixed(1);
-      const sizeMB = (state.pdfBytes.length / (1024 * 1024)).toFixed(2);
-      const display = state.pdfBytes.length > 1024 * 1024 ? sizeMB + ' MB' : sizeKB + ' KB';
-      document.getElementById('compress-original-size').textContent = display;
+      const size = state.pdfBytes.length;
+      document.getElementById('compress-original-size').textContent = formatFileSize(size);
+
+      // Show estimated output sizes
+      document.getElementById('compress-est-low').textContent = 'Est: ' + formatFileSize(Math.round(size * 0.85));
+      document.getElementById('compress-est-medium').textContent = 'Est: ' + formatFileSize(Math.round(size * 0.5));
+      document.getElementById('compress-est-high').textContent = 'Est: ' + formatFileSize(Math.round(size * 0.3));
+
       document.getElementById('compress-modal').classList.add('visible');
     }
 
     function closeCompressModal() {
       document.getElementById('compress-modal').classList.remove('visible');
+    }
+
+    function selectAndCompress(level) {
+      // Visual selection update
+      document.querySelectorAll('.compress-option').forEach(btn => {
+        btn.style.borderColor = '';
+        btn.style.background = '';
+        btn.querySelector('.compress-radio').innerHTML = '';
+        btn.querySelector('.compress-radio').style.border = '2px solid var(--border)';
+        btn.querySelector('.compress-radio').style.background = '';
+      });
+      const selected = document.querySelector(`.compress-option[data-level="${level}"]`);
+      if (selected) {
+        selected.style.borderColor = 'var(--primary)';
+        selected.style.background = 'var(--primary-light)';
+        const radio = selected.querySelector('.compress-radio');
+        radio.style.border = '2px solid var(--primary)';
+        radio.style.background = 'var(--primary)';
+        radio.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="white" stroke-width="2.5"><polyline points="3 8 7 12 13 4"/></svg>';
+      }
+      // Auto-compress after brief visual feedback
+      setTimeout(() => compressPDF(level), 300);
     }
 
     async function compressPDF(level) {
@@ -2740,14 +2908,7 @@
         const baseName = (state.fileName || 'document').replace(/\.[^/.]+$/, '');
         saveAs(blob, baseName + '_compressed.pdf');
 
-        const newSizeDisplay = newSize > 1024 * 1024
-          ? (newSize / (1024 * 1024)).toFixed(2) + ' MB'
-          : (newSize / 1024).toFixed(1) + ' KB';
-        const origDisplay = originalSize > 1024 * 1024
-          ? (originalSize / (1024 * 1024)).toFixed(2) + ' MB'
-          : (originalSize / 1024).toFixed(1) + ' KB';
-
-        showToast('Compressed! ' + origDisplay + ' → ' + newSizeDisplay + ' (' + reduction + '% smaller)', 'success');
+        showToast('Compressed! ' + formatFileSize(originalSize) + ' → ' + formatFileSize(newSize) + ' (' + reduction + '% smaller)', 'success');
         setStatus('Ready');
       } catch (e) {
         console.error('Compression error:', e);
@@ -2921,40 +3082,91 @@
         showToast('Open a document first', 'error');
         return;
       }
-      if (!text && text !== '') {
-        text = prompt('Enter note text:', 'Note...');
-        if (text === null) return;
-      }
+
+      // Create a sticky note as a Textbox with background styling (not a Group)
+      // This allows direct inline editing on double-click
+      const noteX = x || state.fabricCanvas.width / 2 - 90;
+      const noteY = y || state.fabricCanvas.height / 2 - 50;
+
+      // Background rectangle
       const rect = new fabric.Rect({
         width: 180,
-        height: 100,
+        height: 110,
         fill: '#fef3c7',
         stroke: '#f59e0b',
         strokeWidth: 1,
-        rx: 4,
-        ry: 4,
-        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.15)', blur: 8, offsetX: 2, offsetY: 2 })
+        rx: 6,
+        ry: 6,
+        left: noteX,
+        top: noteY,
+        selectable: false,
+        evented: false,
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.15)', blur: 8, offsetX: 2, offsetY: 2 }),
+        _isStickyBg: true,
       });
-      const noteText = new fabric.Textbox(text || 'Note...', {
-        width: 170,
-        fontSize: 12,
-        fontFamily: 'Arial',
+
+      // Editable textbox
+      const noteTextbox = new fabric.Textbox(text || 'Double-click to type...', {
+        width: 166,
+        fontSize: 13,
+        fontFamily: 'Inter, Arial, sans-serif',
         fill: '#92400e',
-        top: 8,
-        left: 5
-      });
-      const group = new fabric.Group([rect, noteText], {
-        left: x || state.fabricCanvas.width / 2 - 90,
-        top: y || state.fabricCanvas.height / 2 - 50,
+        left: noteX + 7,
+        top: noteY + 8,
+        editable: true,
         hasControls: true,
         hasBorders: true,
-        lockUniScaling: false,
+        cornerStyle: 'circle',
+        cornerSize: 10,
+        cornerColor: '#f59e0b',
+        transparentCorners: false,
+        borderColor: '#f59e0b',
+        splitByGrapheme: true,
+        _isStickyNote: true,
+        _stickyBg: rect,
       });
-      state.fabricCanvas.add(group);
-      state.fabricCanvas.setActiveObject(group);
+
+      // Keep the background rect synced with the textbox position
+      noteTextbox.on('moving', function() {
+        rect.set({ left: noteTextbox.left - 7, top: noteTextbox.top - 8 });
+        rect.setCoords();
+      });
+      noteTextbox.on('scaling', function() {
+        const w = noteTextbox.width * noteTextbox.scaleX;
+        const h = noteTextbox.height * noteTextbox.scaleY;
+        rect.set({
+          left: noteTextbox.left - 7,
+          top: noteTextbox.top - 8,
+          width: w + 14,
+          height: h + 19,
+          scaleX: 1,
+          scaleY: 1,
+        });
+        rect.setCoords();
+      });
+      noteTextbox.on('modified', function() {
+        rect.set({
+          left: noteTextbox.left - 7,
+          top: noteTextbox.top - 8,
+          width: noteTextbox.width * noteTextbox.scaleX + 14,
+          height: noteTextbox.height * noteTextbox.scaleY + 19,
+        });
+        rect.setCoords();
+        state.fabricCanvas.renderAll();
+      });
+      noteTextbox.on('changed', function() {
+        // auto-resize height
+        rect.set({ height: noteTextbox.height + 19 });
+        rect.setCoords();
+        state.fabricCanvas.renderAll();
+      });
+
+      state.fabricCanvas.add(rect);
+      state.fabricCanvas.add(noteTextbox);
+      state.fabricCanvas.setActiveObject(noteTextbox);
       state.fabricCanvas.renderAll();
       saveHistory();
-      showToast('Sticky note added! Drag to move, use handles to resize.', 'success');
+      showToast('Sticky note added! Double-click to type, drag to move.', 'success');
     }
 
     // ===== IMAGE FILTERS =====
@@ -3024,16 +3236,23 @@
 
       const watermarkText = new fabric.Text(text.toUpperCase(), {
         fontSize: 60,
-        fill: `rgba(128, 128, 128, ${opacity})`,
+        fill: 'rgb(128, 128, 128)',
         fontFamily: 'Arial',
         fontWeight: 'bold',
         angle: -45,
+        opacity: opacity,
         left: state.fabricCanvas.width / 2 - 150,
         top: state.fabricCanvas.height / 2 - 50,
         selectable: true,
         evented: true,
         hasControls: true,
         hasBorders: true,
+        cornerStyle: 'circle',
+        cornerSize: 10,
+        cornerColor: '#6B5CE7',
+        transparentCorners: false,
+        borderColor: '#6B5CE7',
+        padding: 8,
       });
 
       state.fabricCanvas.add(watermarkText);
@@ -3083,14 +3302,27 @@
     // ===== ANNOTATION ACTION BAR =====
     function showAnnotationBar() {
       document.getElementById('annotation-action-bar').classList.add('visible');
+      updateOpacityDisplay();
     }
     function hideAnnotationBar() {
       document.getElementById('annotation-action-bar').classList.remove('visible');
+    }
+    function updateOpacityDisplay() {
+      const display = document.getElementById('ann-opacity-display');
+      if (!display || !state.fabricCanvas) return;
+      const obj = state.fabricCanvas.getActiveObject();
+      if (obj) {
+        display.textContent = Math.round((obj.opacity || 1) * 100) + '%';
+      }
     }
     function deleteSelectedAnnotation() {
       if (!state.fabricCanvas) return;
       const obj = state.fabricCanvas.getActiveObject();
       if (obj) {
+        // If it's a sticky note, also remove its background rect
+        if (obj._isStickyNote && obj._stickyBg) {
+          state.fabricCanvas.remove(obj._stickyBg);
+        }
         state.fabricCanvas.remove(obj);
         state.fabricCanvas.discardActiveObject();
         state.fabricCanvas.renderAll();
@@ -3099,18 +3331,32 @@
         showToast('Annotation deleted', 'info');
       }
     }
-    function changeAnnotationOpacity() {
+    function changeAnnotationOpacity(delta) {
       if (!state.fabricCanvas) return;
       const obj = state.fabricCanvas.getActiveObject();
       if (!obj) return;
       const current = Math.round((obj.opacity || 1) * 100);
-      const val = prompt('Set opacity % (10-100):', current);
-      if (val === null) return;
-      const opacity = Math.max(0.1, Math.min(1, parseInt(val) / 100));
-      obj.set('opacity', opacity);
+      const newOpacity = Math.max(5, Math.min(100, current + delta));
+      obj.set('opacity', newOpacity / 100);
       state.fabricCanvas.renderAll();
+      updateOpacityDisplay();
       saveHistory();
-      showToast(`Opacity set to ${Math.round(opacity * 100)}%`, 'success');
+    }
+    function bringAnnotationForward() {
+      if (!state.fabricCanvas) return;
+      const obj = state.fabricCanvas.getActiveObject();
+      if (obj) {
+        state.fabricCanvas.bringForward(obj);
+        state.fabricCanvas.renderAll();
+      }
+    }
+    function sendAnnotationBackward() {
+      if (!state.fabricCanvas) return;
+      const obj = state.fabricCanvas.getActiveObject();
+      if (obj) {
+        state.fabricCanvas.sendBackwards(obj);
+        state.fabricCanvas.renderAll();
+      }
     }
 
     // Hook into fabric canvas selection events after canvas init
