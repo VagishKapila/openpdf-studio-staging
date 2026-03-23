@@ -6,10 +6,10 @@
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
+  "productName": "OpenPDF Studio",
+  "version": "1.0.0",
+  "identifier": "com.openpdfstudio.app",
   "app": {
-    "productName": "OpenPDF Studio",
-    "version": "1.0.0",
-    "identifier": "com.openpdfstudio.app",
     "windows": [
       {
         "title": "OpenPDF Studio",
@@ -19,14 +19,11 @@
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "focus": true,
-        "decorations": true,
-        "transparent": false,
-        "fileDropEnabled": true
+        "decorations": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://github.com https://api.github.com https://unpkg.com https://cdn.jsdelivr.net;"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https: blob:;"
     }
   },
   "bundle": {
@@ -43,69 +40,43 @@
       {
         "ext": ["pdf"],
         "mimeType": "application/pdf",
-        "description": "PDF Document",
-        "role": "Editor"
+        "description": "PDF Document"
       },
       {
         "ext": ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tiff"],
         "mimeType": "image/*",
-        "description": "Image File",
-        "role": "Editor"
+        "description": "Image File"
       }
     ],
     "category": "Productivity",
     "shortDescription": "Free PDF & Image Editor",
     "longDescription": "OpenPDF Studio is a free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, OCR scanned documents, and manipulate images — all 100% local, no cloud required.",
     "windows": {
-      "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://timestamp.digicert.com"
     },
     "macOS": {
-      "frameworks": [],
-      "minimumSystemVersion": "10.15",
-      "entitlements": "entitlements.plist",
-      "exceptionDomain": null
+      "minimumSystemVersion": "10.15"
     },
     "linux": {
-      "appId": "com.openpdfstudio.app",
       "section": "editors",
       "priority": "optional"
-    },
-    "deb": {
-      "depends": ["libgtk-3-0", "libwebkit2gtk-4.1-0"]
     },
     "nsis": {
       "oneClick": false,
       "perMachine": true,
-      "allowToChangeInstallationDirectory": true,
-      "displayLanguageSelector": false,
-      "installerIcon": "icons/icon.ico",
-      "headerImage": null,
-      "sidebarImage": null
+      "allowToChangeInstallationDirectory": true
     }
   },
   "plugins": {
     "fs": {
-      "all": true,
       "scope": {
-        "allow": ["$APPDATA/**", "$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "$TEMP/**"],
-        "deny": []
+        "allow": ["$APPDATA/**", "$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "$TEMP/**"]
       }
     },
-    "dialog": {
-      "all": true,
-      "open": true,
-      "save": true,
-      "message": true,
-      "ask": true,
-      "confirm": true
-    },
+    "dialog": {},
     "shell": {
       "open": true
-    },
-    "window-state": {
-      "all": true
     }
   }
 }
