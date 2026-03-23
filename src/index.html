@@ -157,7 +157,7 @@
 
     /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 240px;
+      width: 180px;
       background: var(--bg-secondary);
       border-right: 1px solid var(--border);
       display: flex;
@@ -207,7 +207,7 @@
       flex: 1;
       display: flex;
       overflow: auto;
-      background: #0a0f1e;
+      background: #1a1f2e;
       position: relative;
       min-height: 0;
     }
@@ -216,6 +216,8 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.4);
       margin: auto;
       flex-shrink: 0;
+      max-width: 100%;
+      max-height: 100%;
     }
     #pdf-canvas { display: block; }
     .annotation-canvas {
@@ -695,18 +697,10 @@
   <!-- ===== TOOLBAR ===== -->
   <div class="toolbar" id="toolbar">
     <div class="toolbar-group">
-      <button class="tool-btn" onclick="openFile()" title="Open File">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        Open
-      </button>
-      <button class="tool-btn" onclick="savePDF()" title="Save">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save
-      </button>
-      <button class="tool-btn" onclick="printPDF()" title="Print">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Print
-      </button>
+      <button class="tool-btn" onclick="openFile()" title="Open File">📂 Open</button>
+      <button class="tool-btn" onclick="savePDF()" title="Save (Ctrl+S)">💾 Save</button>
+      <button class="tool-btn" onclick="saveAsPDF()" title="Save As...">📄 Save As</button>
+      <button class="tool-btn" onclick="printPDF()" title="Print">🖨️ Print</button>
     </div>
 
     <div class="toolbar-group" id="edit-tools">
@@ -1809,6 +1803,53 @@
       }
     }
 
+    async function saveAsPDF() {
+      if (!state.pdfBytes) {
+        showToast('No document to save', 'error');
+        return;
+      }
+      const filename = prompt('Save as filename:', state.fileName || 'document.pdf');
+      if (!filename) return;
+
+      // Trigger regular save but with custom filename
+      try {
+        let bytesToLoad = state.pdfBytes;
+        if (bytesToLoad.buffer && bytesToLoad.buffer.byteLength === 0) {
+          showToast('PDF data lost - using fallback save', 'warning');
+          return;
+        }
+        let pdfDoc;
+        try {
+          pdfDoc = await PDFLib.PDFDocument.load(bytesToLoad, { ignoreEncryption: true });
+        } catch (loadErr) {
+          try {
+            pdfDoc = await PDFLib.PDFDocument.load(bytesToLoad, { ignoreEncryption: true, updateMetadata: false });
+          } catch (loadErr2) {
+            pdfDoc = await PDFLib.PDFDocument.create();
+            for (let p = 1; p <= state.totalPages; p++) {
+              const page = await state.pdfDoc.getPage(p);
+              const viewport = page.getViewport({ scale: 2 });
+              const tmpCanvas = document.createElement('canvas');
+              tmpCanvas.width = viewport.width;
+              tmpCanvas.height = viewport.height;
+              const ctx = tmpCanvas.getContext('2d');
+              await page.render({ canvasContext: ctx, viewport }).promise;
+              const imgBytes = await fetch(tmpCanvas.toDataURL('image/png')).then(r => r.arrayBuffer());
+              const img = await pdfDoc.embedPng(imgBytes);
+              const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
+              newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+            }
+          }
+        }
+        const savedBytes = await pdfDoc.save();
+        const blob = new Blob([savedBytes], { type: 'application/pdf' });
+        saveAs(blob, filename.endsWith('.pdf') ? filename : filename + '.pdf');
+        showToast(`Saved as "${filename}"`, 'success');
+      } catch (err) {
+        showToast('Save failed: ' + err.message, 'error');
+      }
+    }
+
     // ===== PRINT =====
     function printPDF() {
       if (!state.isDocLoaded) return;
@@ -1913,9 +1954,16 @@
         // Use drawn signature
         const dataUrl = sigPadCanvas.toDataURL();
         fabric.Image.fromURL(dataUrl, (img) => {
+          img.set({
+            left: state.fabricCanvas.width / 2 - 90,
+            top: state.fabricCanvas.height / 2 - 30,
+            hasControls: true,
+            hasBorders: true,
+          });
           img.scaleToWidth(180);
           state.fabricCanvas.add(img);
           state.fabricCanvas.setActiveObject(img);
+          state.fabricCanvas.renderAll();
           saveHistory();
         });
       } else if (typeTab.style.display !== 'none') {
@@ -1926,9 +1974,14 @@
           fontFamily: font,
           fontSize: 32,
           fill: sigColor,
+          left: state.fabricCanvas.width / 2 - 50,
+          top: state.fabricCanvas.height / 2 - 20,
+          hasControls: true,
+          hasBorders: true,
         });
         state.fabricCanvas.add(sig);
         state.fabricCanvas.setActiveObject(sig);
+        state.fabricCanvas.renderAll();
         saveHistory();
       } else {
         // Upload
@@ -1937,8 +1990,16 @@
           const reader = new FileReader();
           reader.onload = (e) => {
             fabric.Image.fromURL(e.target.result, (img) => {
+              img.set({
+                left: state.fabricCanvas.width / 2 - 90,
+                top: state.fabricCanvas.height / 2 - 30,
+                hasControls: true,
+                hasBorders: true,
+              });
               img.scaleToWidth(180);
               state.fabricCanvas.add(img);
+              state.fabricCanvas.setActiveObject(img);
+              state.fabricCanvas.renderAll();
               saveHistory();
             });
           };
@@ -1961,35 +2022,40 @@
       const stamp = prompt('Enter stamp text or choose:\n' + stamps.join(', '), 'APPROVED');
       if (!stamp) return;
 
-      const group = new fabric.Group([
-        new fabric.Rect({
-          width: stamp.length * 18 + 40,
-          height: 50,
-          fill: 'transparent',
-          stroke: '#dc2626',
-          strokeWidth: 3,
-          rx: 8,
-          ry: 8,
-        }),
-        new fabric.Text(stamp.toUpperCase(), {
-          fontSize: 24,
-          fill: '#dc2626',
-          fontFamily: 'Arial',
-          fontWeight: 'bold',
-          originX: 'center',
-          originY: 'center',
-        })
-      ], {
+      const textWidth = stamp.length * 18 + 40;
+      const stampRect = new fabric.Rect({
+        width: textWidth,
+        height: 50,
+        fill: 'transparent',
+        stroke: '#dc2626',
+        strokeWidth: 3,
+        rx: 8,
+        ry: 8,
+      });
+      const stampText = new fabric.Text(stamp.toUpperCase(), {
+        fontSize: 24,
+        fill: '#dc2626',
+        fontFamily: 'Arial',
+        fontWeight: 'bold',
         originX: 'center',
         originY: 'center',
-        left: 200,
-        top: 200,
+        left: textWidth / 2,
+        top: 25,
+      });
+      const group = new fabric.Group([stampRect, stampText], {
+        left: state.fabricCanvas.width / 2 - textWidth / 2,
+        top: state.fabricCanvas.height / 2 - 25,
         angle: -15,
+        hasControls: true,
+        hasBorders: true,
+        lockUniScaling: false,
       });
 
       state.fabricCanvas.add(group);
+      state.fabricCanvas.setActiveObject(group);
+      state.fabricCanvas.renderAll();
       saveHistory();
-      showToast('Stamp added!', 'success');
+      showToast('Stamp added! Drag to move, use handles to resize.', 'success');
     }
 
     // ===== MERGE & SPLIT =====
@@ -2757,9 +2823,11 @@
 
     // ===== STICKY NOTES =====
     function setToolAndWait(tool) {
-      state.currentTool = tool;
+      setTool(tool);  // Use the main setTool which properly updates pointer events
       if (tool === 'note') {
         showToast('Click on the page to add a sticky note', 'info');
+      } else if (tool === 'watermark') {
+        // handled by addWatermark directly
       }
     }
 
@@ -2767,6 +2835,10 @@
       if (!state.fabricCanvas) {
         showToast('Open a document first', 'error');
         return;
+      }
+      if (!text && text !== '') {
+        text = prompt('Enter note text:', 'Note...');
+        if (text === null) return;
       }
       const rect = new fabric.Rect({
         width: 180,
@@ -2786,11 +2858,18 @@
         top: 8,
         left: 5
       });
-      const group = new fabric.Group([rect, noteText], { left: x || 100, top: y || 100 });
+      const group = new fabric.Group([rect, noteText], {
+        left: x || state.fabricCanvas.width / 2 - 90,
+        top: y || state.fabricCanvas.height / 2 - 50,
+        hasControls: true,
+        hasBorders: true,
+        lockUniScaling: false,
+      });
       state.fabricCanvas.add(group);
       state.fabricCanvas.setActiveObject(group);
       state.fabricCanvas.renderAll();
       saveHistory();
+      showToast('Sticky note added! Drag to move, use handles to resize.', 'success');
     }
 
     // ===== IMAGE FILTERS =====
@@ -2855,23 +2934,28 @@
       const text = prompt('Enter watermark text:', 'WATERMARK');
       if (!text) return;
 
+      const opacityStr = prompt('Opacity % (10-100):', '20');
+      const opacity = Math.max(0.05, Math.min(1, (parseInt(opacityStr) || 20) / 100));
+
       const watermarkText = new fabric.Text(text.toUpperCase(), {
-        fontSize: 48,
-        fill: 'rgba(0, 0, 0, 0.15)',
+        fontSize: 60,
+        fill: `rgba(128, 128, 128, ${opacity})`,
         fontFamily: 'Arial',
         fontWeight: 'bold',
         angle: -45,
-        left: 100,
-        top: 100,
-        selectable: false,
-        evented: false
+        left: state.fabricCanvas.width / 2 - 150,
+        top: state.fabricCanvas.height / 2 - 50,
+        selectable: true,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
       });
 
       state.fabricCanvas.add(watermarkText);
-      state.fabricCanvas.sendToBack();
+      state.fabricCanvas.setActiveObject(watermarkText);
       state.fabricCanvas.renderAll();
       saveHistory();
-      showToast('Watermark added!', 'success');
+      showToast('Watermark added! Drag to reposition, use handles to resize.', 'success');
     }
 
     // ===== DRAG & DROP =====
