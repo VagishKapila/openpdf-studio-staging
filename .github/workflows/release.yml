@@ -1,84 +1,118 @@
-# GitHub Actions: Build and release desktop apps
-# Triggers on version tags (e.g., v0.1.0)
-name: Release Desktop Apps
+# Build desktop installers and create a GitHub Release
+# Trigger: push a tag like v1.0.0, or manually from Actions tab
+name: Build Desktop Installers
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+# Required for creating releases
+permissions:
+  contents: write
 
 jobs:
   build-tauri:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-latest
-            target: linux
           - platform: macos-latest
-            target: macos
+            args: '--target aarch64-apple-darwin'
+            rust_target: aarch64-apple-darwin
+            label: 'macOS (Apple Silicon)'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+            rust_target: x86_64-apple-darwin
+            label: 'macOS (Intel)'
           - platform: windows-latest
-            target: windows
+            args: ''
+            rust_target: ''
+            label: 'Windows'
+          - platform: ubuntu-22.04
+            args: ''
+            rust_target: ''
+            label: 'Linux'
 
     runs-on: ${{ matrix.platform }}
+    name: Build ${{ matrix.label }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
 
       - name: Install system dependencies (Linux)
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: Install npm dependencies
+        run: npm install
+
+      # Generate default Tauri icons if missing
+      - name: Generate icons (if needed)
+        run: |
+          if [ ! -f src-tauri/icons/icon.ico ]; then
+            npx @tauri-apps/cli icon --output src-tauri/icons
+          fi
+        shell: bash
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip code signing for now (unsigned builds work fine)
+          TAURI_SIGNING_PRIVATE_KEY: ''
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'OpenPDF Studio ${{ github.ref_name }}'
+          tagName: ${{ github.event.inputs.version || github.ref_name }}
+          releaseName: 'OpenPDF Studio ${{ github.event.inputs.version || github.ref_name }}'
           releaseBody: |
-            Download the installer for your platform below.
-            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-          releaseDraft: true
+            ## OpenPDF Studio ${{ github.event.inputs.version || github.ref_name }}
+
+            **Free, open-source PDF & image editor — replaces Adobe Acrobat Pro.**
+
+            ### Download for your platform:
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | **Windows** | `.exe` installer | Double-click to install. Sets up file associations for PDF. |
+            | **macOS (Apple Silicon)** | `.dmg` | Drag to Applications. For M1/M2/M3 Macs. |
+            | **macOS (Intel)** | `.dmg` | Drag to Applications. For older Intel Macs. |
+            | **Linux** | `.deb` or `.AppImage` | `.deb` for Ubuntu/Debian, `.AppImage` runs anywhere. |
+
+            ### After installing:
+            1. Open any PDF — right-click → "Open With" → **OpenPDF Studio**
+            2. To make it your default: right-click a PDF → "Open With" → "Other" → select OpenPDF Studio → check "Always use"
+            3. Or just launch the app and drag-drop any PDF into it
+
+            ### What's included:
+            - PDF editing (text, images, annotations, signatures)
+            - Smart OCR — edit scanned PDFs like Word docs
+            - Image editor with layers, filters, and AI commands
+            - 100% local — no cloud, no account needed
+          releaseDraft: false
           prerelease: false
-
-  build-web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Install and build
-        run: |
-          pnpm install
-          pnpm build
-
-      - name: Deploy to Vercel
-        # Add your Vercel deployment step here
-        run: echo "Deploy web app to Vercel/Netlify/Cloudflare Pages"
+          args: ${{ matrix.args }}
