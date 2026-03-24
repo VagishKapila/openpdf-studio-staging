@@ -1675,6 +1675,21 @@
       }
     }
 
+    // Helper: find PDF text span beneath the Fabric canvas at mouse position
+    function findTextSpanBelow(mouseEvent) {
+      const fabricEl = state.fabricCanvas ? (state.fabricCanvas.upperCanvasEl || state.fabricCanvas.lowerCanvasEl) : null;
+      if (!fabricEl) return null;
+      const canvasContainer = fabricEl.parentElement;
+      const origPointerEvents = canvasContainer.style.pointerEvents;
+      canvasContainer.style.pointerEvents = 'none';
+      const el = document.elementFromPoint(mouseEvent.clientX, mouseEvent.clientY);
+      canvasContainer.style.pointerEvents = origPointerEvents || '';
+      if (el && el.tagName === 'SPAN' && el.closest('#text-layer')) {
+        return el;
+      }
+      return null;
+    }
+
     function initFabricCanvas(w, h) {
       const annCanvas = document.getElementById('annotation-canvas');
       annCanvas.width = w;
@@ -1704,9 +1719,17 @@
       state.fabricCanvas.freeDrawingBrush.width = 2;
       state.fabricCanvas.freeDrawingBrush.color = '#000000';
 
-      // Handle click to add text (only on empty area, not existing objects)
+      // Handle click to add text or edit PDF text
       state.fabricCanvas.on('mouse:down', function(opt) {
         if (state.currentTool === 'text' && !opt.target) {
+          // Check if there's a PDF text span underneath first
+          const spanBelow = findTextSpanBelow(opt.e);
+          if (spanBelow) {
+            // User clicked on existing PDF text — edit it
+            startEditingSpan(spanBelow, opt.e);
+            return;
+          }
+          // No PDF text — add a new textbox
           const pointer = state.fabricCanvas.getPointer(opt.e);
           const text = new fabric.IText('Type here...', {
             left: pointer.x,
@@ -1727,6 +1750,13 @@
           text.selectAll();
           saveHistory();
           setTool('select');
+        } else if (state.currentTool === 'select' && !opt.target) {
+          // In select mode, clicking on empty area — check for PDF text underneath
+          const spanBelow = findTextSpanBelow(opt.e);
+          if (spanBelow) {
+            startEditingSpan(spanBelow, opt.e);
+            return;
+          }
         } else if (state.currentTool === 'shape') {
           const pointer = state.fabricCanvas.getPointer(opt.e);
           const rect = new fabric.Rect({
@@ -1750,6 +1780,7 @@
       });
 
       // Double-click to edit text objects (IText, Textbox, sticky notes)
+      // OR double-click on empty area to edit PDF text underneath
       state.fabricCanvas.on('mouse:dblclick', function(opt) {
         const target = opt.target;
         if (target && (target.type === 'i-text' || target.type === 'textbox')) {
@@ -1757,6 +1788,12 @@
           target.enterEditing();
           target.selectAll();
           state.fabricCanvas.renderAll();
+        } else if (!target) {
+          // No Fabric object under cursor — check for PDF text span underneath
+          const spanBelow = findTextSpanBelow(opt.e);
+          if (spanBelow) {
+            startEditingSpan(spanBelow, opt.e);
+          }
         }
       });
     }
@@ -1832,11 +1869,11 @@
         }
       }
       const toolHints = {
-        text: 'Click on the document to add text',
+        text: 'Click on PDF text to edit it, or click empty area to add new text',
         note: 'Click on the document to place a sticky note',
         draw: 'Draw freely on the document',
         highlight: 'Draw to highlight text',
-        select: 'Click annotations to select, drag to move',
+        select: 'Click on PDF text to edit it, or click annotations to select & move',
         shape: 'Click to add a rectangle shape',
       };
       setStatus(toolHints[tool] || `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
