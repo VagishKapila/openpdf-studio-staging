@@ -59,6 +59,8 @@
       color: var(--text);
       overflow: hidden;
       height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ===== TOP NAV ===== */
@@ -81,8 +83,66 @@
     }
     .logo svg { width: 24px; height: 24px; }
 
-    /* ===== TAB BAR ===== */
-    /* Removed - replaced with menu bar */
+    /* ===== DOCUMENT TAB BAR ===== */
+    .doc-tab-bar {
+      display: none; /* shown when >0 docs open */
+      align-items: center;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      height: 32px;
+      padding: 0 8px;
+      gap: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+    }
+    .doc-tab-bar.visible { display: flex; }
+    .doc-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px 4px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      max-width: 200px;
+      height: 100%;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .doc-tab:hover { background: var(--bg-tertiary); color: var(--text); }
+    .doc-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: rgba(91,95,199,0.06);
+      font-weight: 600;
+    }
+    .doc-tab .tab-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+    .doc-tab .tab-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--text-secondary);
+      opacity: 0;
+      transition: all 0.1s;
+      flex-shrink: 0;
+    }
+    .doc-tab:hover .tab-close, .doc-tab.active .tab-close { opacity: 0.7; }
+    .doc-tab .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); color: var(--danger); }
 
     /* ===== TOOLBAR ===== */
     .toolbar {
@@ -227,20 +287,24 @@
     .tool-palette {
       display: flex;
       flex-direction: column;
-      width: 52px;
+      width: 72px;
       background: var(--bg-secondary);
       border-right: 1px solid var(--border);
-      padding: 8px 4px;
-      gap: 2px;
+      padding: 6px 4px;
+      gap: 1px;
       align-items: center;
       flex-shrink: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
     .tool-palette .palette-btn {
-      width: 48px;
-      height: 48px;
+      width: 64px;
+      min-height: 52px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 2px;
       border: none;
       background: transparent;
       color: var(--text-secondary);
@@ -248,6 +312,7 @@
       border-radius: 8px;
       transition: all 0.15s;
       position: relative;
+      padding: 4px 2px 3px;
     }
     .tool-palette .palette-btn:hover {
       background: var(--bg-tertiary);
@@ -257,20 +322,27 @@
       background: #EDE9FE;
       box-shadow: inset 0 0 0 2px var(--primary);
     }
-    .tool-palette .palette-btn svg { width: 26px; height: 26px; }
+    .tool-palette .palette-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .tool-palette .palette-btn .btn-label {
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+    }
     .tool-palette .palette-sep {
-      width: 24px;
+      width: 40px;
       height: 1px;
       background: var(--border);
-      margin: 4px 0;
+      margin: 3px 0;
     }
 
     /* ===== MAIN LAYOUT ===== */
     .main-container {
       display: flex;
       flex: 1;
-      height: calc(100vh - 44px - 38px);
       min-height: 0;
+      overflow: hidden;
     }
 
     /* ===== SIDEBAR ===== */
@@ -1022,6 +1094,9 @@
     </div>
   </div>
 
+  <!-- ===== DOCUMENT TAB BAR ===== -->
+  <div class="doc-tab-bar" id="doc-tab-bar"></div>
+
   <!-- ===== MAIN CONTENT ===== -->
   <div class="main-container">
     <!-- Sidebar (Page Thumbnails) -->
@@ -1048,71 +1123,93 @@
     <!-- Vertical Tool Palette -->
     <div class="tool-palette" id="tool-palette">
       <button class="palette-btn active" onclick="setTool('select')" id="tool-select" title="Select (V)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 4l7 17 2.5-7.5L21 11 4 4z" fill="#5B5FC7" stroke="#5B5FC7" stroke-width="1"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 4l7 17 2.5-7.5L21 11 4 4z" fill="#5B5FC7" stroke="#5B5FC7" stroke-width="1"/></svg>
+        <span class="btn-label">Select</span>
       </button>
       <button class="palette-btn" onclick="setTool('text')" id="tool-text" title="Text (T)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="3" width="18" height="4" rx="1" fill="#2563eb"/><rect x="10" y="7" width="4" height="13" rx="1" fill="#2563eb"/><rect x="7" y="18" width="10" height="3" rx="1" fill="#60a5fa"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="18" height="4" rx="1" fill="#2563eb"/><rect x="10" y="7" width="4" height="13" rx="1" fill="#2563eb"/><rect x="7" y="18" width="10" height="3" rx="1" fill="#60a5fa"/></svg>
+        <span class="btn-label">Text</span>
       </button>
       <button class="palette-btn" onclick="setTool('draw')" id="tool-draw" title="Draw (D)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M3 21l1.5-4.5L17.5 3.5a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L7.5 19.5 3 21z" fill="#f59e0b" stroke="#d97706" stroke-width="0.5"/><path d="M15 6l3 3" stroke="#d97706" stroke-width="1.5"/><rect x="2" y="20" width="5" height="2" rx="1" fill="#92400e"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 21l1.5-4.5L17.5 3.5a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L7.5 19.5 3 21z" fill="#f59e0b" stroke="#d97706" stroke-width="0.5"/><path d="M15 6l3 3" stroke="#d97706" stroke-width="1.5"/><rect x="2" y="20" width="5" height="2" rx="1" fill="#92400e"/></svg>
+        <span class="btn-label">Draw</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="setTool('highlight')" id="tool-highlight" title="Highlight (H)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="10" width="18" height="6" rx="1" fill="#fde047" opacity="0.7"/><path d="M9 11l-6 6v3h9l3-3" stroke="#eab308" stroke-width="2" fill="none"/><path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" stroke="#eab308" stroke-width="2" fill="#fef08a"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="10" width="18" height="6" rx="1" fill="#fde047" opacity="0.7"/><path d="M9 11l-6 6v3h9l3-3" stroke="#eab308" stroke-width="2" fill="none"/><path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" stroke="#eab308" stroke-width="2" fill="#fef08a"/></svg>
+        <span class="btn-label">Highlight</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="setTool('shape')" id="tool-shape" title="Shapes (S)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="6" width="12" height="12" rx="2" fill="none" stroke="#8b5cf6" stroke-width="2"/><circle cx="17" cy="8" r="5" fill="none" stroke="#ec4899" stroke-width="2"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="6" width="12" height="12" rx="2" fill="none" stroke="#8b5cf6" stroke-width="2"/><circle cx="17" cy="8" r="5" fill="none" stroke="#ec4899" stroke-width="2"/></svg>
+        <span class="btn-label">Shapes</span>
       </button>
       <button class="palette-btn" onclick="addImage()" id="tool-image" title="Insert Image (I)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="3" width="18" height="18" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="2" fill="#f59e0b"/><path d="M21 15l-5-5-8 11h13a1 1 0 0 0 1-1v-4z" fill="#22c55e" opacity="0.7"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="2" fill="#f59e0b"/><path d="M21 15l-5-5-8 11h13a1 1 0 0 0 1-1v-4z" fill="#22c55e" opacity="0.7"/></svg>
+        <span class="btn-label">Image</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="openSignatureModal()" title="Sign (G)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M3 18c3-3 5-8 9-8s3 5 6 3" stroke="#1d4ed8" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="2" y1="21" x2="22" y2="21" stroke="#6b7280" stroke-width="1.5"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 18c3-3 5-8 9-8s3 5 6 3" stroke="#1d4ed8" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="2" y1="21" x2="22" y2="21" stroke="#6b7280" stroke-width="1.5"/></svg>
+        <span class="btn-label">Sign</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="addStamp()" title="Stamp">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="4" y="16" width="16" height="4" rx="1" fill="#dc2626"/><path d="M9 16V12a3 3 0 0 1 6 0v4" fill="#ef4444"/><rect x="7" y="12" width="10" height="4" rx="1" fill="#fca5a5"/><text x="12" y="19.5" text-anchor="middle" font-size="5" font-weight="bold" fill="white">STAMP</text></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="16" width="16" height="4" rx="1" fill="#dc2626"/><path d="M9 16V12a3 3 0 0 1 6 0v4" fill="#ef4444"/><rect x="7" y="12" width="10" height="4" rx="1" fill="#fca5a5"/><text x="12" y="19.5" text-anchor="middle" font-size="5" font-weight="bold" fill="white">STAMP</text></svg>
+        <span class="btn-label">Stamp</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="setToolAndWait('note')" id="tool-note" title="Sticky Note (N)">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="3" width="16" height="16" rx="2" fill="#fef08a" stroke="#eab308" stroke-width="1"/><path d="M14 14l5 5V14z" fill="#fbbf24"/><line x1="7" y1="8" x2="15" y2="8" stroke="#a16207" stroke-width="1" stroke-linecap="round"/><line x1="7" y1="11" x2="13" y2="11" stroke="#a16207" stroke-width="1" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="16" height="16" rx="2" fill="#fef08a" stroke="#eab308" stroke-width="1"/><path d="M14 14l5 5V14z" fill="#fbbf24"/><line x1="7" y1="8" x2="15" y2="8" stroke="#a16207" stroke-width="1" stroke-linecap="round"/><line x1="7" y1="11" x2="13" y2="11" stroke="#a16207" stroke-width="1" stroke-linecap="round"/></svg>
+        <span class="btn-label">Note</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="cropPage()" title="Crop Page">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 2v4H2v2h4v10a2 2 0 002 2h10v4h2v-4h4v-2H14V6h4V4h-4V2h-2v4H8V2H6z" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="8" y="8" width="8" height="8" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5" rx="1"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 2v4H2v2h4v10a2 2 0 002 2h10v4h2v-4h4v-2H14V6h4V4h-4V2h-2v4H8V2H6z" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="8" y="8" width="8" height="8" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5" rx="1"/></svg>
+        <span class="btn-label">Crop</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="rotatePage()" title="Rotate Page">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 12a8 8 0 0114-5.3V4h2v6h-6V8h3a6 6 0 10.7 6h2.1A8 8 0 014 12z" fill="#0ea5e9"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 12a8 8 0 0114-5.3V4h2v6h-6V8h3a6 6 0 10.7 6h2.1A8 8 0 014 12z" fill="#0ea5e9"/></svg>
+        <span class="btn-label">Rotate</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="setTool('redact')" id="tool-redact" title="Redact Text">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="3" rx="1" fill="#374151"/><rect x="3" y="10" width="14" height="3" rx="1" fill="#374151"/><rect x="3" y="15" width="18" height="3" rx="1" fill="#111827"/><rect x="5" y="15.5" width="8" height="2" rx="0.5" fill="#000"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="5" width="18" height="3" rx="1" fill="#374151"/><rect x="3" y="10" width="14" height="3" rx="1" fill="#374151"/><rect x="3" y="15" width="18" height="3" rx="1" fill="#111827"/><rect x="5" y="15.5" width="8" height="2" rx="0.5" fill="#000"/></svg>
+        <span class="btn-label">Redact</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="addLink()" title="Add Link">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="btn-label">Link</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="addPageNumbers()" title="Page Numbers">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="4" y="2" width="16" height="20" rx="2" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a34a">1</text></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="2" width="16" height="20" rx="2" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a34a">1</text></svg>
+        <span class="btn-label">Page #</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="addBookmark()" title="Add Bookmark">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 2h12a2 2 0 012 2v18l-8-5-8 5V4a2 2 0 012-2z" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 2h12a2 2 0 012 2v18l-8-5-8 5V4a2 2 0 012-2z" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/></svg>
+        <span class="btn-label">Bookmark</span>
       </button>
       <div class="palette-sep"></div>
       <button class="palette-btn pdf-tool" onclick="addWatermark()" title="Watermark">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="3" width="18" height="18" rx="2" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="1"/><text x="12" y="15" text-anchor="middle" font-size="7" font-weight="bold" fill="#0ea5e9" opacity="0.5" transform="rotate(-20 12 12)">W</text></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="1"/><text x="12" y="15" text-anchor="middle" font-size="7" font-weight="bold" fill="#0ea5e9" opacity="0.5" transform="rotate(-20 12 12)">W</text></svg>
+        <span class="btn-label">Watermark</span>
       </button>
       <button class="palette-btn image-tool" onclick="cropImage()" title="Crop Image" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 2v4H2v2h4v10a2 2 0 002 2h10v4h2v-4h4v-2H14V6h4V4h-4V2h-2v4H8V2H6z" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="8" y="8" width="8" height="8" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5" rx="1"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 2v4H2v2h4v10a2 2 0 002 2h10v4h2v-4h4v-2H14V6h4V4h-4V2h-2v4H8V2H6z" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="8" y="8" width="8" height="8" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5" rx="1"/></svg>
+        <span class="btn-label">Crop</span>
       </button>
       <button class="palette-btn image-tool" onclick="rotateImage()" title="Rotate Image" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 12a8 8 0 0114-5.3V4h2v6h-6V8h3a6 6 0 10.7 6h2.1A8 8 0 014 12z" fill="#0ea5e9"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 12a8 8 0 0114-5.3V4h2v6h-6V8h3a6 6 0 10.7 6h2.1A8 8 0 014 12z" fill="#0ea5e9"/></svg>
+        <span class="btn-label">Rotate</span>
       </button>
       <button class="palette-btn image-tool" onclick="adjustBrightness()" title="Brightness & Contrast" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="12" r="5" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="5" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="btn-label">Bright</span>
       </button>
       <button class="palette-btn image-tool" onclick="applyFilter()" title="Filters (Grayscale, Sepia...)" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><circle cx="8" cy="10" r="5" fill="#ef4444" opacity="0.6"/><circle cx="16" cy="10" r="5" fill="#3b82f6" opacity="0.6"/><circle cx="12" cy="15" r="5" fill="#22c55e" opacity="0.6"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="8" cy="10" r="5" fill="#ef4444" opacity="0.6"/><circle cx="16" cy="10" r="5" fill="#3b82f6" opacity="0.6"/><circle cx="12" cy="15" r="5" fill="#22c55e" opacity="0.6"/></svg>
+        <span class="btn-label">Filters</span>
       </button>
       <button class="palette-btn image-tool" onclick="resizeImage()" title="Resize Image" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M15 3l3 3-3 3" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21l-3-3 3-3" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" y1="6" x2="6" y2="18" stroke="#6366f1" stroke-width="1.5"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M15 3l3 3-3 3" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21l-3-3 3-3" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" y1="6" x2="6" y2="18" stroke="#6366f1" stroke-width="1.5"/></svg>
+        <span class="btn-label">Resize</span>
       </button>
       <button class="palette-btn image-tool" onclick="blurSharpen()" title="Blur / Sharpen" style="display:none">
-        <svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="12" r="10" fill="#e0e7ff" stroke="#818cf8" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="#c7d2fe" stroke="#818cf8" stroke-width="1"/><circle cx="12" cy="12" r="2" fill="#6366f1"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#e0e7ff" stroke="#818cf8" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="#c7d2fe" stroke="#818cf8" stroke-width="1"/><circle cx="12" cy="12" r="2" fill="#6366f1"/></svg>
+        <span class="btn-label">Blur</span>
       </button>
     </div>
 
@@ -1697,6 +1794,174 @@
       pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
     };
 
+    // ===== DOCUMENT TABS =====
+    const openDocs = []; // Array of { id, fileName, pdfDoc, pdfBytes, currentPage, totalPages, zoom, pageAnnotations, textEdits, history, historyIndex, isImage, imageData }
+    let activeDocId = null;
+    let docIdCounter = 0;
+
+    function generateDocId() { return ++docIdCounter; }
+
+    function saveDocState(docId) {
+      const doc = openDocs.find(d => d.id === docId);
+      if (!doc) return;
+      doc.pdfDoc = state.pdfDoc;
+      doc.pdfBytes = state.pdfBytes;
+      doc.currentPage = state.currentPage;
+      doc.totalPages = state.totalPages;
+      doc.zoom = state.zoom;
+      doc.pageAnnotations = state.pageAnnotations;
+      doc.textEdits = state.textEdits;
+      doc.history = state.history;
+      doc.historyIndex = state.historyIndex;
+      doc.fileName = state.fileName;
+      // Save current page annotations before switching
+      if (state.fabricCanvas && state.isDocLoaded) {
+        saveCurrentPageAnnotations();
+      }
+    }
+
+    function restoreDocState(docId) {
+      const doc = openDocs.find(d => d.id === docId);
+      if (!doc) return;
+      state.pdfDoc = doc.pdfDoc;
+      state.pdfBytes = doc.pdfBytes;
+      state.currentPage = doc.currentPage;
+      state.totalPages = doc.totalPages;
+      state.zoom = doc.zoom;
+      state.pageAnnotations = doc.pageAnnotations || {};
+      state.textEdits = doc.textEdits || {};
+      state.history = doc.history || [];
+      state.historyIndex = doc.historyIndex ?? -1;
+      state.fileName = doc.fileName;
+      state.isDocLoaded = true;
+    }
+
+    function renderDocTabs() {
+      const bar = document.getElementById('doc-tab-bar');
+      if (openDocs.length === 0) {
+        bar.classList.remove('visible');
+        return;
+      }
+      bar.classList.add('visible');
+      bar.innerHTML = openDocs.map(doc => {
+        const isActive = doc.id === activeDocId;
+        const name = doc.fileName || 'Untitled';
+        const shortName = name.length > 24 ? name.substring(0, 22) + '...' : name;
+        return `<button class="doc-tab${isActive ? ' active' : ''}" data-doc-id="${doc.id}" onclick="switchToDoc(${doc.id})" title="${name}">
+          <span class="tab-name">${shortName}</span>
+          <span class="tab-close" onclick="event.stopPropagation(); closeDoc(${doc.id})">×</span>
+        </button>`;
+      }).join('');
+    }
+
+    async function switchToDoc(docId) {
+      if (docId === activeDocId) return;
+      // Save current doc state
+      if (activeDocId !== null) {
+        saveDocState(activeDocId);
+      }
+      activeDocId = docId;
+      const doc = openDocs.find(d => d.id === docId);
+      if (!doc) return;
+
+      restoreDocState(docId);
+      renderDocTabs();
+
+      // Re-render the document
+      if (state.fabricCanvas) {
+        state.fabricCanvas.clear();
+        state.fabricCanvas.renderAll();
+      }
+      document.getElementById('welcome-screen').style.display = 'none';
+      document.getElementById('canvas-wrapper').style.display = 'block';
+
+      if (doc.isImage && doc.imageData) {
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const img = new Image();
+        img.onload = () => {
+          pdfCanvas.width = img.width;
+          pdfCanvas.height = img.height;
+          pdfCanvas.getContext('2d').drawImage(img, 0, 0);
+          initFabricCanvas(img.width, img.height);
+          restorePageAnnotations(1);
+          setStatus(`${state.fileName} - ${img.width}x${img.height}`);
+        };
+        img.src = doc.imageData;
+      } else {
+        await renderPage(state.currentPage);
+        restorePageAnnotations(state.currentPage);
+        await renderThumbnails();
+        updatePageNavHint();
+        document.getElementById('zoom-display').textContent = Math.round(state.zoom * 100) + '%';
+        setStatus(`${state.fileName} - ${state.totalPages} page(s)`);
+      }
+    }
+
+    function addDocTab(fileName, isImage) {
+      const docId = generateDocId();
+      openDocs.push({
+        id: docId,
+        fileName: fileName,
+        pdfDoc: null,
+        pdfBytes: null,
+        currentPage: 1,
+        totalPages: 0,
+        zoom: 1.0,
+        pageAnnotations: {},
+        textEdits: {},
+        history: [],
+        historyIndex: -1,
+        isImage: isImage || false,
+        imageData: null,
+      });
+      // Save previous doc state before switching
+      if (activeDocId !== null) {
+        saveDocState(activeDocId);
+      }
+      activeDocId = docId;
+      renderDocTabs();
+      return docId;
+    }
+
+    function closeDoc(docId) {
+      const idx = openDocs.findIndex(d => d.id === docId);
+      if (idx === -1) return;
+
+      openDocs.splice(idx, 1);
+
+      if (openDocs.length === 0) {
+        // No more docs open - show welcome screen
+        activeDocId = null;
+        state.pdfDoc = null;
+        state.pdfBytes = null;
+        state.isDocLoaded = false;
+        state.totalPages = 0;
+        state.fileName = '';
+        state.pageAnnotations = {};
+        state.textEdits = {};
+        state.history = [];
+        state.historyIndex = -1;
+        if (state.fabricCanvas) {
+          state.fabricCanvas.clear();
+          state.fabricCanvas.renderAll();
+        }
+        document.getElementById('welcome-screen').style.display = '';
+        document.getElementById('canvas-wrapper').style.display = 'none';
+        document.getElementById('page-thumbnails').innerHTML = '';
+        setStatus('Ready');
+        renderDocTabs();
+        return;
+      }
+
+      // Switch to adjacent tab
+      if (docId === activeDocId) {
+        const newIdx = Math.min(idx, openDocs.length - 1);
+        activeDocId = null; // reset so switchToDoc works
+        switchToDoc(openDocs[newIdx].id);
+      }
+      renderDocTabs();
+    }
+
     // ===== TOAST NOTIFICATIONS =====
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toast-container');
@@ -1747,16 +2012,36 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      const ext = file.name.split('.').pop().toLowerCase();
+      const isImage = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
+
+      // Create a new document tab
+      const docId = addDocTab(file.name, isImage);
       state.fileName = file.name;
       addToRecentFiles(file.name, file.size, file.path || null);
-      const ext = file.name.split('.').pop().toLowerCase();
+
+      // Clear state for new doc
+      state.pageAnnotations = {};
+      state.textEdits = {};
+      state.history = [];
+      state.historyIndex = -1;
 
       if (ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
         state.pdfBytes = new Uint8Array(arrayBuffer.slice(0));
         await loadPDF(new Uint8Array(arrayBuffer.slice(0)));
-      } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
+        // Save to doc tab
+        saveDocState(docId);
+      } else if (isImage) {
         await loadImage(file);
+        // Save image data for tab restore
+        const doc = openDocs.find(d => d.id === docId);
+        if (doc) {
+          const reader = new FileReader();
+          reader.onload = () => { doc.imageData = reader.result; };
+          reader.readAsDataURL(file);
+        }
+        saveDocState(docId);
       }
 
       event.target.value = '';
@@ -2711,16 +2996,16 @@
 
               const font = (edit.fontName && edit.fontName.includes('Bold')) ? helveticaBold : helvetica;
 
-              // Calculate width more generously to cover original text
+              // Calculate width very generously to fully cover original text
               const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
-              const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.6) + 4;
+              const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.7) + 12;
 
-              // White-out original text
+              // White-out original text — generous padding to ensure full coverage
               page.drawRectangle({
-                x: x - 1,
-                y: y - fontSize * 0.3,
+                x: x - 4,
+                y: y - fontSize * 0.5,
                 width: coverWidth,
-                height: fontSize * 1.3,
+                height: fontSize * 1.8,
                 color: PDFLib.rgb(1, 1, 1),
                 borderWidth: 0,
               });
@@ -2785,12 +3070,31 @@
           const savedBytes = await pdfDoc.save();
           const blob = new Blob([savedBytes], { type: 'application/pdf' });
           saveAs(blob, state.fileName || 'edited.pdf');
+
+          // CRITICAL: Update internal state with saved bytes so edits are "baked in"
+          // This prevents old text from ghosting when re-rendering
+          state.pdfBytes = savedBytes.buffer;
+          state.textEdits = {};  // Clear — edits are now part of the PDF
+          state.pageAnnotations = {};  // Clear — annotations are now baked into the PDF
+
+          // Reload the PDF from saved bytes so everything is fresh
+          state.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(savedBytes) }).promise;
+          if (state.fabricCanvas) {
+            state.fabricCanvas.clear();
+            state.fabricCanvas.renderAll();
+          }
+          await renderPage(state.currentPage);
         } else {
           // Save as image
           const pdfCanvas = document.getElementById('pdf-canvas');
           pdfCanvas.toBlob(blob => {
             saveAs(blob, state.fileName || 'edited.png');
           });
+        }
+
+        // Update tab state after save
+        if (activeDocId !== null) {
+          saveDocState(activeDocId);
         }
 
         showToast('File saved successfully!', 'success');
@@ -4127,15 +4431,33 @@
       const files = e.dataTransfer.files;
       if (files.length > 0) {
         const file = files[0];
-        state.fileName = file.name;
         const ext = file.name.split('.').pop().toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
+
+        // Create a new document tab
+        const docId = addDocTab(file.name, isImage);
+        state.fileName = file.name;
+
+        // Clear state for new doc
+        state.pageAnnotations = {};
+        state.textEdits = {};
+        state.history = [];
+        state.historyIndex = -1;
 
         if (ext === 'pdf') {
           const arrayBuffer = await file.arrayBuffer();
           state.pdfBytes = new Uint8Array(arrayBuffer.slice(0));
           await loadPDF(new Uint8Array(arrayBuffer.slice(0)));
-        } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) {
+          saveDocState(docId);
+        } else if (isImage) {
           await loadImage(file);
+          const doc = openDocs.find(d => d.id === docId);
+          if (doc) {
+            const reader = new FileReader();
+            reader.onload = () => { doc.imageData = reader.result; };
+            reader.readAsDataURL(file);
+          }
+          saveDocState(docId);
         }
       }
     });
@@ -4323,6 +4645,12 @@
       if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
         e.preventDefault();
         openFile();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+        e.preventDefault();
+        if (activeDocId !== null) {
+          closeDoc(activeDocId);
+        }
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
         e.preventDefault();
