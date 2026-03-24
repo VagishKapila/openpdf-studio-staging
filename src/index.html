@@ -211,6 +211,57 @@
       background: var(--border);
       margin: 4px 0;
     }
+    .menu-action.has-submenu { position: relative; }
+    .menu-action.has-submenu::after {
+      content: '›';
+      margin-left: auto;
+      font-size: 16px;
+      color: var(--text-secondary);
+      padding-left: 8px;
+    }
+    .menu-action.has-submenu .submenu {
+      display: none;
+      position: absolute;
+      left: 100%;
+      top: -4px;
+      min-width: 260px;
+      max-width: 320px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 4px 0;
+      z-index: 200;
+    }
+    .menu-action.has-submenu:hover .submenu { display: block; }
+    .submenu .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text);
+      transition: background 0.1s;
+    }
+    .submenu .recent-item:hover { background: var(--primary-light); }
+    .submenu .recent-item .ri-icon {
+      width: 24px; height: 24px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; letter-spacing: 0.3px; flex-shrink: 0;
+    }
+    .submenu .recent-item .ri-name {
+      flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    .submenu .recent-item .ri-meta { font-size: 10px; color: var(--text-secondary); white-space: nowrap; }
+    .submenu .recent-empty { padding: 12px 16px; font-size: 12px; color: var(--text-secondary); text-align: center; }
+    .submenu .recent-clear {
+      display: block; width: calc(100% - 8px); margin: 2px 4px; padding: 6px 12px;
+      background: none; border: none; border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--text-secondary); cursor: pointer; text-align: center;
+    }
+    .submenu .recent-clear:hover { color: var(--danger); background: #fef2f2; border-radius: 0 0 6px 6px; }
 
     .mode-tabs {
       display: flex;
@@ -1017,6 +1068,13 @@
       <div class="menu-item" onclick="toggleMenu(this)">File
         <div class="dropdown-menu" id="menu-file">
           <div class="menu-action" onclick="openFile()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Open <span class="shortcut">Ctrl+O</span></div>
+          <div class="menu-action has-submenu" id="recent-files-menu-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Recent Files
+            <div class="submenu" id="recent-files-submenu">
+              <div class="recent-empty">No recent files</div>
+            </div>
+          </div>
+          <div class="menu-divider"></div>
           <div class="menu-action" onclick="savePDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save <span class="shortcut">Ctrl+S</span></div>
           <div class="menu-action" onclick="saveAsPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg> Save As...</div>
           <div class="menu-action" onclick="printPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print <span class="shortcut">Ctrl+P</span></div>
@@ -1269,37 +1327,7 @@
           </a>
         </div>
 
-        <!-- Recent Files History -->
-        <div id="recent-files-section" style="display:none; margin-top:28px; max-width:560px; margin-left:auto; margin-right:auto; text-align:left;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <h4 style="font-size:13px;font-weight:600;color:var(--text);margin:0;">Recent Files</h4>
-            <button onclick="clearRecentFiles()" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">Clear</button>
-          </div>
-          <div id="recent-files-list" style="display:flex;flex-direction:column;gap:4px;"></div>
-        </div>
-
-        <!-- Pricing / Support Section -->
-        <div style="margin-top: 40px; padding: 28px 32px; background: white; border-radius: 16px; max-width: 560px; margin-left: auto; margin-right: auto; border: 1px solid var(--border); text-align: left;">
-          <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: var(--text);">This tool is free.</h3>
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px;">
-            Many of you have asked how to support us — and you can.<br>
-            Contribute <strong style="color:var(--text);">$5/month</strong> or <strong style="color:var(--text);">$60/year</strong> to help cover hosting, AI, and development.
-          </p>
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px;">
-            But here's the thing — <strong style="color:var(--text);">you don't have to.</strong><br>
-            Instead, take that same $60/year and do something real with it:
-          </p>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
-            <span style="background: var(--primary-light); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 13px;">Feed someone in need</span>
-            <span style="background: #FEF3C7; color: #92400E; padding: 4px 12px; border-radius: 20px; font-size: 13px;">Support cancer research</span>
-            <span style="background: #DCFCE7; color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 13px;">Sponsor a child</span>
-            <span style="background: #FFE4E6; color: #9F1239; padding: 4px 12px; border-radius: 20px; font-size: 13px;">Help a family</span>
-          </div>
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7;">
-            Use your $60 to feel good, get a better tool, and make an impact.<br>
-            <strong style="color: var(--text);">Same amount. Real impact. That's DocPix.</strong>
-          </p>
-        </div>
+        <!-- Recent files section removed — now in File menu -->
       </div>
 
       <!-- PDF Canvas (hidden initially) -->
@@ -4793,61 +4821,69 @@
         } catch(e) { recent = []; }
       }
 
-      const section = document.getElementById('recent-files-section');
-      const list = document.getElementById('recent-files-list');
-      if (!section || !list || recent.length === 0) return;
+      const submenu = document.getElementById('recent-files-submenu');
+      if (!submenu) return;
 
-      section.style.display = 'block';
-      list.innerHTML = '';
+      if (recent.length === 0) {
+        submenu.innerHTML = '<div class="recent-empty">No recent files</div>';
+        return;
+      }
 
-      recent.forEach(file => {
-        const div = document.createElement('div');
-        div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:white;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;';
-        div.onmouseover = () => { div.style.background = '#f8f7ff'; div.style.borderColor = '#c4b5fd'; div.style.transform = 'translateY(-1px)'; div.style.boxShadow = '0 2px 8px rgba(107,92,231,0.1)'; };
-        div.onmouseout = () => { div.style.background = 'white'; div.style.borderColor = ''; div.style.transform = ''; div.style.boxShadow = ''; };
-
-        // In Electron, clicking reopens the actual file
-        if (isElectronApp && file.path) {
-          div.onclick = async () => {
-            try {
-              const result = await window.electronAPI.openFile(file.path);
-              if (result && result.data) {
-                const bytes = new Uint8Array(result.data);
-                state.pdfBytes = bytes;
-                state.fileName = result.name;
-                await loadPDF(bytes);
-              } else if (result && result.error) {
-                showToast('File not found: ' + file.path, 'error');
-                await window.electronAPI.removeRecentFile(file.path);
-                loadRecentFiles(); // Refresh the list
-              }
-            } catch(e) {
-              showToast('Could not open file', 'error');
-            }
-          };
-        } else {
-          div.onclick = () => openFile();
-        }
-
+      let html = '';
+      recent.forEach((file, idx) => {
         const isPdf = (file.name || '').toLowerCase().endsWith('.pdf');
         const iconColor = isPdf ? '#dc2626' : '#2563eb';
         const iconBg = isPdf ? '#fef2f2' : '#eff6ff';
         const iconLabel = isPdf ? 'PDF' : 'IMG';
 
-        const filePath = file.path ? `<div style="font-size:9px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;">${file.path}</div>` : '';
-
-        div.innerHTML = `
-          <div style="width:36px;height:36px;border-radius:8px;background:${iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:10px;font-weight:700;color:${iconColor};letter-spacing:0.5px;">${iconLabel}</span>
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name || 'Unknown'}</div>
-            <div style="font-size:10px;color:var(--text-secondary);">${formatFileSize(file.size)} · ${formatDate(file.date)}</div>
-            ${filePath}
-          </div>
-        `;
-        list.appendChild(div);
+        html += `<div class="recent-item" onclick="openRecentFile(${idx})">
+          <div class="ri-icon" style="background:${iconBg};color:${iconColor};">${iconLabel}</div>
+          <span class="ri-name" title="${file.name || 'Unknown'}">${file.name || 'Unknown'}</span>
+          <span class="ri-meta">${formatDate(file.date)}</span>
+        </div>`;
       });
+      html += '<button class="recent-clear" onclick="clearRecentFiles()">Clear Recent Files</button>';
+      submenu.innerHTML = html;
+    }
+
+    async function openRecentFile(idx) {
+      let recent = [];
+      if (isElectronApp) {
+        try { recent = await window.electronAPI.getRecentFiles(); } catch(e) {}
+      } else {
+        try { recent = JSON.parse(localStorage.getItem('dpstudio_recent_files') || '[]'); } catch(e) {}
+      }
+      const file = recent[idx];
+      if (!file) return;
+
+      // Close any open menus
+      document.querySelectorAll('.menu-item.open').forEach(m => m.classList.remove('open'));
+
+      if (isElectronApp && file.path) {
+        try {
+          const result = await window.electronAPI.openFile(file.path);
+          if (result && result.data) {
+            const bytes = new Uint8Array(result.data);
+            const docId = addDocTab(result.name, false);
+            state.fileName = result.name;
+            state.pdfBytes = bytes;
+            state.pageAnnotations = {};
+            state.textEdits = {};
+            state.history = [];
+            state.historyIndex = -1;
+            await loadPDF(bytes);
+            saveDocState(docId);
+          } else if (result && result.error) {
+            showToast('File not found', 'error');
+            await window.electronAPI.removeRecentFile(file.path);
+            loadRecentFiles();
+          }
+        } catch(e) {
+          showToast('Could not open file', 'error');
+        }
+      } else {
+        openFile(); // Web: just trigger file picker
+      }
     }
 
     async function clearRecentFiles() {
@@ -4856,8 +4892,8 @@
       } else {
         try { localStorage.removeItem('dpstudio_recent_files'); } catch(e) {}
       }
-      const section = document.getElementById('recent-files-section');
-      if (section) section.style.display = 'none';
+      const submenu = document.getElementById('recent-files-submenu');
+      if (submenu) submenu.innerHTML = '<div class="recent-empty">No recent files</div>';
     }
 
     function formatFileSize(bytes) {
