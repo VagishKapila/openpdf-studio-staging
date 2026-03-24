@@ -4724,51 +4724,56 @@
     });
 
     // ===== CONTINUOUS SCROLL PAGE NAVIGATION =====
+    // Uses wheel events instead of scroll position — detects when user tries to
+    // scroll past the edge of content, which is much more reliable than reacting
+    // to scroll position changes that can cause ping-pong loops.
     const canvasAreaEl = document.getElementById('canvas-area');
-    let scrollPageCooldown = false;
-    let lastScrollDir = null; // Track direction to prevent bounce-back
-    canvasAreaEl.addEventListener('scroll', () => {
-      if (scrollPageCooldown || !state.pdfDoc) return;
-      const el = canvasAreaEl;
-      const scrollBottom = el.scrollTop + el.clientHeight;
-      const scrollThreshold = 20;
-      // Need meaningful scroll height — if content fits in view, don't trigger
-      const hasOverflow = el.scrollHeight > el.clientHeight + 10;
+    let wheelEdgeCount = 0;    // How many consecutive wheel events at edge
+    let wheelCooldown = false;  // Prevent rapid page switches
+    const EDGE_THRESHOLD = 3;   // Need 3 consecutive edge-scrolls to trigger
 
-      // Scroll past bottom → next page
-      if (hasOverflow && scrollBottom >= el.scrollHeight - scrollThreshold && state.currentPage < state.totalPages) {
-        if (lastScrollDir === 'up') return; // Prevent immediate bounce
-        scrollPageCooldown = true;
-        lastScrollDir = 'down';
-        const targetPage = state.currentPage + 1;
-        goToPage(targetPage).then(() => {
-          // Wait for render to complete, then set scroll position
-          requestAnimationFrame(() => {
-            canvasAreaEl.scrollTop = 1; // Not 0 — avoid triggering "at top" immediately
-            setTimeout(() => {
-              scrollPageCooldown = false;
-              lastScrollDir = null;
-            }, 600);
-          });
-        }).catch(() => { scrollPageCooldown = false; lastScrollDir = null; });
+    canvasAreaEl.addEventListener('wheel', (e) => {
+      if (wheelCooldown || !state.pdfDoc || state.totalPages <= 1) return;
+
+      const el = canvasAreaEl;
+      const atTop = el.scrollTop <= 1;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      const scrollingDown = e.deltaY > 0;
+      const scrollingUp = e.deltaY < 0;
+
+      // User is at bottom edge and scrolling down → accumulate toward next page
+      if (atBottom && scrollingDown && state.currentPage < state.totalPages) {
+        wheelEdgeCount++;
+        if (wheelEdgeCount >= EDGE_THRESHOLD) {
+          wheelEdgeCount = 0;
+          wheelCooldown = true;
+          goToPage(state.currentPage + 1).then(() => {
+            requestAnimationFrame(() => {
+              canvasAreaEl.scrollTop = 0;
+              setTimeout(() => { wheelCooldown = false; }, 800);
+            });
+          }).catch(() => { wheelCooldown = false; });
+        }
       }
-      // Scroll past top → previous page
-      else if (hasOverflow && el.scrollTop <= scrollThreshold && state.currentPage > 1) {
-        if (lastScrollDir === 'down') return; // Prevent immediate bounce
-        scrollPageCooldown = true;
-        lastScrollDir = 'up';
-        const targetPage = state.currentPage - 1;
-        goToPage(targetPage).then(() => {
-          requestAnimationFrame(() => {
-            canvasAreaEl.scrollTop = canvasAreaEl.scrollHeight - canvasAreaEl.clientHeight - 1;
-            setTimeout(() => {
-              scrollPageCooldown = false;
-              lastScrollDir = null;
-            }, 600);
-          });
-        }).catch(() => { scrollPageCooldown = false; lastScrollDir = null; });
+      // User is at top edge and scrolling up → accumulate toward previous page
+      else if (atTop && scrollingUp && state.currentPage > 1) {
+        wheelEdgeCount++;
+        if (wheelEdgeCount >= EDGE_THRESHOLD) {
+          wheelEdgeCount = 0;
+          wheelCooldown = true;
+          goToPage(state.currentPage - 1).then(() => {
+            requestAnimationFrame(() => {
+              canvasAreaEl.scrollTop = Math.max(0, canvasAreaEl.scrollHeight - canvasAreaEl.clientHeight);
+              setTimeout(() => { wheelCooldown = false; }, 800);
+            });
+          }).catch(() => { wheelCooldown = false; });
+        }
       }
-    });
+      // User scrolling normally within the page — reset edge counter
+      else {
+        wheelEdgeCount = 0;
+      }
+    }, { passive: true });
 
     // Set initial tool
     setTool('select');
