@@ -1896,6 +1896,12 @@
 
       if (span.classList.contains('editing')) return; // Already editing
 
+      // CRITICAL: Disable fabric canvas pointer events so the span can receive input
+      const fabricContainer = document.querySelector('.canvas-container');
+      if (fabricContainer) {
+        fabricContainer.style.pointerEvents = 'none';
+      }
+
       span.classList.add('editing');
       span.contentEditable = true;
       span.focus();
@@ -1909,17 +1915,23 @@
           sel.addRange(caretRange);
         }
       } else {
-        // Fallback: place cursor at end
+        // Fallback: select all text for easy replacement
         const range = document.createRange();
         range.selectNodeContents(span);
-        range.collapse(false);
         const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
       }
 
       // Handle finishing the edit
-      span.addEventListener('blur', () => finishEditingSpan(span), { once: true });
+      const onBlur = () => {
+        // Re-enable fabric canvas pointer events
+        if (fabricContainer) {
+          fabricContainer.style.pointerEvents = 'auto';
+        }
+        finishEditingSpan(span);
+      };
+      span.addEventListener('blur', onBlur, { once: true });
       span.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -2023,7 +2035,7 @@
         const coverWidth = Math.max(origWidth, origText.length * fontSize * 0.65) + 6;
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(tx[4] - 2, tx[5] - fontSize - 2, coverWidth, fontSize + 6);
+        ctx.fillRect(tx[4] - 4, tx[5] - fontSize - 4, coverWidth + 8, fontSize + 10);
       });
     }
 
