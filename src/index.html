@@ -4726,31 +4726,47 @@
     // ===== CONTINUOUS SCROLL PAGE NAVIGATION =====
     const canvasAreaEl = document.getElementById('canvas-area');
     let scrollPageCooldown = false;
+    let lastScrollDir = null; // Track direction to prevent bounce-back
     canvasAreaEl.addEventListener('scroll', () => {
       if (scrollPageCooldown || !state.pdfDoc) return;
       const el = canvasAreaEl;
       const scrollBottom = el.scrollTop + el.clientHeight;
-      const scrollThreshold = 30;
+      const scrollThreshold = 20;
+      // Need meaningful scroll height — if content fits in view, don't trigger
+      const hasOverflow = el.scrollHeight > el.clientHeight + 10;
 
       // Scroll past bottom → next page
-      if (scrollBottom >= el.scrollHeight - scrollThreshold && state.currentPage < state.totalPages) {
+      if (hasOverflow && scrollBottom >= el.scrollHeight - scrollThreshold && state.currentPage < state.totalPages) {
+        if (lastScrollDir === 'up') return; // Prevent immediate bounce
         scrollPageCooldown = true;
-        goToPage(state.currentPage + 1);
-        // Scroll to top of new page
-        setTimeout(() => {
-          canvasAreaEl.scrollTop = 0;
-          scrollPageCooldown = false;
-        }, 100);
+        lastScrollDir = 'down';
+        const targetPage = state.currentPage + 1;
+        goToPage(targetPage).then(() => {
+          // Wait for render to complete, then set scroll position
+          requestAnimationFrame(() => {
+            canvasAreaEl.scrollTop = 1; // Not 0 — avoid triggering "at top" immediately
+            setTimeout(() => {
+              scrollPageCooldown = false;
+              lastScrollDir = null;
+            }, 600);
+          });
+        }).catch(() => { scrollPageCooldown = false; lastScrollDir = null; });
       }
       // Scroll past top → previous page
-      else if (el.scrollTop <= scrollThreshold && state.currentPage > 1) {
+      else if (hasOverflow && el.scrollTop <= scrollThreshold && state.currentPage > 1) {
+        if (lastScrollDir === 'down') return; // Prevent immediate bounce
         scrollPageCooldown = true;
-        goToPage(state.currentPage - 1);
-        // Scroll to bottom of previous page
-        setTimeout(() => {
-          canvasAreaEl.scrollTop = canvasAreaEl.scrollHeight;
-          scrollPageCooldown = false;
-        }, 100);
+        lastScrollDir = 'up';
+        const targetPage = state.currentPage - 1;
+        goToPage(targetPage).then(() => {
+          requestAnimationFrame(() => {
+            canvasAreaEl.scrollTop = canvasAreaEl.scrollHeight - canvasAreaEl.clientHeight - 1;
+            setTimeout(() => {
+              scrollPageCooldown = false;
+              lastScrollDir = null;
+            }, 600);
+          });
+        }).catch(() => { scrollPageCooldown = false; lastScrollDir = null; });
       }
     });
 
