@@ -326,8 +326,12 @@
       z-index: 5;
     }
     #text-layer.active {
+      z-index: 15;
+    }
+    #text-layer.active span {
       pointer-events: auto;
-      z-index: 10;
+      cursor: text;
+      padding: 2px 0;
     }
     #text-layer span {
       position: absolute;
@@ -336,10 +340,8 @@
       cursor: default;
       transform-origin: 0% 0%;
       border-radius: 2px;
+      pointer-events: none;
       transition: background 0.15s, box-shadow 0.15s;
-    }
-    #text-layer.active span {
-      cursor: text;
     }
     #text-layer.active span:hover {
       background: rgba(37, 99, 235, 0.18);
@@ -1651,22 +1653,14 @@
     function updateTextLayerMode() {
       const textLayer = document.getElementById('text-layer');
       const annCanvasEl = document.querySelector('.canvas-container');
-      if (state.currentTool === 'text') {
-        // Text add mode: annotation canvas active so user can click to place text
-        textLayer.classList.remove('active');
+      if (state.currentTool === 'select' || state.currentTool === 'text') {
+        // Select/Text mode: text layer spans are clickable (z-index above canvas)
+        // The text layer div stays pointer-events:none, but individual spans get
+        // pointer-events:auto, so clicks BETWEEN spans pass through to the Fabric canvas.
+        textLayer.classList.add('active');
         if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
-        document.querySelectorAll('#text-layer span.editing').forEach(s => {
-          finishEditingSpan(s);
-        });
-      } else if (state.currentTool === 'select') {
-        // Select mode: annotation canvas gets priority so watermarks/stamps/notes can be moved
-        textLayer.classList.remove('active');
-        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
-        document.querySelectorAll('#text-layer span.editing').forEach(s => {
-          finishEditingSpan(s);
-        });
       } else {
-        // Drawing/annotation tools: annotation canvas active
+        // Drawing/annotation tools: text layer inactive
         textLayer.classList.remove('active');
         if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
         document.querySelectorAll('#text-layer span.editing').forEach(s => {
