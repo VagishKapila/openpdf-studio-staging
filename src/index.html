@@ -1680,10 +1680,20 @@
       const fabricEl = state.fabricCanvas ? (state.fabricCanvas.upperCanvasEl || state.fabricCanvas.lowerCanvasEl) : null;
       if (!fabricEl) return null;
       const canvasContainer = fabricEl.parentElement;
-      const origPointerEvents = canvasContainer.style.pointerEvents;
+      const textLayer = document.getElementById('text-layer');
+
+      // Temporarily hide Fabric canvas and enable text layer pointer events
+      const origCanvasPointerEvents = canvasContainer.style.pointerEvents;
+      const origTextLayerPointerEvents = textLayer.style.pointerEvents;
       canvasContainer.style.pointerEvents = 'none';
+      textLayer.style.pointerEvents = 'auto';
+
       const el = document.elementFromPoint(mouseEvent.clientX, mouseEvent.clientY);
-      canvasContainer.style.pointerEvents = origPointerEvents || '';
+
+      // Restore original states
+      canvasContainer.style.pointerEvents = origCanvasPointerEvents || '';
+      textLayer.style.pointerEvents = origTextLayerPointerEvents || '';
+
       if (el && el.tagName === 'SPAN' && el.closest('#text-layer')) {
         return el;
       }
