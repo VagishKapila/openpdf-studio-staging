@@ -1825,12 +1825,13 @@
           span.style.transform = `rotate(${angle}rad)`;
         }
 
-        // Check if there's a saved edit for this text item
+        // Check if there's a saved edit for this text item — hide the span
+        // since edited text is now a fabric Textbox on the annotation canvas
         const pageEdits = state.textEdits[state.currentPage];
         if (pageEdits) {
           const edit = pageEdits.find(e => e.idx === idx);
           if (edit) {
-            span.textContent = edit.newText;
+            span.style.display = 'none'; // Hidden - replaced by fabric Textbox
           }
         }
 
@@ -1903,8 +1904,49 @@
       const origText = span.dataset.origText;
       const newText = span.textContent;
 
-      if (newText !== origText) {
-        // Save the edit
+      if (newText !== origText && state.fabricCanvas) {
+        // Get position info from the span
+        const spanLeft = parseFloat(span.style.left);
+        const spanTop = parseFloat(span.style.top);
+        const fontSize = parseFloat(span.style.fontSize) || 14;
+        const isBold = span.style.fontWeight === 'bold';
+
+        // White-out original text on the PDF canvas
+        whiteOutOriginalText(idx, origText);
+
+        // Hide the original span (it's been replaced by a fabric object)
+        span.style.display = 'none';
+
+        // Create a movable, resizable fabric Textbox at the same position
+        const textbox = new fabric.Textbox(newText, {
+          left: spanLeft,
+          top: spanTop,
+          fontSize: fontSize,
+          fontFamily: 'Arial, sans-serif',
+          fontWeight: isBold ? 'bold' : 'normal',
+          fill: '#000000',
+          width: Math.max(200, newText.length * fontSize * 0.6),
+          editable: true,
+          selectable: true,
+          evented: true,
+          cornerStyle: 'circle',
+          cornerSize: 10,
+          cornerColor: '#6B5CE7',
+          transparentCorners: false,
+          borderColor: '#6B5CE7',
+          splitByGrapheme: false,
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          _isTextEdit: true,       // Mark as a PDF text edit
+          _editPageNum: state.currentPage,
+          _editIdx: idx,
+        });
+
+        state.fabricCanvas.add(textbox);
+        state.fabricCanvas.setActiveObject(textbox);
+        state.fabricCanvas.renderAll();
+        saveHistory();
+
+        // Also store in textEdits for the save function
         if (!state.textEdits[state.currentPage]) {
           state.textEdits[state.currentPage] = [];
         }
@@ -1921,10 +1963,32 @@
             fontName: item.fontName,
           });
         }
-        // Re-render the page canvas with the edit burned in
-        reRenderWithEdits();
-        showToast('Text edited — changes will be included when you save', 'success');
+
+        showToast('Text is now movable — drag to reposition, resize handles to adjust', 'success');
       }
+    }
+
+    function whiteOutOriginalText(idx, origText) {
+      // White out the original text on the PDF canvas
+      const item = state.textLayerItems[idx];
+      if (!item) return;
+
+      const page_promise = state.pdfDoc.getPage(state.currentPage);
+      page_promise.then(page => {
+        const viewport = page.getViewport({ scale: state.zoom * 1.5 });
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
+
+        ctx.font = `${fontSize}px Arial, sans-serif`;
+        const origWidth = ctx.measureText(origText).width;
+        const coverWidth = Math.max(origWidth, origText.length * fontSize * 0.65) + 6;
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(tx[4] - 2, tx[5] - fontSize - 2, coverWidth, fontSize + 6);
+      });
     }
 
     async function reRenderWithEdits() {
@@ -1935,7 +1999,7 @@
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Draw edited text on top (white rect to cover old text, then new text)
+      // White-out any edited text areas (the actual text is now on the fabric canvas)
       const pageEdits = state.textEdits[state.currentPage];
       if (pageEdits && pageEdits.length > 0) {
         pageEdits.forEach(edit => {
@@ -1945,20 +2009,12 @@
           const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
           const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
 
-          // Measure original text width to cover it
           ctx.font = `${fontSize}px Arial, sans-serif`;
           const origWidth = ctx.measureText(edit.origText).width;
+          const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.65) + 6;
 
-          // White-out the original text
           ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(tx[4] - 1, tx[5] - fontSize - 1, origWidth + 4, fontSize + 4);
-
-          // Draw new text
-          ctx.fillStyle = '#000000';
-          if (item.fontName && item.fontName.includes('Bold')) {
-            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-          }
-          ctx.fillText(edit.newText, tx[4], tx[5]);
+          ctx.fillRect(tx[4] - 2, tx[5] - fontSize - 2, coverWidth, fontSize + 6);
         });
       }
     }
