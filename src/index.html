@@ -67,7 +67,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
-      height: 48px;
+      height: 44px;
       background: var(--bg-secondary);
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       z-index: 100;
@@ -89,10 +89,10 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 4px 12px;
+      padding: 2px 12px;
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border);
-      height: 42px;
+      height: 38px;
     }
     .menu-bar {
       display: flex;
@@ -269,13 +269,13 @@
     .main-container {
       display: flex;
       flex: 1;
-      height: calc(100vh - 48px - 42px);
+      height: calc(100vh - 44px - 38px);
       min-height: 0;
     }
 
     /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 140px;
+      width: 120px;
       background: #f8f8f8;
       border-right: 1px solid var(--border);
       display: flex;
@@ -334,18 +334,21 @@
     .canvas-area {
       flex: 1;
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       overflow: auto;
       background: #F0EEEB;
       position: relative;
       min-height: 0;
+      padding: 20px 0;
     }
     .canvas-wrapper {
       position: relative;
       box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-      margin: auto;
+      margin: 20px auto;
       flex-shrink: 0;
       max-width: 100%;
-      max-height: 100%;
     }
     #pdf-canvas { display: block; }
     .annotation-canvas {
@@ -364,7 +367,7 @@
     .annotation-action-bar {
       display: none;
       flex-direction: column;
-      width: 160px;
+      width: 190px;
       background: linear-gradient(180deg, #EDE9FE 0%, #f5f3ff 100%);
       border-left: 2px solid var(--primary);
       padding: 12px 10px;
@@ -504,7 +507,8 @@
       pointer-events: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    #text-layer.active span:hover {
+    #text-layer.active span:hover,
+    #text-layer span.hover-highlight {
       background: rgba(37, 99, 235, 0.18);
       box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
       border-radius: 3px;
@@ -1241,6 +1245,11 @@
           <button class="tool-btn" onclick="resetImageFilters()" title="Reset all filters">Reset</button>
         </div>
       </div>
+
+      <!-- Page Navigation Hint -->
+      <div id="page-nav-hint" style="text-align:center;padding:12px;color:var(--text-secondary);font-size:12px;user-select:none;display:none;">
+        <span id="page-nav-hint-text">Scroll down for next page</span>
+      </div>
     </div>
 
     <!-- Annotation Action Panel (right side, shown when annotation selected or tool active) -->
@@ -1770,6 +1779,7 @@
 
         await zoomFit();
         await renderThumbnails();
+        updatePageNavHint();
         setStatus(`${state.fileName} - ${state.totalPages} page(s)`);
         showToast(`Loaded: ${state.fileName}`, 'success');
       } catch (e) {
@@ -2098,6 +2108,43 @@
       return bestSpan;
     }
 
+    // ===== SNAP GUIDES HELPERS =====
+    function showGuide(direction, position) {
+      let guide = document.getElementById(`snap-guide-${direction}`);
+      if (!guide) {
+        guide = document.createElement('div');
+        guide.id = `snap-guide-${direction}`;
+        guide.style.position = 'absolute';
+        guide.style.zIndex = '50';
+        guide.style.pointerEvents = 'none';
+        if (direction === 'horizontal') {
+          guide.style.left = '0';
+          guide.style.right = '0';
+          guide.style.height = '1px';
+          guide.style.background = '#6B5CE7';
+          guide.style.boxShadow = '0 0 3px rgba(107,92,231,0.5)';
+        } else {
+          guide.style.top = '0';
+          guide.style.bottom = '0';
+          guide.style.width = '1px';
+          guide.style.background = '#6B5CE7';
+          guide.style.boxShadow = '0 0 3px rgba(107,92,231,0.5)';
+        }
+        document.getElementById('canvas-wrapper').appendChild(guide);
+      }
+      guide.style.display = 'block';
+      if (direction === 'horizontal') {
+        guide.style.top = position + 'px';
+      } else {
+        guide.style.left = position + 'px';
+      }
+    }
+
+    function hideGuide(direction) {
+      const guide = document.getElementById(`snap-guide-${direction}`);
+      if (guide) guide.style.display = 'none';
+    }
+
     function initFabricCanvas(w, h) {
       const annCanvas = document.getElementById('annotation-canvas');
       annCanvas.width = w;
@@ -2235,6 +2282,22 @@
         }
       });
 
+      // Hover highlight for PDF text spans (visual feedback in Select mode)
+      state.fabricCanvas.on('mouse:move', function(opt) {
+        if (state.currentTool !== 'select' || opt.target) return;
+        // Remove previous highlight
+        document.querySelectorAll('#text-layer span.hover-highlight').forEach(s => {
+          s.classList.remove('hover-highlight');
+        });
+        const spanBelow = findTextSpanBelow(opt.e);
+        if (spanBelow && spanBelow.style.display !== 'none') {
+          spanBelow.classList.add('hover-highlight');
+          state.fabricCanvas.defaultCursor = 'text';
+        } else {
+          state.fabricCanvas.defaultCursor = 'default';
+        }
+      });
+
       // Double-click to edit text objects (IText, Textbox, sticky notes)
       // OR double-click on empty area to edit PDF text underneath
       state.fabricCanvas.on('mouse:dblclick', function(opt) {
@@ -2251,6 +2314,59 @@
             startEditingSpan(spanBelow, opt.e);
           }
         }
+      });
+
+      // ===== SNAP GUIDES =====
+      state.fabricCanvas.on('object:moving', function(e) {
+        const obj = e.target;
+        const snapThreshold = 8;
+        const canvasW = state.fabricCanvas.width;
+        const canvasH = state.fabricCanvas.height;
+
+        // Horizontal center guide
+        const objCenterX = obj.left + (obj.width * obj.scaleX) / 2;
+        const pageCenterX = canvasW / 2;
+        if (Math.abs(objCenterX - pageCenterX) < snapThreshold) {
+          obj.set('left', pageCenterX - (obj.width * obj.scaleX) / 2);
+          showGuide('vertical', pageCenterX);
+        } else {
+          hideGuide('vertical');
+        }
+
+        // Vertical center guide
+        const objCenterY = obj.top + (obj.height * obj.scaleY) / 2;
+        const pageCenterY = canvasH / 2;
+        if (Math.abs(objCenterY - pageCenterY) < snapThreshold) {
+          obj.set('top', pageCenterY - (obj.height * obj.scaleY) / 2);
+          showGuide('horizontal', pageCenterY);
+        } else {
+          hideGuide('horizontal');
+        }
+
+        // Snap to other objects
+        const objects = state.fabricCanvas.getObjects().filter(o => o !== obj);
+        let snappedH = false, snappedV = false;
+        for (const other of objects) {
+          // Align top edges
+          if (Math.abs(obj.top - other.top) < snapThreshold) {
+            obj.set('top', other.top);
+            showGuide('horizontal', other.top);
+            snappedH = true;
+          }
+          // Align left edges
+          if (Math.abs(obj.left - other.left) < snapThreshold) {
+            obj.set('left', other.left);
+            showGuide('vertical', other.left);
+            snappedV = true;
+          }
+        }
+        if (!snappedH && Math.abs(objCenterY - pageCenterY) >= snapThreshold) hideGuide('horizontal');
+        if (!snappedV && Math.abs(objCenterX - pageCenterX) >= snapThreshold) hideGuide('vertical');
+      });
+
+      state.fabricCanvas.on('object:modified', function() {
+        hideGuide('horizontal');
+        hideGuide('vertical');
       });
     }
 
@@ -2320,6 +2436,21 @@
         await renderPage(num);
         // Restore annotations for the new page
         restorePageAnnotations(num);
+        updatePageNavHint();
+      }
+    }
+
+    function updatePageNavHint() {
+      const hint = document.getElementById('page-nav-hint');
+      if (!hint || !state.pdfDoc) return;
+      if (state.totalPages <= 1) {
+        hint.style.display = 'none';
+      } else if (state.currentPage < state.totalPages) {
+        hint.style.display = 'block';
+        hint.innerHTML = `<span style="opacity:0.6;">↓ Scroll down for page ${state.currentPage + 1} of ${state.totalPages}</span>`;
+      } else {
+        hint.style.display = 'block';
+        hint.innerHTML = `<span style="opacity:0.6;">↑ Scroll up for page ${state.currentPage - 1}</span>`;
       }
     }
 
@@ -4214,6 +4345,37 @@
           state.fabricCanvas.discardActiveObject();
           state.fabricCanvas.renderAll();
         }
+      }
+    });
+
+    // ===== CONTINUOUS SCROLL PAGE NAVIGATION =====
+    const canvasAreaEl = document.getElementById('canvas-area');
+    let scrollPageCooldown = false;
+    canvasAreaEl.addEventListener('scroll', () => {
+      if (scrollPageCooldown || !state.pdfDoc) return;
+      const el = canvasAreaEl;
+      const scrollBottom = el.scrollTop + el.clientHeight;
+      const scrollThreshold = 30;
+
+      // Scroll past bottom → next page
+      if (scrollBottom >= el.scrollHeight - scrollThreshold && state.currentPage < state.totalPages) {
+        scrollPageCooldown = true;
+        goToPage(state.currentPage + 1);
+        // Scroll to top of new page
+        setTimeout(() => {
+          canvasAreaEl.scrollTop = 0;
+          scrollPageCooldown = false;
+        }, 100);
+      }
+      // Scroll past top → previous page
+      else if (el.scrollTop <= scrollThreshold && state.currentPage > 1) {
+        scrollPageCooldown = true;
+        goToPage(state.currentPage - 1);
+        // Scroll to bottom of previous page
+        setTimeout(() => {
+          canvasAreaEl.scrollTop = canvasAreaEl.scrollHeight;
+          scrollPageCooldown = false;
+        }, 100);
       }
     });
 
