@@ -1618,6 +1618,7 @@
       imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
       nextObjectColor: '#000000',  // Color for next created object
       shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
+      pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
     };
 
     // ===== TOAST NOTIFICATIONS =====
@@ -2018,6 +2019,8 @@
             fontSize: 16,
             fill: state.nextObjectColor || '#000000',
             editable: true,
+            selectable: true,
+            evented: true,
             cornerStyle: 'circle',
             cornerSize: 10,
             cornerColor: '#6B5CE7',
@@ -2046,15 +2049,17 @@
             shape = new fabric.Rect({
               left: pointer.x, top: pointer.y, width: 100, height: 60,
               fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+              selectable: true, evented: true,
             });
           } else if (type === 'circle') {
             shape = new fabric.Circle({
               left: pointer.x, top: pointer.y, radius: 40,
               fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+              selectable: true, evented: true,
             });
           } else if (type === 'line') {
             shape = new fabric.Line([pointer.x, pointer.y, pointer.x + 120, pointer.y], {
-              stroke: shapeColor, strokeWidth: 2, selectable: true,
+              stroke: shapeColor, strokeWidth: 2, selectable: true, evented: true,
             });
           } else if (type === 'arrow') {
             const group = new fabric.Group([
@@ -2063,12 +2068,13 @@
                 left: 108, top: 20, width: 16, height: 20, angle: 90,
                 fill: shapeColor, stroke: shapeColor, strokeWidth: 1,
               })
-            ], { left: pointer.x, top: pointer.y });
+            ], { left: pointer.x, top: pointer.y, selectable: true, evented: true });
             shape = group;
           } else if (type === 'triangle') {
             shape = new fabric.Triangle({
               left: pointer.x, top: pointer.y, width: 80, height: 70,
               fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+              selectable: true, evented: true,
             });
           } else if (type === 'star') {
             // 5-pointed star using polygon
@@ -2081,6 +2087,7 @@
             shape = new fabric.Polygon(points, {
               left: pointer.x, top: pointer.y,
               fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+              selectable: true, evented: true,
             });
           }
           if (shape) {
@@ -2147,10 +2154,30 @@
       });
     }
 
+    function saveCurrentPageAnnotations() {
+      if (state.fabricCanvas && state.fabricCanvas.getObjects().length > 0) {
+        state.pageAnnotations[state.currentPage] = state.fabricCanvas.toJSON();
+      } else {
+        delete state.pageAnnotations[state.currentPage];
+      }
+    }
+
+    function restorePageAnnotations(pageNum) {
+      if (state.pageAnnotations[pageNum] && state.fabricCanvas) {
+        state.fabricCanvas.loadFromJSON(state.pageAnnotations[pageNum], () => {
+          state.fabricCanvas.renderAll();
+        });
+      }
+    }
+
     async function goToPage(num) {
       if (num >= 1 && num <= state.totalPages) {
+        // Save current page annotations before switching
+        saveCurrentPageAnnotations();
         state.currentPage = num;
         await renderPage(num);
+        // Restore annotations for the new page
+        restorePageAnnotations(num);
       }
     }
 
@@ -2332,7 +2359,9 @@
         setStatus('Saving...');
 
         if (state.pdfBytes) {
-          // Use a fresh copy of bytes for pdf-lib to avoid detached buffer issues
+          // Save current page annotations first
+          saveCurrentPageAnnotations();
+
           const bytesToLoad = new Uint8Array(state.pdfBytes);
           let pdfDoc;
           try {
@@ -2343,7 +2372,6 @@
               pdfDoc = await PDFLib.PDFDocument.load(bytesToLoad, { ignoreEncryption: true, updateMetadata: false });
             } catch (loadErr2) {
               console.error('pdf-lib cannot parse this PDF:', loadErr2);
-              // Fallback: create a fresh PDF from the rendered canvas pages
               showToast('Rebuilding PDF from rendered pages...', 'info');
               pdfDoc = await PDFLib.PDFDocument.create();
               for (let p = 1; p <= state.totalPages; p++) {
@@ -2369,27 +2397,37 @@
           // Apply text edits to all pages
           for (const [pageNumStr, edits] of Object.entries(state.textEdits)) {
             const pageIdx = parseInt(pageNumStr) - 1;
-            if (pageIdx >= pdfDoc.getPageCount()) continue;
+            if (pageIdx < 0 || pageIdx >= pdfDoc.getPageCount()) continue;
             const page = pdfDoc.getPage(pageIdx);
+            const { width: pageWidth, height: pageHeight } = page.getSize();
+
+            // Get the PDF.js page to compute viewport transform for coordinate mapping
+            const pdfJsPage = await state.pdfDoc.getPage(parseInt(pageNumStr));
+            const viewport = pdfJsPage.getViewport({ scale: state.zoom * 1.5 });
 
             for (const edit of edits) {
               if (edit.newText === edit.origText) continue;
 
-              const t = edit.transform;
-              const fontSize = Math.sqrt(t[0] * t[0] + t[1] * t[1]);
-              const x = t[4];
-              const y = t[5];
+              // Use the original PDF transform directly for pdf-lib coordinates
+              const pdfTransform = edit.transform;
+              const fontSize = Math.sqrt(pdfTransform[0] * pdfTransform[0] + pdfTransform[1] * pdfTransform[1]);
+              const x = pdfTransform[4];
+              const y = pdfTransform[5];
 
               const font = (edit.fontName && edit.fontName.includes('Bold')) ? helveticaBold : helvetica;
+
+              // Calculate width more generously to cover original text
               const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
+              const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.6) + 4;
 
               // White-out original text
               page.drawRectangle({
                 x: x - 1,
-                y: y - 2,
-                width: origWidth + 4,
-                height: fontSize + 4,
+                y: y - fontSize * 0.3,
+                width: coverWidth,
+                height: fontSize * 1.3,
                 color: PDFLib.rgb(1, 1, 1),
+                borderWidth: 0,
               });
 
               // Draw new text
@@ -2403,19 +2441,50 @@
             }
           }
 
-          // Embed annotations as images
-          if (state.fabricCanvas && state.fabricCanvas.getObjects().length > 0) {
-            const annotationDataUrl = state.fabricCanvas.toDataURL({ format: 'png' });
+          // Embed annotations for ALL pages (not just current)
+          for (const [pageNumStr, annotJson] of Object.entries(state.pageAnnotations)) {
+            const pageIdx = parseInt(pageNumStr) - 1;
+            if (pageIdx < 0 || pageIdx >= pdfDoc.getPageCount()) continue;
+
+            // Create a temporary fabric canvas to render the annotations
+            const pdfJsPage = await state.pdfDoc.getPage(parseInt(pageNumStr));
+            const viewport = pdfJsPage.getViewport({ scale: state.zoom * 1.5 });
+
+            const tmpCanvasEl = document.createElement('canvas');
+            tmpCanvasEl.width = viewport.width;
+            tmpCanvasEl.height = viewport.height;
+            tmpCanvasEl.id = 'tmp-annot-canvas-' + pageNumStr;
+            document.body.appendChild(tmpCanvasEl);
+
+            const tmpFabric = new fabric.Canvas(tmpCanvasEl.id, {
+              width: viewport.width,
+              height: viewport.height,
+            });
+
+            await new Promise((resolve) => {
+              tmpFabric.loadFromJSON(annotJson, () => {
+                tmpFabric.renderAll();
+                resolve();
+              });
+            });
+
+            const annotationDataUrl = tmpFabric.toDataURL({ format: 'png' });
             const annotationBytes = await fetch(annotationDataUrl).then(r => r.arrayBuffer());
             const annotationImage = await pdfDoc.embedPng(annotationBytes);
-            const page = pdfDoc.getPage(state.currentPage - 1);
-            const { width, height } = page.getSize();
+
+            const page = pdfDoc.getPage(pageIdx);
+            const { width: pageWidth, height: pageHeight } = page.getSize();
+
             page.drawImage(annotationImage, {
               x: 0,
               y: 0,
-              width: width,
-              height: height,
+              width: pageWidth,
+              height: pageHeight,
             });
+
+            // Clean up temp canvas
+            tmpFabric.dispose();
+            tmpCanvasEl.remove();
           }
 
           const savedBytes = await pdfDoc.save();
@@ -2445,6 +2514,9 @@
       }
       const filename = prompt('Save as filename:', state.fileName || 'document.pdf');
       if (!filename) return;
+
+      // Save current page annotations before processing
+      saveCurrentPageAnnotations();
 
       // Trigger regular save but with custom filename
       try {
@@ -2594,6 +2666,8 @@
             top: state.fabricCanvas.height / 2 - 30,
             hasControls: true,
             hasBorders: true,
+            selectable: true,
+            evented: true,
           });
           img.scaleToWidth(180);
           state.fabricCanvas.add(img);
@@ -2613,6 +2687,8 @@
           top: state.fabricCanvas.height / 2 - 20,
           hasControls: true,
           hasBorders: true,
+          selectable: true,
+          evented: true,
         });
         state.fabricCanvas.add(sig);
         state.fabricCanvas.setActiveObject(sig);
@@ -2630,6 +2706,8 @@
                 top: state.fabricCanvas.height / 2 - 30,
                 hasControls: true,
                 hasBorders: true,
+                selectable: true,
+                evented: true,
               });
               img.scaleToWidth(180);
               state.fabricCanvas.add(img);
@@ -3579,6 +3657,8 @@
         left: noteX + 7,
         top: noteY + 8,
         editable: true,
+        selectable: true,
+        evented: true,
         hasControls: true,
         hasBorders: true,
         cornerStyle: 'circle',
