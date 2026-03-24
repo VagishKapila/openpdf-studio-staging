@@ -1820,6 +1820,8 @@
       shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
       nextFontSize: 24,    // Font size for next created text object
       pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
+      bakedEditRegions: {}, // { pageNum: [ {x, y, width, height} ] } — areas with baked-in edits to suppress old text layer spans
+      hasUnsavedChanges: false, // Track dirty state for save prompts
     };
 
     // ===== DOCUMENT TABS =====
@@ -1842,6 +1844,8 @@
       doc.history = state.history;
       doc.historyIndex = state.historyIndex;
       doc.fileName = state.fileName;
+      doc.bakedEditRegions = state.bakedEditRegions;
+      doc.hasUnsavedChanges = state.hasUnsavedChanges;
       // Save current page annotations before switching
       if (state.fabricCanvas && state.isDocLoaded) {
         saveCurrentPageAnnotations();
@@ -1861,6 +1865,8 @@
       state.history = doc.history || [];
       state.historyIndex = doc.historyIndex ?? -1;
       state.fileName = doc.fileName;
+      state.bakedEditRegions = doc.bakedEditRegions || {};
+      state.hasUnsavedChanges = doc.hasUnsavedChanges || false;
       state.isDocLoaded = true;
     }
 
@@ -1952,6 +1958,30 @@
     }
 
     function closeDoc(docId) {
+      const doc = openDocs.find(d => d.id === docId);
+      if (!doc) return;
+
+      // Check for unsaved changes — prompt user
+      const isActive = docId === activeDocId;
+      const dirty = isActive ? state.hasUnsavedChanges : (doc.hasUnsavedChanges || false);
+      if (dirty) {
+        const answer = confirm(`"${doc.fileName || 'Untitled'}" has unsaved changes.\n\nDo you want to save before closing?`);
+        if (answer) {
+          // Save first, then close
+          if (isActive) {
+            savePDF().then(() => closeDocForce(docId));
+          } else {
+            // Switch to it, save, then close
+            switchToDoc(docId).then(() => savePDF().then(() => closeDocForce(docId)));
+          }
+          return;
+        }
+        // User chose not to save — proceed with close
+      }
+      closeDocForce(docId);
+    }
+
+    function closeDocForce(docId) {
       const idx = openDocs.findIndex(d => d.id === docId);
       if (idx === -1) return;
 
@@ -1967,6 +1997,8 @@
         state.fileName = '';
         state.pageAnnotations = {};
         state.textEdits = {};
+        state.bakedEditRegions = {};
+        state.hasUnsavedChanges = false;
         state.history = [];
         state.historyIndex = -1;
         if (state.fabricCanvas) {
@@ -2086,6 +2118,8 @@
         // Clear ALL previous document state
         state.pageAnnotations = {};
         state.textEdits = {};
+        state.bakedEditRegions = {};
+        state.hasUnsavedChanges = false;
         state.history = [];
         state.historyIndex = -1;
         if (state.fabricCanvas) {
@@ -2187,6 +2221,22 @@
           const edit = pageEdits.find(e => e.idx === idx);
           if (edit) {
             span.style.display = 'none'; // Hidden - replaced by fabric Textbox
+          }
+        }
+
+        // Check if this span falls within a baked-in edit region (post-save)
+        // These are areas where pdf-lib has drawn new text over the original,
+        // so the old text layer span must be suppressed
+        const bakedRegions = state.bakedEditRegions[state.currentPage];
+        if (bakedRegions && bakedRegions.length > 0) {
+          const spanX = tx[4];
+          const spanY = tx[5] - fontSize;
+          for (const region of bakedRegions) {
+            if (spanX >= region.x - 10 && spanX <= region.x + region.width + 10 &&
+                spanY >= region.y - 10 && spanY <= region.y + region.height + 10) {
+              span.style.display = 'none'; // Suppressed — baked into PDF
+              break;
+            }
           }
         }
 
@@ -2932,6 +2982,7 @@
     // ===== HISTORY (UNDO/REDO) =====
     function saveHistory() {
       if (!state.fabricCanvas) return;
+      state.hasUnsavedChanges = true;
       const json = state.fabricCanvas.toJSON();
       state.history = state.history.slice(0, state.historyIndex + 1);
       state.history.push(json);
@@ -3100,10 +3151,30 @@
           saveAs(blob, state.fileName || 'edited.pdf');
 
           // CRITICAL: Update internal state with saved bytes so edits are "baked in"
-          // This prevents old text from ghosting when re-rendering
+          // Store edit regions so text layer spans can be suppressed after reload
+          // (pdf-lib can't remove original text from PDF stream, only draws over it)
+          for (const [pageNumStr, edits] of Object.entries(state.textEdits)) {
+            const pageNum = parseInt(pageNumStr);
+            if (!state.bakedEditRegions[pageNum]) state.bakedEditRegions[pageNum] = [];
+            const pdfJsPage = await state.pdfDoc.getPage(pageNum);
+            const viewport = pdfJsPage.getViewport({ scale: state.zoom * 1.5 });
+            for (const edit of edits) {
+              if (edit.newText === edit.origText) continue;
+              const tx = pdfjsLib.Util.transform(viewport.transform, edit.transform);
+              const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
+              state.bakedEditRegions[pageNum].push({
+                x: tx[4],
+                y: tx[5] - fontSize,
+                width: Math.max(200, edit.origText.length * fontSize * 0.8),
+                height: fontSize * 1.5,
+              });
+            }
+          }
+
           state.pdfBytes = savedBytes.buffer;
           state.textEdits = {};  // Clear — edits are now part of the PDF
           state.pageAnnotations = {};  // Clear — annotations are now baked into the PDF
+          state.hasUnsavedChanges = false;
 
           // Reload the PDF from saved bytes so everything is fresh
           state.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(savedBytes) }).promise;
