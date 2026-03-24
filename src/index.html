@@ -1663,7 +1663,7 @@
       imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
       nextObjectColor: '#000000',  // Color for next created object
       shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
-      nextFontSize: 16,    // Font size for next created text object
+      nextFontSize: 24,    // Font size for next created text object
       pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
     };
 
@@ -2114,20 +2114,14 @@
       // Handle click to add text or edit PDF text
       state.fabricCanvas.on('mouse:down', function(opt) {
         if (state.currentTool === 'text' && !opt.target) {
-          // Check if there's a PDF text span underneath first
-          const spanBelow = findTextSpanBelow(opt.e);
-          if (spanBelow) {
-            // User clicked on existing PDF text — edit it
-            startEditingSpan(spanBelow, opt.e);
-            return;
-          }
-          // No PDF text — add a new textbox
+          // Always create a new textbox at click position when text tool is active
+          // (Don't redirect to span editing — user wants to ADD text, not edit existing)
           const pointer = state.fabricCanvas.getPointer(opt.e);
           const text = new fabric.Textbox('Type here...', {
             left: pointer.x,
             top: pointer.y,
             fontFamily: 'Arial',
-            fontSize: state.nextFontSize || 16,
+            fontSize: state.nextFontSize || 24,
             fill: state.nextObjectColor || '#000000',
             width: 200,
             editable: true,
@@ -2145,7 +2139,7 @@
           text.enterEditing();
           text.selectAll();
           saveHistory();
-          setTool('select');
+          // Stay on text tool so user can keep adding text boxes
         } else if (state.currentTool === 'select' && !opt.target) {
           // In select mode, clicking on empty area — check for PDF text underneath
           const spanBelow = findTextSpanBelow(opt.e);
@@ -2437,9 +2431,12 @@
     }
 
     async function updateZoom() {
-      document.getElementById('zoom-level').textContent = Math.round(state.zoom * 100) + '%';
+      document.getElementById('zoom-display').textContent = Math.round(state.zoom * 100) + '%';
       if (state.pdfDoc) {
+        // Save annotations before re-render (renderPage re-inits fabric canvas)
+        saveCurrentPageAnnotations();
         await renderPage(state.currentPage);
+        restorePageAnnotations(state.currentPage);
       }
     }
 
@@ -4106,11 +4103,15 @@
 
     // ===== KEYBOARD SHORTCUTS =====
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      // Don't fire global undo/redo when user is editing text inside a fabric textbox
+      const activeObj = state.fabricCanvas ? state.fabricCanvas.getActiveObject() : null;
+      const isEditingText = activeObj && activeObj.isEditing;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !isEditingText) {
         e.preventDefault();
         undoAction();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y' && !isEditingText) {
         e.preventDefault();
         redoAction();
       }
@@ -4121,6 +4122,18 @@
       if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
         e.preventDefault();
         openFile();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        zoomIn();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        zoomOut();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        zoomFit();
       }
       if (e.key === 'ArrowRight' && !e.target.closest('input,textarea')) {
         goToPage(state.currentPage + 1);
