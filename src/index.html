@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DocPix Studio — Edit PDFs, Images & Documents</title>
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6B5CE7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DocPix Studio">
+  <link rel="apple-touch-icon" href="../app-icon.png">
+
   <!-- PDF.js for rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
@@ -82,36 +90,76 @@
     }
 
     /* ===== TAB BAR ===== */
-    .tab-bar {
-      display: flex;
-      gap: 2px;
-      padding: 0 16px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
-      overflow-x: auto;
-    }
-    .tab {
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 13px;
-      border-bottom: 2px solid transparent;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-    .tab:hover { color: var(--text); background: var(--bg-tertiary); }
-    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    /* Removed - replaced with menu bar */
 
     /* ===== TOOLBAR ===== */
     .toolbar {
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 16px;
+      padding: 4px 12px;
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
+      height: 42px;
     }
+    .menu-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .menu-item {
+      position: relative;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      user-select: none;
+    }
+    .menu-item:hover, .menu-item.open {
+      background: var(--bg-tertiary);
+      color: var(--text);
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 200px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 4px 0;
+      z-index: 1000;
+    }
+    .dropdown-menu.show { display: block; }
+    .dropdown-menu .menu-action {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.1s;
+    }
+    .dropdown-menu .menu-action:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .dropdown-menu .menu-action svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .dropdown-menu .menu-action .shortcut {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .dropdown-menu .menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
     .toolbar-group {
       display: flex;
       align-items: center;
@@ -149,11 +197,52 @@
     }
     .tool-btn.ai-btn:hover { opacity: 0.9; }
 
+    .tool-palette {
+      display: flex;
+      flex-direction: column;
+      width: 44px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 8px 4px;
+      gap: 2px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .tool-palette .palette-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .tool-palette .palette-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text);
+    }
+    .tool-palette .palette-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .tool-palette .palette-btn svg { width: 18px; height: 18px; }
+    .tool-palette .palette-sep {
+      width: 24px;
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
     /* ===== MAIN LAYOUT ===== */
     .main-container {
       display: flex;
       flex: 1;
-      height: calc(100vh - 48px - 36px);
+      height: calc(100vh - 48px - 42px);
       min-height: 0;
     }
 
@@ -240,7 +329,7 @@
       flex-direction: column;
       width: 160px;
       background: linear-gradient(180deg, #EDE9FE 0%, #f5f3ff 100%);
-      border-right: 2px solid var(--primary);
+      border-left: 2px solid var(--primary);
       padding: 12px 10px;
       z-index: 99;
       gap: 6px;
@@ -311,6 +400,41 @@
       text-align: center;
       margin-top: 4px;
       line-height: 1.3;
+    }
+    .color-picker-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .color-btn {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      padding: 0;
+    }
+    .color-btn:hover {
+      border-color: var(--primary);
+      transform: scale(1.1);
+    }
+    .color-btn.selected {
+      border-color: #333;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    }
+    .shape-type-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 8px; border: 1.5px solid var(--border);
+      border-radius: 6px; background: #fff; cursor: pointer;
+      font-size: 11px; font-weight: 500; color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .shape-type-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .shape-type-btn.active {
+      border-color: var(--primary); background: var(--primary-light);
+      color: var(--primary); font-weight: 600;
     }
 
     /* ===== TEXT LAYER (click-to-edit) ===== */
@@ -741,6 +865,18 @@
       .right-panel { width: 100%; position: absolute; right: 0; top: 0; height: 100%; z-index: 50; }
       .toolbar { overflow-x: auto; flex-wrap: nowrap; }
       .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .tool-palette { width: 38px; padding: 6px 2px; }
+      .tool-palette .palette-btn { width: 32px; height: 32px; }
+      .annotation-action-bar { width: 140px; }
+      .top-nav .logo span:not(.free-badge) { display: none; }
+      .menu-bar .menu-item { padding: 6px 8px; font-size: 12px; }
+    }
+    @media (max-width: 480px) {
+      .tool-palette { display: none; }
+      .annotation-action-bar { display: none !important; }
+      .welcome-screen h1 { font-size: 24px !important; }
+      .welcome-screen p { font-size: 13px !important; }
+      .feature-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -748,92 +884,55 @@
 
   <!-- ===== TOP NAV ===== -->
   <nav class="top-nav">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-      </svg>
+    <a href="https://varshyl.com/dpstudio" class="logo" style="text-decoration:none;color:inherit;">
+      <img src="../app-icon.png" alt="DocPix Studio" style="width:28px;height:28px;border-radius:6px;">
       <span>DocPix Studio</span>
       <span class="free-badge">FREE</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button class="tool-btn" onclick="openFeedbackModal()" title="Send feedback or request features" style="font-size:12px; padding:6px 12px; border:1px solid var(--border);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Feedback
-      </button>
-      <button class="tool-btn ai-btn" onclick="toggleAIPanel()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-        AI Assistant
-      </button>
-    </div>
+    </a>
   </nav>
-
-  <!-- ===== TAB BAR ===== -->
-  <div class="tab-bar" id="tab-bar">
-    <div class="tab active" data-tab="pdf-editor" onclick="switchTab('pdf-editor')">PDF Editor</div>
-    <div class="tab" data-tab="image-editor" onclick="switchTab('image-editor')">Image Editor</div>
-    <div class="tab" data-tab="merge-split" onclick="switchTab('merge-split')">Merge & Split</div>
-    <div class="tab" data-tab="forms" onclick="switchTab('forms')">Form Filler</div>
-    <div class="tab" data-tab="convert" onclick="switchTab('convert')">Convert</div>
-    <div class="tab" data-tab="protect" onclick="switchTab('protect')">Protect</div>
-  </div>
 
   <!-- ===== TOOLBAR ===== -->
   <div class="toolbar" id="toolbar">
-    <div class="toolbar-group">
-      <button class="tool-btn" onclick="openFile()" title="Open File">📂 Open</button>
-      <button class="tool-btn" onclick="savePDF()" title="Save (Ctrl+S)">💾 Save</button>
-      <button class="tool-btn" onclick="saveAsPDF()" title="Save As...">📄 Save As</button>
-      <button class="tool-btn" onclick="printPDF()" title="Print">🖨️ Print</button>
+    <div class="menu-bar">
+      <div class="menu-item" onclick="toggleMenu(this)">File
+        <div class="dropdown-menu" id="menu-file">
+          <div class="menu-action" onclick="openFile()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Open <span class="shortcut">Ctrl+O</span></div>
+          <div class="menu-action" onclick="savePDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save <span class="shortcut">Ctrl+S</span></div>
+          <div class="menu-action" onclick="saveAsPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg> Save As...</div>
+          <div class="menu-action" onclick="printPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print <span class="shortcut">Ctrl+P</span></div>
+          <div class="menu-divider"></div>
+          <div class="menu-action" onclick="switchTab('merge-split')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Merge PDFs</div>
+          <div class="menu-action" onclick="switchTab('merge-split')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="16" y1="3" x2="16" y2="21"/><polyline points="11 8 16 3 21 8"/></svg> Split PDF</div>
+          <div class="menu-divider"></div>
+          <div class="menu-action" onclick="switchTab('convert')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg> Convert</div>
+          <div class="menu-action" onclick="switchTab('protect')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Protect / Encrypt</div>
+          <div class="menu-action" onclick="openCompressModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Compress</div>
+        </div>
+      </div>
+      <div class="menu-item" onclick="toggleMenu(this)">Edit
+        <div class="dropdown-menu" id="menu-edit">
+          <div class="menu-action" onclick="undoAction()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Undo <span class="shortcut">Ctrl+Z</span></div>
+          <div class="menu-action" onclick="redoAction()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Redo <span class="shortcut">Ctrl+Y</span></div>
+          <div class="menu-divider"></div>
+          <div class="menu-action" onclick="deleteSelectedAnnotation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete Selected <span class="shortcut">Del</span></div>
+        </div>
+      </div>
+      <div class="menu-item" onclick="toggleMenu(this)">Tools
+        <div class="dropdown-menu" id="menu-tools">
+          <div class="menu-action" onclick="aiOCR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> AI OCR (Extract Text)</div>
+          <div class="menu-action" onclick="aiRedact()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> AI Redact</div>
+          <div class="menu-action" onclick="aiSummarize()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg> AI Summarize</div>
+          <div class="menu-divider"></div>
+          <div class="menu-action" onclick="addWatermark()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M8 6l8 8M16 6l-8 8" stroke-linecap="round"/></svg> Add Watermark</div>
+          <div class="menu-action" onclick="switchTab('forms')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Form Filler</div>
+          <div class="menu-action" onclick="switchTab('image-editor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Image Editor</div>
+        </div>
+      </div>
     </div>
 
-    <div class="toolbar-group" id="edit-tools">
-      <button class="tool-btn" onclick="setTool('select')" id="tool-select" title="Select">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
-        Select
-      </button>
-      <button class="tool-btn" onclick="setTool('text')" id="tool-text" title="Add Text">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-        Text
-      </button>
-      <button class="tool-btn" onclick="setTool('draw')" id="tool-draw" title="Draw">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-        Draw
-      </button>
-      <button class="tool-btn" onclick="setTool('highlight')" id="tool-highlight" title="Highlight">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h9l3-3"/><path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-        Highlight
-      </button>
-      <button class="tool-btn" onclick="setTool('shape')" id="tool-shape" title="Shapes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-        Shapes
-      </button>
-      <button class="tool-btn" onclick="addImage()" id="tool-image" title="Insert Image">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        Image
-      </button>
-    </div>
+    <div style="flex:1;"></div>
 
-    <div class="toolbar-group">
-      <button class="tool-btn" onclick="openSignatureModal()" title="Add Signature">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Sign
-      </button>
-      <button class="tool-btn" onclick="addStamp()" title="Stamp">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        Stamp
-      </button>
-      <button class="tool-btn" onclick="setToolAndWait('note')" title="Add Sticky Note">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M12 8v8M8 12h8"/></svg>
-        Note
-      </button>
-      <button class="tool-btn" onclick="addWatermark()" title="Add Watermark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M8 6l8 8M16 6l-8 8" stroke-linecap="round"/></svg>
-        Watermark
-      </button>
-    </div>
-
-    <div class="toolbar-group">
+    <div style="display:flex;align-items:center;gap:2px;">
       <button class="tool-btn" onclick="undoAction()" title="Undo (Ctrl+Z)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
       </button>
@@ -842,60 +941,30 @@
       </button>
     </div>
 
-    <div class="toolbar-group">
-      <button class="tool-btn ai-btn" onclick="aiOCR()" title="AI: Extract Text (OCR)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        AI OCR
+    <div style="display:flex;align-items:center;gap:4px;margin: 0 8px;">
+      <button class="tool-btn" onclick="zoomOut()" title="Zoom Out" style="padding:4px 6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="tool-btn ai-btn" onclick="aiRedact()" title="AI: Smart Redact">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        AI Redact
-      </button>
-      <button class="tool-btn ai-btn" onclick="aiSummarize()" title="AI: Summarize">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-        AI Summary
+      <span id="zoom-display" style="font-size:12px;color:var(--text-secondary);min-width:40px;text-align:center;">100%</span>
+      <button class="tool-btn" onclick="zoomIn()" title="Zoom In" style="padding:4px 6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
     </div>
 
-    <div class="toolbar-group">
-      <button class="tool-btn" onclick="openCompressModal()" title="Compress PDF to reduce file size">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-        Compress
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="tool-btn" onclick="openFeedbackModal()" title="Send feedback" style="font-size:12px; padding:5px 10px; border:1px solid var(--border);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Feedback
+      </button>
+      <button class="tool-btn ai-btn" onclick="toggleAIPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        AI
       </button>
     </div>
   </div>
 
   <!-- ===== MAIN CONTENT ===== -->
   <div class="main-container">
-    <!-- Annotation Action Panel (left side, shown when annotation selected) -->
-    <div class="annotation-action-bar" id="annotation-action-bar">
-      <span class="ann-label">Selected</span>
-      <div class="ann-separator"></div>
-      <div class="opacity-row">
-        <button onclick="changeAnnotationOpacity(-10)" title="Decrease opacity">
-          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
-        </button>
-        <span class="opacity-display" id="ann-opacity-display">100%</span>
-        <button onclick="changeAnnotationOpacity(10)" title="Increase opacity">
-          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-        </button>
-      </div>
-      <div class="ann-separator"></div>
-      <button onclick="bringAnnotationForward()" title="Bring forward">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 6 12 10"/></svg>
-        Forward
-      </button>
-      <button onclick="sendAnnotationBackward()" title="Send backward">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
-        Back
-      </button>
-      <div class="ann-separator"></div>
-      <button class="delete-btn" onclick="deleteSelectedAnnotation()" title="Delete (Del key)">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 13 6"/><path d="M5.5 6V4.5a1 1 0 011-1h3a1 1 0 011 1V6"/><path d="M4 6l.7 7.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 6"/></svg>
-        Delete
-      </button>
-      <span class="ann-hint">Del key to delete<br>Esc to deselect</span>
-    </div>
     <!-- Sidebar (Page Thumbnails) -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">Pages</div>
@@ -914,6 +983,41 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         </button>
       </div>
+    </div>
+
+    <!-- Vertical Tool Palette -->
+    <div class="tool-palette" id="tool-palette">
+      <button class="palette-btn active" onclick="setTool('select')" id="tool-select" title="Select (V)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+      </button>
+      <button class="palette-btn" onclick="setTool('text')" id="tool-text" title="Text (T)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+      </button>
+      <button class="palette-btn" onclick="setTool('draw')" id="tool-draw" title="Draw (D)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+      </button>
+      <button class="palette-btn" onclick="setTool('highlight')" id="tool-highlight" title="Highlight (H)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h9l3-3"/><path d="M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+      </button>
+      <button class="palette-btn" onclick="setTool('shape')" id="tool-shape" title="Shapes (S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+      </button>
+      <button class="palette-btn" onclick="addImage()" id="tool-image" title="Insert Image (I)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
+      <button class="palette-btn" onclick="openSignatureModal()" title="Sign (G)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <button class="palette-btn" onclick="addStamp()" title="Stamp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </button>
+      <button class="palette-btn" onclick="setToolAndWait('note')" id="tool-note" title="Sticky Note (N)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3z"/><polyline points="14 3 14 8 21 8"/></svg>
+      </button>
+      <div class="palette-sep"></div>
+      <button class="palette-btn" onclick="addWatermark()" title="Watermark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M8 6l8 8M16 6l-8 8" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
     <!-- Canvas Area -->
@@ -1035,6 +1139,86 @@
           <button class="tool-btn" onclick="resetImageFilters()" title="Reset all filters">Reset</button>
         </div>
       </div>
+    </div>
+
+    <!-- Annotation Action Panel (right side, shown when annotation selected or tool active) -->
+    <div class="annotation-action-bar" id="annotation-action-bar">
+      <span class="ann-label">Selected</span>
+      <div class="ann-separator"></div>
+      <div class="opacity-row">
+        <button onclick="changeAnnotationOpacity(-10)" title="Decrease opacity">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
+        </button>
+        <span class="opacity-display" id="ann-opacity-display">100%</span>
+        <button onclick="changeAnnotationOpacity(10)" title="Increase opacity">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+        </button>
+      </div>
+      <div class="ann-separator"></div>
+      <button onclick="bringAnnotationForward()" title="Bring to front">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 10 8 6 12 10"/></svg>
+        Bring Front
+      </button>
+      <button onclick="sendAnnotationBackward()" title="Send to back">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+        Send Back
+      </button>
+      <div class="ann-separator"></div>
+      <button onclick="undoAction()" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a4 4 0 014-4h6"/><polyline points="2 8 3 7 4 8"/></svg>
+        Undo
+      </button>
+      <button onclick="redoAction()" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8a4 4 0 01-4 4H3"/><polyline points="14 8 13 9 12 8"/></svg>
+        Redo
+      </button>
+      <div class="ann-separator"></div>
+      <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Color</div>
+      <div class="color-picker-row" id="color-picker-row">
+        <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#2563eb')" style="background: #2563eb;" title="Blue"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#16a34a')" style="background: #16a34a;" title="Green"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#9333ea')" style="background: #9333ea;" title="Purple"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
+      </div>
+      <div class="ann-separator"></div>
+      <!-- Shape type selector (visible when shape tool is active) -->
+      <div id="shape-type-section" style="display:none;">
+        <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Shape Type</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+          <button onclick="setShapeType('rect')" class="shape-type-btn active" id="shape-rect" title="Rectangle">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="14" height="10" rx="1"/></svg>
+            Rect
+          </button>
+          <button onclick="setShapeType('circle')" class="shape-type-btn" id="shape-circle" title="Circle">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/></svg>
+            Circle
+          </button>
+          <button onclick="setShapeType('line')" class="shape-type-btn" id="shape-line" title="Line">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="17" x2="17" y2="3"/></svg>
+            Line
+          </button>
+          <button onclick="setShapeType('arrow')" class="shape-type-btn" id="shape-arrow" title="Arrow">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="17" x2="17" y2="3"/><polyline points="10 3 17 3 17 10"/></svg>
+            Arrow
+          </button>
+          <button onclick="setShapeType('triangle')" class="shape-type-btn" id="shape-triangle" title="Triangle">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="10,3 3,17 17,17"/></svg>
+            Triangle
+          </button>
+          <button onclick="setShapeType('star')" class="shape-type-btn" id="shape-star" title="Star">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="10,2 12.5,7.5 18,8 14,12 15,18 10,15 5,18 6,12 2,8 7.5,7.5"/></svg>
+            Star
+          </button>
+        </div>
+        <div class="ann-separator"></div>
+      </div>
+      <button class="delete-btn" onclick="deleteSelectedAnnotation()" title="Delete (Del key)">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 13 6"/><path d="M5.5 6V4.5a1 1 0 011-1h3a1 1 0 011 1V6"/><path d="M4 6l.7 7.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 6"/></svg>
+        Delete
+      </button>
+      <span class="ann-hint">Del key to delete<br>Esc to deselect</span>
     </div>
 
     <!-- Right Panel (AI / Properties) -->
@@ -1352,6 +1536,8 @@
       textEdits: {},       // { pageNum: [ {origText, newText, x, y, fontSize, fontFamily} ] }
       textLayerItems: [],  // current page text items from PDF.js
       imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
+      nextObjectColor: '#000000',  // Color for next created object
+      shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
     };
 
     // ===== TOAST NOTIFICATIONS =====
@@ -1750,7 +1936,7 @@
             top: pointer.y,
             fontFamily: 'Arial',
             fontSize: 16,
-            fill: '#000000',
+            fill: state.nextObjectColor || '#000000',
             editable: true,
             cornerStyle: 'circle',
             cornerSize: 10,
@@ -1773,23 +1959,59 @@
           }
         } else if (state.currentTool === 'shape') {
           const pointer = state.fabricCanvas.getPointer(opt.e);
-          const rect = new fabric.Rect({
-            left: pointer.x,
-            top: pointer.y,
-            width: 100,
-            height: 60,
-            fill: 'transparent',
-            stroke: '#2563eb',
-            strokeWidth: 2,
-          });
-          state.fabricCanvas.add(rect);
-          saveHistory();
-          setTool('select');
+          const shapeColor = state.nextObjectColor || '#2563eb';
+          const type = state.shapeType || 'rect';
+          let shape;
+          if (type === 'rect') {
+            shape = new fabric.Rect({
+              left: pointer.x, top: pointer.y, width: 100, height: 60,
+              fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+            });
+          } else if (type === 'circle') {
+            shape = new fabric.Circle({
+              left: pointer.x, top: pointer.y, radius: 40,
+              fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+            });
+          } else if (type === 'line') {
+            shape = new fabric.Line([pointer.x, pointer.y, pointer.x + 120, pointer.y], {
+              stroke: shapeColor, strokeWidth: 2, selectable: true,
+            });
+          } else if (type === 'arrow') {
+            const group = new fabric.Group([
+              new fabric.Line([0, 30, 120, 30], { stroke: shapeColor, strokeWidth: 2 }),
+              new fabric.Triangle({
+                left: 108, top: 20, width: 16, height: 20, angle: 90,
+                fill: shapeColor, stroke: shapeColor, strokeWidth: 1,
+              })
+            ], { left: pointer.x, top: pointer.y });
+            shape = group;
+          } else if (type === 'triangle') {
+            shape = new fabric.Triangle({
+              left: pointer.x, top: pointer.y, width: 80, height: 70,
+              fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+            });
+          } else if (type === 'star') {
+            // 5-pointed star using polygon
+            const cx = 40, cy = 40, outerR = 40, innerR = 18, points = [];
+            for (let i = 0; i < 10; i++) {
+              const r = i % 2 === 0 ? outerR : innerR;
+              const angle = (Math.PI / 2) + (Math.PI / 5) * i;
+              points.push({ x: cx + r * Math.cos(angle), y: cy - r * Math.sin(angle) });
+            }
+            shape = new fabric.Polygon(points, {
+              left: pointer.x, top: pointer.y,
+              fill: 'transparent', stroke: shapeColor, strokeWidth: 2,
+            });
+          }
+          if (shape) {
+            state.fabricCanvas.add(shape);
+            saveHistory();
+          }
+          // Keep shape tool active to allow placing multiple shapes
         } else if (state.currentTool === 'note') {
           const pointer = state.fabricCanvas.getPointer(opt.e);
           addStickyNote(pointer.x, pointer.y, '');
-          // Auto-switch back to select after placing one note
-          setTool('select');
+          // Keep note tool active to allow placing multiple notes
         }
       });
 
@@ -1855,7 +2077,7 @@
     // ===== TOOL SELECTION =====
     function setTool(tool) {
       state.currentTool = tool;
-      document.querySelectorAll('#edit-tools .tool-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#edit-tools .tool-btn, .palette-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`tool-${tool}`)?.classList.add('active');
 
       if (state.fabricCanvas) {
@@ -1882,17 +2104,65 @@
           upperCanvas.style.cursor = 'default';
         }
       }
+      // Show/hide annotation panel and shape section based on tool
+      const annBar = document.getElementById('annotation-action-bar');
+      const shapeSection = document.getElementById('shape-type-section');
+      if (tool === 'shape' || tool === 'text' || tool === 'note' || tool === 'draw' || tool === 'highlight') {
+        annBar?.classList.add('visible');
+        if (shapeSection) shapeSection.style.display = (tool === 'shape') ? 'block' : 'none';
+      } else if (tool === 'select') {
+        // For select, only show panel when an object is selected (handled by fabric events)
+        if (shapeSection) shapeSection.style.display = 'none';
+        if (!state.fabricCanvas?.getActiveObject()) annBar?.classList.remove('visible');
+      } else {
+        annBar?.classList.remove('visible');
+        if (shapeSection) shapeSection.style.display = 'none';
+      }
+
+      const shapeNames = { rect: 'rectangle', circle: 'circle', line: 'line', arrow: 'arrow', triangle: 'triangle', star: 'star' };
       const toolHints = {
         text: 'Click on PDF text to edit it, or click empty area to add new text',
         note: 'Click on the document to place a sticky note',
         draw: 'Draw freely on the document',
         highlight: 'Draw to highlight text',
         select: 'Click on PDF text to edit it, or click annotations to select & move',
-        shape: 'Click to add a rectangle shape',
+        shape: `Click to add a ${shapeNames[state.shapeType] || 'shape'}`,
       };
       setStatus(toolHints[tool] || `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
       updateTextLayerMode();
     }
+
+    // ===== DROPDOWN MENUS =====
+    function toggleMenu(el) {
+      const wasOpen = el.classList.contains('open');
+      // Close all menus first
+      document.querySelectorAll('.menu-item').forEach(m => {
+        m.classList.remove('open');
+        m.querySelector('.dropdown-menu')?.classList.remove('show');
+      });
+      if (!wasOpen) {
+        el.classList.add('open');
+        el.querySelector('.dropdown-menu')?.classList.add('show');
+      }
+    }
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.menu-item')) {
+        document.querySelectorAll('.menu-item').forEach(m => {
+          m.classList.remove('open');
+          m.querySelector('.dropdown-menu')?.classList.remove('show');
+        });
+      }
+    });
+    // Close dropdown when a menu action is clicked
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.menu-action')) {
+        document.querySelectorAll('.menu-item').forEach(m => {
+          m.classList.remove('open');
+          m.querySelector('.dropdown-menu')?.classList.remove('show');
+        });
+      }
+    });
 
     // ===== ZOOM =====
     function zoomIn() {
@@ -3181,12 +3451,17 @@
       const noteX = x || state.fabricCanvas.width / 2 - 90;
       const noteY = y || state.fabricCanvas.height / 2 - 50;
 
+      // Use selected color or default yellow
+      const noteColor = state.nextObjectColor || '#fef3c7';
+      const noteStroke = state.nextObjectColor || '#f59e0b';
+      const noteTextColor = state.nextObjectColor ? '#ffffff' : '#92400e';
+
       // Background rectangle
       const rect = new fabric.Rect({
         width: 180,
         height: 110,
-        fill: '#fef3c7',
-        stroke: '#f59e0b',
+        fill: noteColor,
+        stroke: noteStroke,
         strokeWidth: 1,
         rx: 6,
         ry: 6,
@@ -3203,7 +3478,7 @@
         width: 166,
         fontSize: 13,
         fontFamily: 'Inter, Arial, sans-serif',
-        fill: '#92400e',
+        fill: noteTextColor,
         left: noteX + 7,
         top: noteY + 8,
         editable: true,
@@ -3211,9 +3486,9 @@
         hasBorders: true,
         cornerStyle: 'circle',
         cornerSize: 10,
-        cornerColor: '#f59e0b',
+        cornerColor: noteStroke,
         transparentCorners: false,
-        borderColor: '#f59e0b',
+        borderColor: noteStroke,
         splitByGrapheme: true,
         _isStickyNote: true,
         _stickyBg: rect,
@@ -3451,6 +3726,38 @@
         state.fabricCanvas.renderAll();
       }
     }
+    function selectAnnotationColor(color) {
+      if (!state.fabricCanvas) return;
+      const obj = state.fabricCanvas.getActiveObject();
+      if (obj) {
+        obj.set('fill', color);
+        obj.set('stroke', color);
+        state.fabricCanvas.renderAll();
+        saveHistory();
+      } else {
+        // Store color for next created object (text, note, shape, draw, etc.)
+        state.nextObjectColor = color;
+      }
+      // Update color picker UI
+      updateColorPickerUI(color);
+    }
+    function setShapeType(type) {
+      state.shapeType = type;
+      // Update shape button UI
+      document.querySelectorAll('.shape-type-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('shape-' + type);
+      if (activeBtn) activeBtn.classList.add('active');
+      // Update status hint
+      const shapeNames = { rect: 'rectangle', circle: 'circle', line: 'line', arrow: 'arrow', triangle: 'triangle', star: 'star' };
+      setStatus(`Click to add a ${shapeNames[type] || 'shape'}`);
+    }
+    function updateColorPickerUI(color) {
+      const buttons = document.querySelectorAll('.color-btn');
+      buttons.forEach(btn => {
+        const btnColor = btn.style.background || btn.getAttribute('style').match(/background:\s*([^;]+)/)?.[1];
+        btn.classList.toggle('selected', btnColor === color || btn.getAttribute('style').includes(color));
+      });
+    }
 
     // Hook into fabric canvas selection events after canvas init
     const origInitFabric = initFabricCanvas;
@@ -3514,6 +3821,11 @@
 
     // Set initial tool
     setTool('select');
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>

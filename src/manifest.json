@@ -1,0 +1,21 @@
+{
+  "name": "DocPix Studio",
+  "short_name": "DocPix",
+  "description": "Free PDF & Image Editor — Edit PDFs, images, and documents in one place. No subscriptions.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#6B5CE7",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "../app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
