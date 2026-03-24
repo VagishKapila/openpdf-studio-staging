@@ -367,61 +367,63 @@
     .annotation-action-bar {
       display: none;
       flex-direction: column;
-      width: 190px;
+      width: 220px;
       background: linear-gradient(180deg, #EDE9FE 0%, #f5f3ff 100%);
       border-left: 2px solid var(--primary);
-      padding: 12px 10px;
+      padding: 16px 14px;
       z-index: 99;
-      gap: 6px;
+      gap: 8px;
       font-family: 'Inter', sans-serif;
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text);
       overflow-y: auto;
       flex-shrink: 0;
     }
     .annotation-action-bar.visible { display: flex; }
     .annotation-action-bar .ann-label {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--primary);
-      font-size: 11px;
+      font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       text-align: center;
     }
     .annotation-action-bar .ann-separator {
       width: 100%;
       height: 1px;
       background: var(--border);
-      margin: 4px 0;
+      margin: 6px 0;
     }
     .annotation-action-bar button {
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 5px 10px;
+      border-radius: 8px;
+      padding: 8px 12px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 13px;
       font-family: 'Inter', sans-serif;
       color: #333;
       transition: all 0.15s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 6px;
       width: 100%;
     }
     .annotation-action-bar button:hover { background: #f3f1ee; border-color: var(--primary); }
     .annotation-action-bar .delete-btn { color: #dc2626; border-color: #fca5a5; }
     .annotation-action-bar .delete-btn:hover { background: #fef2f2; }
     .annotation-action-bar .opacity-display {
-      font-size: 11px;
-      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
       background: #fff;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
       border: 1px solid var(--border);
       text-align: center;
+      min-width: 44px;
     }
     .annotation-action-bar .opacity-row {
       display: flex;
@@ -432,26 +434,30 @@
     .annotation-action-bar .opacity-row button {
       width: auto;
       flex: 0;
-      padding: 4px 8px;
+      padding: 6px 10px;
+    }
+    .annotation-action-bar .opacity-display {
+      font-size: 14px !important;
+      font-weight: 600;
     }
     .annotation-action-bar .ann-hint {
       color: var(--text-secondary);
-      font-size: 10px;
+      font-size: 12px;
       text-align: center;
-      margin-top: 4px;
-      line-height: 1.3;
+      margin-top: 6px;
+      line-height: 1.4;
     }
     .color-picker-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
+      gap: 8px;
       width: 100%;
     }
     .color-btn {
       width: 100%;
       aspect-ratio: 1;
       border: 2px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.15s;
       padding: 0;
@@ -1284,7 +1290,7 @@
         Redo
       </button>
       <div class="ann-separator"></div>
-      <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Color</div>
+      <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Color</div>
       <div class="color-picker-row" id="color-picker-row">
         <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
         <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
@@ -1295,9 +1301,9 @@
       </div>
       <div class="ann-separator"></div>
       <!-- Font family controls (visible when text object is selected) -->
-      <div id="font-family-section" style="display:none; padding: 0 12px 8px;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Font Family</div>
-        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--bg);color:var(--text);">
+      <div id="font-family-section" style="display:none; padding: 0 0 8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Font Family</div>
+        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text);">
           <option value="Arial, sans-serif">Arial</option>
           <option value="'Times New Roman', serif">Times New Roman</option>
           <option value="'Courier New', monospace">Courier New</option>
@@ -1311,7 +1317,7 @@
       <div class="ann-separator"></div>
       <!-- Font size controls (visible when text object is selected) -->
       <div id="font-size-section" style="display:none;">
-        <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Font Size</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Font Size</div>
         <div class="opacity-row">
           <button onclick="changeFontSize(-2)" title="Decrease font size">
             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
@@ -1321,20 +1327,20 @@
             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
           </button>
         </div>
-        <div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;justify-content:center;">
-          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">10</button>
-          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">12</button>
-          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">14</button>
-          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">16</button>
-          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">20</button>
-          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">24</button>
-          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:3px 6px;font-size:10px;">32</button>
+        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center;">
+          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">10</button>
+          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">12</button>
+          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">14</button>
+          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">16</button>
+          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">20</button>
+          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">24</button>
+          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">32</button>
         </div>
         <div class="ann-separator"></div>
       </div>
       <!-- Shape type selector (visible when shape tool is active) -->
       <div id="shape-type-section" style="display:none;">
-        <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Shape Type</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Shape Type</div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
           <button onclick="setShapeType('rect')" class="shape-type-btn active" id="shape-rect" title="Rectangle">
             <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="14" height="10" rx="1"/></svg>
@@ -2592,7 +2598,8 @@
         const availW = canvasArea.clientWidth - 40;
         const availH = canvasArea.clientHeight - 40;
         const fitScale = Math.min(availW / baseViewport.width, availH / baseViewport.height);
-        state.zoom = Math.max(0.25, Math.min(fitScale, 3.0));
+        // Minimum 120% zoom so documents are readable by default
+        state.zoom = Math.max(1.2, Math.min(fitScale, 3.0));
       } else {
         state.zoom = 1.0;
       }
