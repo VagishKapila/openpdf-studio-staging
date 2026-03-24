@@ -14,6 +14,47 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// Recent files storage
+const RECENT_FILES_PATH = path.join(app.getPath('userData'), 'recent-files.json');
+const MAX_RECENT_FILES = 12;
+
+function getRecentFiles() {
+  try {
+    if (fs.existsSync(RECENT_FILES_PATH)) {
+      const data = JSON.parse(fs.readFileSync(RECENT_FILES_PATH, 'utf8'));
+      // Filter out files that no longer exist
+      return data.filter(f => fs.existsSync(f.path));
+    }
+  } catch(e) { console.error('Error reading recent files:', e); }
+  return [];
+}
+
+function saveRecentFiles(files) {
+  try {
+    fs.writeFileSync(RECENT_FILES_PATH, JSON.stringify(files, null, 2));
+  } catch(e) { console.error('Error saving recent files:', e); }
+}
+
+function addRecentFile(fileInfo) {
+  let recent = getRecentFiles();
+  // Remove existing entry with same path
+  recent = recent.filter(f => f.path !== fileInfo.path);
+  // Add to front
+  recent.unshift({
+    path: fileInfo.path,
+    name: fileInfo.name || path.basename(fileInfo.path),
+    size: fileInfo.size || 0,
+    date: new Date().toISOString(),
+    type: fileInfo.type || (fileInfo.path.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'),
+  });
+  // Limit
+  recent = recent.slice(0, MAX_RECENT_FILES);
+  saveRecentFiles(recent);
+  updateRecentFilesMenu();
+  return recent;
+}
 
 let mainWindow;
 
@@ -23,7 +64,7 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    title: 'OpenPDF Studio',
+    title: 'DocPix Studio',
     icon: path.join(__dirname, '../assets/icon.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -63,6 +104,10 @@ function createWindow() {
             });
             if (filePaths.length > 0) {
               mainWindow.webContents.send('file-opened', filePaths[0]);
+              try {
+                const stats = fs.statSync(filePaths[0]);
+                addRecentFile({ path: filePaths[0], name: path.basename(filePaths[0]), size: stats.size });
+              } catch(e) {}
             }
           },
         },
@@ -135,13 +180,13 @@ function createWindow() {
       label: 'Help',
       submenu: [
         {
-          label: 'About OpenPDF Studio',
+          label: 'About DocPix Studio',
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'About OpenPDF Studio',
-              message: 'OpenPDF Studio v0.1.0',
-              detail: 'Free, open-source, AI-powered PDF & Image Editor.\n\nLicense: MIT\nhttps://github.com/your-username/openpdf-studio',
+              title: 'About DocPix Studio',
+              message: 'DocPix Studio v0.1.0',
+              detail: 'Free, open-source, AI-powered PDF & Image Editor.\n\nLicense: MIT\nhttps://github.com/your-username/docpix-studio',
             });
           },
         },
@@ -177,6 +222,47 @@ function createWindow() {
   Menu.setApplicationMenu(menu);
 }
 
+function updateRecentFilesMenu() {
+  // This rebuilds the application menu with updated recent files
+  // Called after each file open/clear
+  const recent = getRecentFiles();
+  const recentSubmenu = recent.length > 0
+    ? [
+        ...recent.map(f => ({
+          label: f.name,
+          sublabel: f.path,
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('file-opened', f.path);
+              addRecentFile(f);
+            }
+          }
+        })),
+        { type: 'separator' },
+        { label: 'Clear Recent Files', click: () => { saveRecentFiles([]); updateRecentFilesMenu(); } },
+      ]
+    : [{ label: 'No Recent Files', enabled: false }];
+
+  // Rebuild menu with recent files
+  // Get the current menu template structure
+  const appMenu = Menu.getApplicationMenu();
+  if (appMenu) {
+    const fileMenu = appMenu.items.find(item => item.label === 'File');
+    if (fileMenu && fileMenu.submenu) {
+      // Try to find existing Recent Files menu or insert new one
+      const recentIndex = fileMenu.submenu.items.findIndex(item => item.label === 'Recent Files');
+      if (recentIndex >= 0) {
+        fileMenu.submenu.items[recentIndex] = { label: 'Recent Files', submenu: recentSubmenu };
+      } else {
+        // Insert after Open
+        fileMenu.submenu.items.splice(1, 0, { label: 'Recent Files', submenu: recentSubmenu });
+        fileMenu.submenu.items.splice(2, 0, { type: 'separator' });
+      }
+      Menu.setApplicationMenu(appMenu);
+    }
+  }
+}
+
 // IPC Handlers for native file operations
 ipcMain.handle('read-file', async (event, filePath) => {
   return fs.readFileSync(filePath);
@@ -195,6 +281,37 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   return dialog.showOpenDialog(mainWindow, options);
 });
 
+ipcMain.handle('get-recent-files', () => getRecentFiles());
+
+ipcMain.handle('add-recent-file', (event, fileInfo) => addRecentFile(fileInfo));
+
+ipcMain.handle('clear-recent-files', () => {
+  saveRecentFiles([]);
+  updateRecentFilesMenu();
+  return true;
+});
+
+ipcMain.handle('remove-recent-file', (event, filePath) => {
+  let recent = getRecentFiles();
+  recent = recent.filter(f => f.path !== filePath);
+  saveRecentFiles(recent);
+  updateRecentFilesMenu();
+  return recent;
+});
+
+ipcMain.handle('open-file-path', async (event, filePath) => {
+  try {
+    const data = fs.readFileSync(filePath);
+    const stats = fs.statSync(filePath);
+    addRecentFile({ path: filePath, name: path.basename(filePath), size: stats.size });
+    return { data: data.buffer, name: path.basename(filePath), size: stats.size };
+  } catch(e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('get-app-version', () => app.getVersion());
+
 // App lifecycle
 app.whenReady().then(createWindow);
 
@@ -211,5 +328,9 @@ app.on('open-file', (event, filePath) => {
   event.preventDefault();
   if (mainWindow) {
     mainWindow.webContents.send('file-opened', filePath);
+    try {
+      const stats = fs.statSync(filePath);
+      addRecentFile({ path: filePath, name: path.basename(filePath), size: stats.size });
+    } catch(e) {}
   }
 });

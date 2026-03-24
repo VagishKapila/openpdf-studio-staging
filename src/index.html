@@ -1718,7 +1718,7 @@
       if (!file) return;
 
       state.fileName = file.name;
-      addToRecentFiles(file.name, file.size);
+      addToRecentFiles(file.name, file.size, file.path || null);
       const ext = file.name.split('.').pop().toLowerCase();
 
       if (ext === 'pdf') {
@@ -4187,64 +4187,104 @@
     function blurSharpen() { setStatus('Blur / Sharpen — Coming soon!'); }
 
     // ===== RECENT FILES HISTORY =====
-    function addToRecentFiles(fileName, fileSize) {
-      try {
-        let recent = JSON.parse(localStorage.getItem('dpstudio_recent_files') || '[]');
-        // Remove duplicate if exists
-        recent = recent.filter(f => f.name !== fileName);
-        // Add to front
-        recent.unshift({
-          name: fileName,
-          size: fileSize,
-          date: new Date().toISOString(),
-        });
-        // Keep only last 8
-        recent = recent.slice(0, 8);
-        localStorage.setItem('dpstudio_recent_files', JSON.stringify(recent));
-      } catch(e) { /* localStorage not available */ }
+    const isElectronApp = typeof window !== 'undefined' && window.electronAPI && window.electronAPI.isElectron;
+
+    async function addToRecentFiles(fileName, fileSize, filePath) {
+      if (isElectronApp && filePath) {
+        // Desktop app: use Electron's file system storage
+        try {
+          await window.electronAPI.addRecentFile({ path: filePath, name: fileName, size: fileSize });
+        } catch(e) {}
+      } else {
+        // Web app: use localStorage
+        try {
+          let recent = JSON.parse(localStorage.getItem('dpstudio_recent_files') || '[]');
+          recent = recent.filter(f => f.name !== fileName);
+          recent.unshift({ name: fileName, size: fileSize, date: new Date().toISOString() });
+          recent = recent.slice(0, 8);
+          localStorage.setItem('dpstudio_recent_files', JSON.stringify(recent));
+        } catch(e) {}
+      }
     }
 
-    function loadRecentFiles() {
-      try {
-        const recent = JSON.parse(localStorage.getItem('dpstudio_recent_files') || '[]');
-        const section = document.getElementById('recent-files-section');
-        const list = document.getElementById('recent-files-list');
-        if (!section || !list || recent.length === 0) return;
+    async function loadRecentFiles() {
+      let recent = [];
 
-        section.style.display = 'block';
-        list.innerHTML = '';
+      if (isElectronApp) {
+        try {
+          recent = await window.electronAPI.getRecentFiles();
+        } catch(e) { recent = []; }
+      } else {
+        try {
+          recent = JSON.parse(localStorage.getItem('dpstudio_recent_files') || '[]');
+        } catch(e) { recent = []; }
+      }
 
-        recent.forEach(file => {
-          const div = document.createElement('div');
-          div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;background:white;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;';
-          div.onmouseover = () => { div.style.background = '#f8f7ff'; div.style.borderColor = '#c4b5fd'; };
-          div.onmouseout = () => { div.style.background = 'white'; div.style.borderColor = ''; };
-          div.onclick = () => openFile(); // Opens file picker - can't re-open the same file directly
+      const section = document.getElementById('recent-files-section');
+      const list = document.getElementById('recent-files-list');
+      if (!section || !list || recent.length === 0) return;
 
-          const isPdf = file.name.toLowerCase().endsWith('.pdf');
-          const iconColor = isPdf ? '#dc2626' : '#2563eb';
-          const iconLabel = isPdf ? 'PDF' : 'IMG';
+      section.style.display = 'block';
+      list.innerHTML = '';
 
-          div.innerHTML = `
-            <div style="width:32px;height:32px;border-radius:6px;background:${isPdf ? '#fef2f2' : '#eff6ff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span style="font-size:9px;font-weight:700;color:${iconColor};letter-spacing:0.5px;">${iconLabel}</span>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name}</div>
-              <div style="font-size:10px;color:var(--text-secondary);">${formatFileSize(file.size)} · ${formatDate(file.date)}</div>
-            </div>
-          `;
-          list.appendChild(div);
-        });
-      } catch(e) { /* localStorage not available */ }
+      recent.forEach(file => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:white;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;';
+        div.onmouseover = () => { div.style.background = '#f8f7ff'; div.style.borderColor = '#c4b5fd'; div.style.transform = 'translateY(-1px)'; div.style.boxShadow = '0 2px 8px rgba(107,92,231,0.1)'; };
+        div.onmouseout = () => { div.style.background = 'white'; div.style.borderColor = ''; div.style.transform = ''; div.style.boxShadow = ''; };
+
+        // In Electron, clicking reopens the actual file
+        if (isElectronApp && file.path) {
+          div.onclick = async () => {
+            try {
+              const result = await window.electronAPI.openFile(file.path);
+              if (result && result.data) {
+                const bytes = new Uint8Array(result.data);
+                state.pdfBytes = bytes;
+                state.fileName = result.name;
+                await loadPDF(bytes);
+              } else if (result && result.error) {
+                showToast('File not found: ' + file.path, 'error');
+                await window.electronAPI.removeRecentFile(file.path);
+                loadRecentFiles(); // Refresh the list
+              }
+            } catch(e) {
+              showToast('Could not open file', 'error');
+            }
+          };
+        } else {
+          div.onclick = () => openFile();
+        }
+
+        const isPdf = (file.name || '').toLowerCase().endsWith('.pdf');
+        const iconColor = isPdf ? '#dc2626' : '#2563eb';
+        const iconBg = isPdf ? '#fef2f2' : '#eff6ff';
+        const iconLabel = isPdf ? 'PDF' : 'IMG';
+
+        const filePath = file.path ? `<div style="font-size:9px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;">${file.path}</div>` : '';
+
+        div.innerHTML = `
+          <div style="width:36px;height:36px;border-radius:8px;background:${iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:10px;font-weight:700;color:${iconColor};letter-spacing:0.5px;">${iconLabel}</span>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name || 'Unknown'}</div>
+            <div style="font-size:10px;color:var(--text-secondary);">${formatFileSize(file.size)} · ${formatDate(file.date)}</div>
+            ${filePath}
+          </div>
+        `;
+        list.appendChild(div);
+      });
     }
 
-    function clearRecentFiles() {
-      try {
-        localStorage.removeItem('dpstudio_recent_files');
-        const section = document.getElementById('recent-files-section');
-        if (section) section.style.display = 'none';
-      } catch(e) {}
+    async function clearRecentFiles() {
+      if (isElectronApp) {
+        try { await window.electronAPI.clearRecentFiles(); } catch(e) {}
+      } else {
+        try { localStorage.removeItem('dpstudio_recent_files'); } catch(e) {}
+      }
+      const section = document.getElementById('recent-files-section');
+      if (section) section.style.display = 'none';
     }
 
     function formatFileSize(bytes) {
