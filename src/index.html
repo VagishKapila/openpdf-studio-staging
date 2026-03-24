@@ -357,7 +357,7 @@
       position: absolute !important;
       top: 0;
       left: 0;
-      z-index: 8;
+      z-index: 10;
     }
 
     /* ===== ANNOTATION ACTION BAR (top sub-heading style) ===== */
@@ -487,10 +487,10 @@
       z-index: 5;
     }
     #text-layer.active {
-      z-index: 15;
+      z-index: 5;
     }
     #text-layer.active span {
-      pointer-events: auto;
+      pointer-events: none;
       cursor: text;
       padding: 2px 0;
     }
@@ -515,10 +515,11 @@
       outline: 2.5px solid #2563eb;
       border-radius: 3px;
       padding: 2px 4px;
-      z-index: 20;
+      z-index: 25;
       box-shadow: 0 3px 16px rgba(37, 99, 235, 0.4), 0 0 0 5px rgba(37, 99, 235, 0.12);
       cursor: text;
       min-width: 20px;
+      pointer-events: auto !important;
     }
 
     /* ===== RIGHT PANEL ===== */
@@ -2022,16 +2023,15 @@
     function updateTextLayerMode() {
       const textLayer = document.getElementById('text-layer');
       const annCanvasEl = document.querySelector('.canvas-container');
+      // Fabric canvas is ALWAYS on top and receives all mouse events.
+      // In select/text mode, fabric's mouse:down handler checks for PDF text
+      // spans underneath using findTextSpanBelow() and opens them for editing.
+      // The text layer itself never intercepts mouse events (pointer-events: none).
+      if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
       if (state.currentTool === 'select' || state.currentTool === 'text') {
-        // Select/Text mode: text layer spans are clickable (z-index above canvas)
-        // The text layer div stays pointer-events:none, but individual spans get
-        // pointer-events:auto, so clicks BETWEEN spans pass through to the Fabric canvas.
         textLayer.classList.add('active');
-        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
       } else {
-        // Drawing/annotation tools: text layer inactive
         textLayer.classList.remove('active');
-        if (annCanvasEl) annCanvasEl.style.pointerEvents = 'auto';
         document.querySelectorAll('#text-layer span.editing').forEach(s => {
           finishEditingSpan(s);
         });
@@ -2101,6 +2101,15 @@
 
       state.fabricCanvas.freeDrawingBrush.width = 2;
       state.fabricCanvas.freeDrawingBrush.color = '#000000';
+
+      // Prevent canvas-area scroll from interfering with fabric object drags
+      const upperCanvas = state.fabricCanvas.upperCanvasEl;
+      upperCanvas.addEventListener('mousedown', (e) => {
+        const target = state.fabricCanvas.findTarget(e);
+        if (target) {
+          e.stopPropagation(); // Prevent scroll when dragging objects
+        }
+      });
 
       // Handle click to add text or edit PDF text
       state.fabricCanvas.on('mouse:down', function(opt) {
