@@ -236,8 +236,8 @@
       flex-shrink: 0;
     }
     .tool-palette .palette-btn {
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -257,7 +257,7 @@
       background: #EDE9FE;
       box-shadow: inset 0 0 0 2px var(--primary);
     }
-    .tool-palette .palette-btn svg { width: 24px; height: 24px; }
+    .tool-palette .palette-btn svg { width: 26px; height: 26px; }
     .tool-palette .palette-sep {
       width: 24px;
       height: 1px;
@@ -1285,6 +1285,21 @@
         <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
       </div>
       <div class="ann-separator"></div>
+      <!-- Font family controls (visible when text object is selected) -->
+      <div id="font-family-section" style="display:none; padding: 0 12px 8px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Font Family</div>
+        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--bg);color:var(--text);">
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+        </select>
+      </div>
+      <div class="ann-separator"></div>
       <!-- Font size controls (visible when text object is selected) -->
       <div id="font-size-section" style="display:none;">
         <div style="font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 6px 0;">Font Size</div>
@@ -1740,6 +1755,16 @@
         state.currentPage = 1;
         state.isDocLoaded = true;
 
+        // Clear ALL previous document state
+        state.pageAnnotations = {};
+        state.textEdits = {};
+        state.history = [];
+        state.historyIndex = -1;
+        if (state.fabricCanvas) {
+          state.fabricCanvas.clear();
+          state.fabricCanvas.renderAll();
+        }
+
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('canvas-wrapper').style.display = 'block';
 
@@ -1936,7 +1961,7 @@
           transparentCorners: false,
           borderColor: '#6B5CE7',
           splitByGrapheme: false,
-          backgroundColor: 'rgba(255,255,255,0.9)',
+          backgroundColor: 'rgba(255,255,255,1)',
           _isTextEdit: true,       // Mark as a PDF text edit
           _editPageNum: state.currentPage,
           _editIdx: idx,
@@ -2091,12 +2116,13 @@
 
       // Set default controls to circle for all fabric objects
       fabric.Object.prototype.set({
-        cornerStyle: 'circle',
-        cornerSize: 10,
-        cornerColor: '#6B5CE7',
-        transparentCorners: false,
         borderColor: '#6B5CE7',
-        padding: 5,
+        cornerColor: '#6B5CE7',
+        cornerSize: 10,
+        cornerStyle: 'circle',
+        transparentCorners: false,
+        borderScaleFactor: 2,
+        padding: 4,
       });
 
       state.fabricCanvas.freeDrawingBrush.width = 2;
@@ -2117,10 +2143,10 @@
           // Always create a new textbox at click position when text tool is active
           // (Don't redirect to span editing — user wants to ADD text, not edit existing)
           const pointer = state.fabricCanvas.getPointer(opt.e);
-          const text = new fabric.Textbox('Type here...', {
+          const text = new fabric.Textbox('', {
             left: pointer.x,
             top: pointer.y,
-            fontFamily: 'Arial',
+            fontFamily: state.nextFontFamily || 'Arial, sans-serif',
             fontSize: state.nextFontSize || 24,
             fill: state.nextObjectColor || '#000000',
             width: 200,
@@ -2841,6 +2867,7 @@
 
       closeSignatureModal();
       showToast('Signature added!', 'success');
+      setTool('select');
     }
 
     // ===== STAMP =====
@@ -3968,6 +3995,7 @@
       document.getElementById('annotation-action-bar').classList.add('visible');
       updateOpacityDisplay();
       updateFontSizeDisplay();
+      updateFontFamilyDisplay();
     }
     function hideAnnotationBar() {
       document.getElementById('annotation-action-bar').classList.remove('visible');
@@ -3983,6 +4011,29 @@
       } else {
         section.style.display = 'none';
       }
+    }
+    function updateFontFamilyDisplay() {
+      const section = document.getElementById('font-family-section');
+      const select = document.getElementById('font-family-select');
+      if (!section || !state.fabricCanvas) return;
+      const obj = state.fabricCanvas.getActiveObject();
+      if (obj && (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text')) {
+        section.style.display = 'block';
+        if (select) select.value = obj.fontFamily || 'Arial, sans-serif';
+      } else {
+        section.style.display = 'none';
+      }
+    }
+    function changeFontFamily(family) {
+      if (state.fabricCanvas) {
+        const activeObj = state.fabricCanvas.getActiveObject();
+        if (activeObj && (activeObj.type === 'textbox' || activeObj.type === 'i-text' || activeObj.type === 'text')) {
+          activeObj.set('fontFamily', family);
+          state.fabricCanvas.renderAll();
+          saveHistory();
+        }
+      }
+      state.nextFontFamily = family;
     }
     function changeFontSize(delta) {
       if (!state.fabricCanvas) return;
