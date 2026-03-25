@@ -163,6 +163,20 @@ export const templates = pgTable('templates', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ===== VERIFICATION TOKENS (email verify + password reset) =====
+export const verificationTokens = pgTable('verification_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  type: varchar('type', { length: 20 }).notNull(), // 'email_verify' | 'password_reset'
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_verification_token').on(table.token),
+  index('idx_verification_user_id').on(table.userId),
+]);
+
 // ===== TYPE EXPORTS =====
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

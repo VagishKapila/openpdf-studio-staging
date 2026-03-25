@@ -5367,6 +5367,33 @@
           <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password">
         </div>
         <button type="submit" class="auth-submit" id="login-submit">Sign In</button>
+        <p style="text-align:center;margin:12px 0 0;"><a href="#" onclick="showForgotPassword(event)" style="color:var(--primary);font-size:13px;text-decoration:none;">Forgot your password?</a></p>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form class="auth-form" id="auth-form-forgot" onsubmit="handleForgotPassword(event)">
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 16px;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <button type="submit" class="auth-submit" id="forgot-submit">Send Reset Link</button>
+        <p style="text-align:center;margin:12px 0 0;"><a href="#" onclick="switchAuthTab('login');event.preventDefault();" style="color:var(--primary);font-size:13px;text-decoration:none;">Back to Sign In</a></p>
+      </form>
+
+      <!-- Reset Password Form -->
+      <form class="auth-form" id="auth-form-reset" onsubmit="handleResetPassword(event)">
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 16px;line-height:1.5;">Choose a new password for your account.</p>
+        <div class="auth-field">
+          <label>New Password</label>
+          <input type="password" id="reset-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="auth-field">
+          <label>Confirm Password</label>
+          <input type="password" id="reset-password-confirm" placeholder="Re-enter your new password" required minlength="8" autocomplete="new-password">
+        </div>
+        <input type="hidden" id="reset-token">
+        <button type="submit" class="auth-submit" id="reset-submit">Reset Password</button>
       </form>
 
       <!-- Register Form -->
@@ -5416,6 +5443,10 @@
       document.getElementById(`auth-tab-${tab}`).classList.add('active');
       document.getElementById(`auth-form-${tab}`).classList.add('active');
       document.getElementById('auth-error').classList.remove('visible');
+      // Restore tabs/divider/google when switching to login or register
+      document.querySelector('.auth-tabs').style.display = '';
+      document.querySelector('.auth-divider').style.display = '';
+      document.querySelector('.auth-google-btn').style.display = '';
 
       if (tab === 'login') {
         document.getElementById('auth-modal-title').textContent = 'Welcome back';
@@ -5475,6 +5506,88 @@
       } finally {
         btn.disabled = false;
         btn.textContent = 'Create Account';
+      }
+    }
+
+    // ===== FORGOT PASSWORD =====
+    function showForgotPassword(e) {
+      if (e) e.preventDefault();
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      document.getElementById('auth-form-forgot').classList.add('active');
+      document.getElementById('auth-modal-title').textContent = 'Reset your password';
+      document.getElementById('auth-modal-subtitle').textContent = 'We\'ll email you a link to reset it.';
+      document.getElementById('auth-error').classList.remove('visible');
+      // Hide tabs and divider/google for this view
+      document.querySelector('.auth-tabs').style.display = 'none';
+      document.querySelector('.auth-divider').style.display = 'none';
+      document.querySelector('.auth-google-btn').style.display = 'none';
+    }
+
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      const btn = document.getElementById('forgot-submit');
+      const email = document.getElementById('forgot-email').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      document.getElementById('auth-error').classList.remove('visible');
+
+      try {
+        await DPStudioAPI.auth.forgotPassword(email);
+        btn.textContent = 'Email Sent!';
+        showToast('If an account exists with this email, a reset link has been sent.', 'success');
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = 'Send Reset Link';
+        }, 3000);
+      } catch (err) {
+        showAuthError(err.message || 'Failed to send reset email.');
+        btn.disabled = false;
+        btn.textContent = 'Send Reset Link';
+      }
+    }
+
+    function showResetPasswordForm(token) {
+      document.getElementById('reset-token').value = token;
+      openAuthModal();
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      document.getElementById('auth-form-reset').classList.add('active');
+      document.getElementById('auth-modal-title').textContent = 'Choose a new password';
+      document.getElementById('auth-modal-subtitle').textContent = 'Enter your new password below.';
+      document.querySelector('.auth-tabs').style.display = 'none';
+      document.querySelector('.auth-divider').style.display = 'none';
+      document.querySelector('.auth-google-btn').style.display = 'none';
+    }
+
+    async function handleResetPassword(e) {
+      e.preventDefault();
+      const btn = document.getElementById('reset-submit');
+      const password = document.getElementById('reset-password').value;
+      const confirm = document.getElementById('reset-password-confirm').value;
+      const token = document.getElementById('reset-token').value;
+
+      if (password !== confirm) {
+        showAuthError('Passwords do not match.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Resetting...';
+      document.getElementById('auth-error').classList.remove('visible');
+
+      try {
+        await DPStudioAPI.auth.resetPassword(token, password);
+        closeAuthModal();
+        showToast('Password reset successfully! Please sign in with your new password.', 'success');
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch (err) {
+        showAuthError(err.message || 'Password reset failed. The link may have expired.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reset Password';
       }
     }
 
@@ -5646,6 +5759,26 @@
           // Token expired, clear UI
           updateAuthUI(null);
         });
+      }
+
+      // Handle URL params for email verify and password reset
+      const params = new URLSearchParams(window.location.search);
+
+      const verifyToken = params.get('verify');
+      if (verifyToken) {
+        showToast('Verifying your email...', 'info');
+        DPStudioAPI.auth.verifyEmail(verifyToken).then(() => {
+          showToast('Email verified successfully!', 'success');
+          window.history.replaceState({}, '', window.location.pathname);
+        }).catch((err) => {
+          showToast(err.message || 'Email verification failed.', 'error');
+          window.history.replaceState({}, '', window.location.pathname);
+        });
+      }
+
+      const resetToken = params.get('reset');
+      if (resetToken) {
+        showResetPasswordForm(resetToken);
       }
     })();
   </script>

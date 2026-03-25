@@ -3,9 +3,10 @@ import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../shared/db';
-import { users, sessions } from '../../shared/db/schema';
+import { users, sessions, verificationTokens } from '../../shared/db/schema';
 import { env } from '../../config/env';
 import { logAudit } from '../../shared/utils/audit';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../../shared/services/email.service';
 import type { RegisterInput, LoginInput, UpdateProfileInput } from './auth.validators';
 
 const SALT_ROUNDS = 12;
@@ -83,6 +84,22 @@ export async function register(input: RegisterInput, ip?: string) {
     actorEmail: user.email,
     ipAddress: ip,
   });
+
+  // Send verification email (non-blocking)
+  try {
+    const verifyToken = uuidv4();
+    const tokenExpiry = new Date();
+    tokenExpiry.setHours(tokenExpiry.getHours() + 24);
+    await db.insert(verificationTokens).values({
+      userId: user.id,
+      token: verifyToken,
+      type: 'email_verify',
+      expiresAt: tokenExpiry,
+    });
+    await sendVerificationEmail(user.email, user.name || '', verifyToken);
+  } catch (err) {
+    console.error('Failed to send verification email:', err);
+  }
 
   return { user: formatUser(user), tokens };
 }
@@ -223,4 +240,157 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
     .returning();
   if (!user) throw new Error('User not found');
   return formatUser(user);
+}
+
+// ===== VERIFY EMAIL =====
+export async function verifyEmail(token: string) {
+  const [record] = await db.select().from(verificationTokens)
+    .where(eq(verificationTokens.token, token))
+    .limit(1);
+
+  if (!record) {
+    throw new Error('Invalid verification token');
+  }
+
+  if (record.usedAt) {
+    throw new Error('Token already used');
+  }
+
+  if (record.expiresAt < new Date()) {
+    throw new Error('Verification token expired');
+  }
+
+  if (record.type !== 'email_verify') {
+    throw new Error('Invalid token type');
+  }
+
+  // Mark token as used
+  await db.update(verificationTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(verificationTokens.id, record.id));
+
+  // Mark user email as verified
+  const [user] = await db.update(users)
+    .set({ emailVerified: true, updatedAt: new Date() })
+    .where(eq(users.id, record.userId))
+    .returning();
+
+  if (!user) throw new Error('User not found');
+
+  await logAudit({
+    userId: user.id,
+    action: 'auth.email_verified',
+    actorEmail: user.email,
+  });
+
+  return { user: formatUser(user) };
+}
+
+// ===== RESEND VERIFICATION EMAIL =====
+export async function resendVerificationEmail(userId: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) throw new Error('User not found');
+  if (user.emailVerified) throw new Error('Email already verified');
+
+  const verifyToken = uuidv4();
+  const tokenExpiry = new Date();
+  tokenExpiry.setHours(tokenExpiry.getHours() + 24);
+
+  await db.insert(verificationTokens).values({
+    userId: user.id,
+    token: verifyToken,
+    type: 'email_verify',
+    expiresAt: tokenExpiry,
+  });
+
+  await sendVerificationEmail(user.email, user.name || '', verifyToken);
+
+  return { message: 'Verification email sent' };
+}
+
+// ===== FORGOT PASSWORD =====
+export async function forgotPassword(email: string) {
+  const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+
+  // Always return success to prevent email enumeration
+  if (!user) return { message: 'If an account exists with this email, a reset link has been sent.' };
+
+  // Don't allow password reset for Google-only users
+  if (!user.passwordHash && user.googleId) {
+    return { message: 'If an account exists with this email, a reset link has been sent.' };
+  }
+
+  const resetToken = uuidv4();
+  const tokenExpiry = new Date();
+  tokenExpiry.setHours(tokenExpiry.getHours() + 1); // 1 hour expiry
+
+  await db.insert(verificationTokens).values({
+    userId: user.id,
+    token: resetToken,
+    type: 'password_reset',
+    expiresAt: tokenExpiry,
+  });
+
+  try {
+    await sendPasswordResetEmail(user.email, user.name || '', resetToken);
+  } catch (err) {
+    console.error('Failed to send password reset email:', err);
+  }
+
+  await logAudit({
+    userId: user.id,
+    action: 'auth.password_reset_requested',
+    actorEmail: user.email,
+  });
+
+  return { message: 'If an account exists with this email, a reset link has been sent.' };
+}
+
+// ===== RESET PASSWORD =====
+export async function resetPassword(token: string, newPassword: string) {
+  const [record] = await db.select().from(verificationTokens)
+    .where(eq(verificationTokens.token, token))
+    .limit(1);
+
+  if (!record) {
+    throw new Error('Invalid reset token');
+  }
+
+  if (record.usedAt) {
+    throw new Error('Token already used');
+  }
+
+  if (record.expiresAt < new Date()) {
+    throw new Error('Reset token expired');
+  }
+
+  if (record.type !== 'password_reset') {
+    throw new Error('Invalid token type');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  // Mark token as used
+  await db.update(verificationTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(verificationTokens.id, record.id));
+
+  // Update password
+  const [user] = await db.update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, record.userId))
+    .returning();
+
+  if (!user) throw new Error('User not found');
+
+  // Invalidate all existing sessions for security
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  await logAudit({
+    userId: user.id,
+    action: 'auth.password_reset',
+    actorEmail: user.email,
+  });
+
+  return { message: 'Password reset successfully. Please log in with your new password.' };
 }

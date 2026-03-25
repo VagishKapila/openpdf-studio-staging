@@ -193,6 +193,42 @@ const DPStudioAPI = (() => {
       _dispatchAuthChange(null);
     },
 
+    async verifyEmail(token) {
+      const data = await request('/auth/verify-email', {
+        method: 'POST',
+        body: { token },
+        auth: false,
+      });
+      // Update stored user with verified status
+      const user = getStoredUser();
+      if (user) {
+        user.emailVerified = true;
+        setStoredUser(user);
+        _dispatchAuthChange(user);
+      }
+      return data;
+    },
+
+    async resendVerification() {
+      return request('/auth/resend-verification', { method: 'POST' });
+    },
+
+    async forgotPassword(email) {
+      return request('/auth/forgot-password', {
+        method: 'POST',
+        body: { email },
+        auth: false,
+      });
+    },
+
+    async resetPassword(token, password) {
+      return request('/auth/reset-password', {
+        method: 'POST',
+        body: { token, password },
+        auth: false,
+      });
+    },
+
     getUser() {
       return getStoredUser();
     },
