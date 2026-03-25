@@ -52,18 +52,31 @@ authRoutes.post('/google', async (c) => {
     const body = await c.req.json();
     const { idToken } = googleAuthSchema.parse(body);
 
-    // Verify Google ID token
-    const googleResponse = await fetch(
+    let googleData: { sub: string; email: string; name: string; picture?: string };
+
+    // Try as ID token first (from Google One Tap)
+    const tokenInfoResponse = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
     );
 
-    if (!googleResponse.ok) {
-      return c.json({ error: 'Invalid Google token' }, 401);
-    }
+    if (tokenInfoResponse.ok) {
+      googleData = await tokenInfoResponse.json() as typeof googleData;
+    } else {
+      // Fallback: treat as access token (from popup OAuth flow)
+      const userInfoResponse = await fetch(
+        'https://www.googleapis.com/oauth2/v3/userinfo',
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
 
-    const googleData = await googleResponse.json() as {
-      sub: string; email: string; name: string; picture?: string;
-    };
+      if (!userInfoResponse.ok) {
+        return c.json({ error: 'Invalid Google token' }, 401);
+      }
+
+      const userInfo = await userInfoResponse.json() as {
+        sub: string; email: string; name: string; picture?: string;
+      };
+      googleData = userInfo;
+    }
 
     const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip');
     const result = await authService.googleAuth({
