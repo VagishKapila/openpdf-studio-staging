@@ -17,6 +17,7 @@ console.log(`
 serve({
   fetch: app.fetch,
   port,
+  hostname: '0.0.0.0',
 }, (info) => {
   console.log(`🚀 Server running on http://localhost:${info.port}`);
   console.log(`📋 Health check: http://localhost:${info.port}/health`);

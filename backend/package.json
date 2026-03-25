@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "tsx src/server.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/shared/db/migrate.ts",
     "db:push": "drizzle-kit push",
@@ -32,6 +32,7 @@
     "postgres": "^3.4.8",
     "resend": "^6.9.4",
     "uuid": "^13.0.0",
+    "tsx": "^4.21.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -40,7 +41,6 @@
     "@types/node": "^25.5.0",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.10",
-    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.1"
   }
