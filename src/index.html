@@ -1050,6 +1050,288 @@
       .welcome-screen p { font-size: 13px !important; }
       .feature-grid { grid-template-columns: 1fr !important; }
     }
+
+    /* ===== AUTH MODAL ===== */
+    .auth-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+    }
+    .auth-overlay.visible { display: flex; }
+    .auth-modal {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 36px 32px 28px;
+      width: 400px;
+      max-width: 92vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      position: relative;
+      animation: authSlideIn 0.2s ease-out;
+    }
+    @keyframes authSlideIn {
+      from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .auth-modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 20px;
+      line-height: 1;
+      padding: 4px;
+    }
+    .auth-modal-close:hover { color: var(--text); }
+    .auth-modal h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .auth-modal .auth-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      padding: 3px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .auth-tab.active {
+      background: var(--bg-secondary);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-field {
+      margin-bottom: 14px;
+    }
+    .auth-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .auth-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .auth-field input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(107,92,231,0.12);
+    }
+    .auth-submit {
+      width: 100%;
+      padding: 11px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.15s;
+    }
+    .auth-submit:hover { background: var(--primary-hover); }
+    .auth-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .auth-error {
+      display: none;
+      background: #FEF2F2;
+      color: var(--danger);
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .auth-error.visible { display: block; }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .auth-google-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .auth-google-btn:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--text-secondary);
+    }
+
+    /* ===== USER NAV BUTTON ===== */
+    .user-nav-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sign-in-btn {
+      padding: 6px 14px;
+      border: 1.5px solid var(--primary);
+      background: transparent;
+      color: var(--primary);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .sign-in-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .user-avatar-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px 3px 3px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .user-avatar-btn:hover { border-color: var(--primary); }
+    .user-avatar-btn.visible { display: flex; }
+    .user-avatar-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .user-avatar-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ===== USER DROPDOWN ===== */
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      top: 40px;
+      right: 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      min-width: 220px;
+      z-index: 200;
+      padding: 6px;
+      animation: authSlideIn 0.15s ease-out;
+    }
+    .user-dropdown.visible { display: block; }
+    .user-dropdown-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
+    .user-dropdown-header .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .user-dropdown-header .email {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+    .user-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      font-size: 13px;
+      color: var(--text);
+      background: none;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      border-radius: 8px;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+    .user-dropdown-item:hover { background: var(--bg-tertiary); }
+    .user-dropdown-item svg { width: 16px; height: 16px; opacity: 0.6; }
+    .user-dropdown-item.danger { color: var(--danger); }
+    .user-dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 8px;
+    }
   </style>
 </head>
 <body>
@@ -1060,6 +1342,41 @@
       <img src="../app-icon.png" alt="DocPix Studio" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'">
       <span>DocPix Studio</span>
     </a>
+    <div class="user-nav-area" id="user-nav-area">
+      <button class="sign-in-btn" id="sign-in-btn" onclick="openAuthModal()">Sign In</button>
+      <button class="user-avatar-btn" id="user-avatar-btn" onclick="toggleUserDropdown()">
+        <span class="user-avatar-circle" id="user-avatar-circle">?</span>
+        <span class="user-avatar-name" id="user-avatar-name"></span>
+      </button>
+    </div>
+    <!-- User Dropdown -->
+    <div class="user-dropdown" id="user-dropdown">
+      <div class="user-dropdown-header">
+        <div class="name" id="dropdown-user-name"></div>
+        <div class="email" id="dropdown-user-email"></div>
+      </div>
+      <button class="user-dropdown-item" onclick="openDashboard()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="user-dropdown-item" onclick="openMyDocuments()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        My Documents
+      </button>
+      <button class="user-dropdown-item" onclick="openMarketplace()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Marketplace
+      </button>
+      <div class="user-dropdown-divider"></div>
+      <button class="user-dropdown-item" onclick="openAccountSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Account Settings
+      </button>
+      <button class="user-dropdown-item danger" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
   </nav>
 
   <!-- ===== TOOLBAR ===== -->
@@ -5017,6 +5334,236 @@
 
     // Load recent files on startup
     loadRecentFiles();
+  </script>
+
+  <!-- ===== API CLIENT ===== -->
+  <script src="api-client.js"></script>
+
+  <!-- ===== AUTH MODAL ===== -->
+  <div class="auth-overlay" id="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+    <div class="auth-modal">
+      <button class="auth-modal-close" onclick="closeAuthModal()">&times;</button>
+      <h2 id="auth-modal-title">Welcome back</h2>
+      <p class="auth-subtitle" id="auth-modal-subtitle">Sign in to sync documents, access the marketplace, and more.</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="auth-tab-register" onclick="switchAuthTab('register')">Create Account</button>
+      </div>
+
+      <div class="auth-error" id="auth-error"></div>
+
+      <!-- Login Form -->
+      <form class="auth-form active" id="auth-form-login" onsubmit="handleLogin(event)">
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="auth-submit" id="login-submit">Sign In</button>
+      </form>
+
+      <!-- Register Form -->
+      <form class="auth-form" id="auth-form-register" onsubmit="handleRegister(event)">
+        <div class="auth-field">
+          <label>Full Name</label>
+          <input type="text" id="register-name" placeholder="Your name" required autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="register-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="register-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password" minlength="8">
+        </div>
+        <button type="submit" class="auth-submit" id="register-submit">Create Account</button>
+      </form>
+
+      <div class="auth-divider">or</div>
+      <button class="auth-google-btn" onclick="handleGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== AUTH & USER LOGIC ===== -->
+  <script>
+    // ===== AUTH UI STATE =====
+    function openAuthModal(tab) {
+      document.getElementById('auth-overlay').classList.add('visible');
+      document.getElementById('auth-error').classList.remove('visible');
+      if (tab) switchAuthTab(tab);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-overlay').classList.remove('visible');
+      // Clear form fields
+      document.querySelectorAll('.auth-form input').forEach(i => i.value = '');
+      document.getElementById('auth-error').classList.remove('visible');
+    }
+
+    function switchAuthTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      document.getElementById(`auth-tab-${tab}`).classList.add('active');
+      document.getElementById(`auth-form-${tab}`).classList.add('active');
+      document.getElementById('auth-error').classList.remove('visible');
+
+      if (tab === 'login') {
+        document.getElementById('auth-modal-title').textContent = 'Welcome back';
+        document.getElementById('auth-modal-subtitle').textContent = 'Sign in to sync documents, access the marketplace, and more.';
+      } else {
+        document.getElementById('auth-modal-title').textContent = 'Create your account';
+        document.getElementById('auth-modal-subtitle').textContent = 'Join DocPix Studio to save, share, and sell your work.';
+      }
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    // ===== AUTH HANDLERS =====
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-submit');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      document.getElementById('auth-error').classList.remove('visible');
+
+      try {
+        await DPStudioAPI.auth.login(email, password);
+        closeAuthModal();
+        showToast('Welcome back!', 'success');
+      } catch (err) {
+        showAuthError(err.message || 'Login failed. Please check your credentials.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('register-submit');
+      const name = document.getElementById('register-name').value.trim();
+      const email = document.getElementById('register-email').value.trim();
+      const password = document.getElementById('register-password').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+      document.getElementById('auth-error').classList.remove('visible');
+
+      try {
+        await DPStudioAPI.auth.register(email, password, name);
+        closeAuthModal();
+        showToast('Account created! Welcome to DocPix Studio.', 'success');
+      } catch (err) {
+        showAuthError(err.message || 'Registration failed. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    }
+
+    function handleGoogleSignIn() {
+      showToast('Google Sign-In coming soon!', 'info');
+    }
+
+    async function handleLogout() {
+      closeUserDropdown();
+      await DPStudioAPI.auth.logout();
+      showToast('Signed out successfully.', 'info');
+    }
+
+    // ===== USER DROPDOWN =====
+    function toggleUserDropdown() {
+      const dd = document.getElementById('user-dropdown');
+      dd.classList.toggle('visible');
+    }
+
+    function closeUserDropdown() {
+      document.getElementById('user-dropdown').classList.remove('visible');
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('user-dropdown');
+      const btn = document.getElementById('user-avatar-btn');
+      if (dd.classList.contains('visible') && !dd.contains(e.target) && !btn.contains(e.target)) {
+        closeUserDropdown();
+      }
+    });
+
+    // ===== FUTURE NAV PLACEHOLDERS =====
+    function openDashboard() {
+      closeUserDropdown();
+      showToast('Dashboard coming soon!', 'info');
+    }
+
+    function openMyDocuments() {
+      closeUserDropdown();
+      showToast('My Documents coming soon!', 'info');
+    }
+
+    function openMarketplace() {
+      closeUserDropdown();
+      showToast('Marketplace coming soon!', 'info');
+    }
+
+    function openAccountSettings() {
+      closeUserDropdown();
+      showToast('Account Settings coming soon!', 'info');
+    }
+
+    // ===== AUTH STATE SYNC =====
+    function updateAuthUI(user) {
+      const signInBtn = document.getElementById('sign-in-btn');
+      const avatarBtn = document.getElementById('user-avatar-btn');
+      const avatarCircle = document.getElementById('user-avatar-circle');
+      const avatarName = document.getElementById('user-avatar-name');
+      const ddName = document.getElementById('dropdown-user-name');
+      const ddEmail = document.getElementById('dropdown-user-email');
+
+      if (user) {
+        signInBtn.style.display = 'none';
+        avatarBtn.classList.add('visible');
+        const initials = (user.name || user.email || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        avatarCircle.textContent = initials;
+        avatarName.textContent = user.name || user.email.split('@')[0];
+        ddName.textContent = user.name || 'User';
+        ddEmail.textContent = user.email;
+      } else {
+        signInBtn.style.display = '';
+        avatarBtn.classList.remove('visible');
+        closeUserDropdown();
+      }
+    }
+
+    // Listen for auth changes
+    DPStudioAPI.onAuthChange(updateAuthUI);
+
+    // Initialize auth state on load
+    (function initAuth() {
+      const user = DPStudioAPI.auth.getUser();
+      if (user) {
+        updateAuthUI(user);
+        // Silently verify token is still valid
+        DPStudioAPI.auth.getProfile().then(u => updateAuthUI(u)).catch(() => {
+          // Token expired, clear UI
+          updateAuthUI(null);
+        });
+      }
+    })();
   </script>
 </body>
 </html>
