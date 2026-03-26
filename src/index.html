@@ -1940,6 +1940,53 @@
     <div class="annotation-action-bar" id="annotation-action-bar">
       <span class="ann-label">Selected</span>
       <div class="ann-separator"></div>
+      <!-- Font family controls (visible when text object is selected) — placed at TOP -->
+      <div id="font-family-section" style="display:none; padding: 0 0 8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Font Family</div>
+        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text);">
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+        </select>
+      </div>
+      <!-- Font size controls (visible when text object is selected) — placed after font family -->
+      <div id="font-size-section" style="display:none;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Font Size</div>
+        <div class="opacity-row">
+          <button onclick="changeFontSize(-2)" title="Decrease font size">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          </button>
+          <span class="opacity-display" id="font-size-display" style="min-width:36px;">14</span>
+          <button onclick="changeFontSize(2)" title="Increase font size">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center;">
+          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">10</button>
+          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">12</button>
+          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">14</button>
+          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">16</button>
+          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">20</button>
+          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">24</button>
+          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">32</button>
+        </div>
+        <div class="ann-separator"></div>
+      </div>
+      <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Color</div>
+      <div class="color-picker-row" id="color-picker-row">
+        <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#2563eb')" style="background: #2563eb;" title="Blue"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#16a34a')" style="background: #16a34a;" title="Green"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#9333ea')" style="background: #9333ea;" title="Purple"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
+      </div>
+      <div class="ann-separator"></div>
       <div class="opacity-row">
         <button onclick="changeAnnotationOpacity(-10)" title="Decrease opacity">
           <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
@@ -1959,63 +2006,6 @@
         Send Back
       </button>
       <div class="ann-separator"></div>
-      <button onclick="undoAction()" title="Undo (Ctrl+Z)">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a4 4 0 014-4h6"/><polyline points="2 8 3 7 4 8"/></svg>
-        Undo
-      </button>
-      <button onclick="redoAction()" title="Redo (Ctrl+Y)">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8a4 4 0 01-4 4H3"/><polyline points="14 8 13 9 12 8"/></svg>
-        Redo
-      </button>
-      <div class="ann-separator"></div>
-      <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Color</div>
-      <div class="color-picker-row" id="color-picker-row">
-        <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#2563eb')" style="background: #2563eb;" title="Blue"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#16a34a')" style="background: #16a34a;" title="Green"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#9333ea')" style="background: #9333ea;" title="Purple"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
-      </div>
-      <div class="ann-separator"></div>
-      <!-- Font family controls (visible when text object is selected) -->
-      <div id="font-family-section" style="display:none; padding: 0 0 8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Font Family</div>
-        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text);">
-          <option value="Arial, sans-serif">Arial</option>
-          <option value="'Times New Roman', serif">Times New Roman</option>
-          <option value="'Courier New', monospace">Courier New</option>
-          <option value="Georgia, serif">Georgia</option>
-          <option value="Verdana, sans-serif">Verdana</option>
-          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-          <option value="Impact, sans-serif">Impact</option>
-          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
-        </select>
-      </div>
-      <div class="ann-separator"></div>
-      <!-- Font size controls (visible when text object is selected) -->
-      <div id="font-size-section" style="display:none;">
-        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Font Size</div>
-        <div class="opacity-row">
-          <button onclick="changeFontSize(-2)" title="Decrease font size">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          </button>
-          <span class="opacity-display" id="font-size-display" style="min-width:36px;">16</span>
-          <button onclick="changeFontSize(2)" title="Increase font size">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          </button>
-        </div>
-        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center;">
-          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">10</button>
-          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">12</button>
-          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">14</button>
-          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">16</button>
-          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">20</button>
-          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">24</button>
-          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">32</button>
-        </div>
-        <div class="ann-separator"></div>
-      </div>
       <!-- Shape type selector (visible when shape tool is active) -->
       <div id="shape-type-section" style="display:none;">
         <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Shape Type</div>
@@ -2137,8 +2127,9 @@
       <div id="sig-upload-tab" style="display:none">
         <div class="drop-zone" style="width:100%;height:120px;" onclick="document.getElementById('sig-upload-input').click()">
           <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>Upload signature image</span>
+          <span>Click to upload signature image (PNG, JPG)</span>
         </div>
+        <img id="sig-upload-preview" style="display:none;max-width:100%;max-height:80px;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:4px;" alt="Signature preview">
         <input type="file" id="sig-upload-input" accept=".png,.jpg,.jpeg" style="display:none" onchange="handleSigUpload(event)">
       </div>
 
@@ -2423,7 +2414,7 @@
       imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
       nextObjectColor: '#000000',  // Color for next created object
       shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
-      nextFontSize: 24,    // Font size for next created text object
+      nextFontSize: 14,    // Font size for next created text object
       pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
       bakedEditRegions: {}, // { pageNum: [ {x, y, width, height} ] } — areas with baked-in edits to suppress old text layer spans
       hasUnsavedChanges: false, // Track dirty state for save prompts
@@ -3575,7 +3566,10 @@
     }
 
     async function updateZoom() {
-      document.getElementById('zoom-display').textContent = Math.round(state.zoom * 100) + '%';
+      const zoomText = Math.round(state.zoom * 100) + '%';
+      document.getElementById('zoom-display').textContent = zoomText;
+      const zoomLevel = document.getElementById('zoom-level');
+      if (zoomLevel) zoomLevel.textContent = zoomText;
       if (state.pdfDoc) {
         // Save annotations before re-render (renderPage re-inits fabric canvas)
         saveCurrentPageAnnotations();
@@ -3597,8 +3591,11 @@
     function undoAction() {
       if (state.historyIndex > 0) {
         state.historyIndex--;
+        const barWasVisible = document.getElementById('annotation-action-bar').classList.contains('visible');
         state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
           state.fabricCanvas.renderAll();
+          // Keep annotation bar visible after undo (loadFromJSON clears selection)
+          if (barWasVisible) showAnnotationBar();
         });
       }
     }
@@ -3606,8 +3603,11 @@
     function redoAction() {
       if (state.historyIndex < state.history.length - 1) {
         state.historyIndex++;
+        const barWasVisible = document.getElementById('annotation-action-bar').classList.contains('visible');
         state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
           state.fabricCanvas.renderAll();
+          // Keep annotation bar visible after redo (loadFromJSON clears selection)
+          if (barWasVisible) showAnnotationBar();
         });
       }
     }
@@ -3655,8 +3655,27 @@
             }
           }
 
+          // Embed multiple standard fonts for better matching
           const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
           const helveticaBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+          const timesRoman = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+          const timesRomanBold = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRomanBold);
+          const courier = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
+          const courierBold = await pdfDoc.embedFont(PDFLib.StandardFonts.CourierBold);
+
+          // Helper to pick the best standard font match
+          function matchFont(fontName) {
+            const name = (fontName || '').toLowerCase();
+            const isBold = name.includes('bold');
+            if (name.includes('times') || name.includes('serif')) {
+              return isBold ? timesRomanBold : timesRoman;
+            }
+            if (name.includes('courier') || name.includes('mono')) {
+              return isBold ? courierBold : courier;
+            }
+            // Default: Helvetica (sans-serif)
+            return isBold ? helveticaBold : helvetica;
+          }
 
           // Apply text edits to all pages
           for (const [pageNumStr, edits] of Object.entries(state.textEdits)) {
@@ -3678,7 +3697,7 @@
               const x = pdfTransform[4];
               const y = pdfTransform[5];
 
-              const font = (edit.fontName && edit.fontName.includes('Bold')) ? helveticaBold : helvetica;
+              const font = matchFont(edit.fontName);
 
               // Calculate width very generously to fully cover original text
               const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
@@ -3945,13 +3964,34 @@
     }
 
     function switchSignatureTab(tab) {
+      // Toggle content panels
       ['draw', 'type', 'upload'].forEach(t => {
         document.getElementById(`sig-${t}-tab`).style.display = t === tab ? 'block' : 'none';
       });
+      // Toggle active class on tab buttons
+      const tabBar = document.querySelector('#signature-modal .tab-bar');
+      if (tabBar) {
+        tabBar.querySelectorAll('.tab').forEach(tabEl => {
+          const tabName = tabEl.textContent.trim().toLowerCase();
+          tabEl.classList.toggle('active', tabName === tab);
+        });
+      }
     }
 
     function handleSigUpload(event) {
-      // handled in applySignature
+      const file = event.target.files[0];
+      if (file) {
+        // Show preview of uploaded signature
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview = document.getElementById('sig-upload-preview');
+          if (preview) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     function applySignature() {
