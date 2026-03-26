@@ -6084,6 +6084,13 @@
 
     // ===== OPEN / CLOSE SIGNING FLOW =====
     function openSigningFlow() {
+      // Require sign-in before accessing signing flow
+      const user = typeof DPStudioAPI !== 'undefined' ? DPStudioAPI.auth.getUser() : null;
+      if (!user) {
+        showToast('Please sign in to use Sign & Pay', 'info');
+        openAuthModal('login');
+        return;
+      }
       document.getElementById('signing-overlay').classList.add('visible');
       setSigningStep(1);
     }
@@ -6158,6 +6165,7 @@
 
     // ===== LOAD PDF FOR SIGNING =====
     async function loadSigningPDF(bytes) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       const loadingTask = pdfjsLib.getDocument({ data: bytes });
       signingState.pdfDoc = await loadingTask.promise;
       signingState.pdfLibDoc = await PDFLib.PDFDocument.load(bytes);
