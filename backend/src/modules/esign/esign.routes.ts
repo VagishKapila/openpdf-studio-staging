@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../../shared/middleware/auth';
+import { requireAuth, getUser } from '../../shared/middleware/auth';
 import {
   prepareDocument,
   saveDetectedFields,
@@ -13,14 +13,14 @@ import {
 const esignRoutes = new Hono();
 
 // All esign routes require authentication
-esignRoutes.use('*', authMiddleware);
+esignRoutes.use('*', requireAuth);
 
 // ===== PREPARE DOCUMENT FOR SIGNING =====
 // POST /esign/prepare
 // Uploads a document and creates a signature request
 esignRoutes.post('/prepare', async (c) => {
   try {
-    const userId = c.get('userId') as string;
+    const userId = getUser(c).id;
     const body = await c.req.parseBody();
     const file = body['file'] as File;
 
@@ -124,7 +124,7 @@ esignRoutes.post('/:requestId/sign', async (c) => {
 esignRoutes.post('/:requestId/finalize', async (c) => {
   try {
     const requestId = c.req.param('requestId');
-    const userId = c.get('userId') as string;
+    const userId = getUser(c).id;
     const body = await c.req.parseBody();
     const file = body['file'] as File;
 

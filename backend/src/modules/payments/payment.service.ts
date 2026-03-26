@@ -11,7 +11,7 @@ function getStripe(): Stripe {
     if (!env.STRIPE_SECRET_KEY) {
       throw new Error('Stripe is not configured. Set STRIPE_SECRET_KEY.');
     }
-    stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-04-30.basil' });
+    stripe = new Stripe(env.STRIPE_SECRET_KEY);
   }
   return stripe;
 }

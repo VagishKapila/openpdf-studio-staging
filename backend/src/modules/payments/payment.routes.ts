@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../../shared/middleware/auth';
+import { requireAuth, getUser } from '../../shared/middleware/auth';
 import { env } from '../../config/env';
 import {
   createCheckoutSession,
@@ -14,9 +14,9 @@ const paymentRoutes = new Hono();
 // ===== CREATE CHECKOUT SESSION =====
 // POST /payments/create-checkout
 // Requires auth — the document owner creates a payment request
-paymentRoutes.post('/create-checkout', authMiddleware, async (c) => {
+paymentRoutes.post('/create-checkout', requireAuth, async (c) => {
   try {
-    const userId = c.get('userId') as string;
+    const userId = getUser(c).id;
     const body = await c.req.json();
 
     if (!body.documentId || !body.amount) {
@@ -52,9 +52,9 @@ paymentRoutes.post('/create-checkout', authMiddleware, async (c) => {
 
 // ===== GET PAYMENT STATUS =====
 // GET /payments/:paymentId
-paymentRoutes.get('/:paymentId', authMiddleware, async (c) => {
+paymentRoutes.get('/:paymentId', requireAuth, async (c) => {
   try {
-    const paymentId = c.req.param('paymentId');
+    const paymentId = c.req.param('paymentId')!;
     const payment = await getPaymentStatus(paymentId);
 
     if (!payment) {
@@ -70,9 +70,9 @@ paymentRoutes.get('/:paymentId', authMiddleware, async (c) => {
 
 // ===== GET PAYMENT BY DOCUMENT =====
 // GET /payments/document/:documentId
-paymentRoutes.get('/document/:documentId', authMiddleware, async (c) => {
+paymentRoutes.get('/document/:documentId', requireAuth, async (c) => {
   try {
-    const documentId = c.req.param('documentId');
+    const documentId = c.req.param('documentId')!;
     const payment = await getPaymentByDocument(documentId);
 
     return c.json(payment || { status: 'none' });
@@ -91,7 +91,7 @@ paymentRoutes.post('/webhook', async (c) => {
     const rawBody = await c.req.text();
 
     if (env.STRIPE_WEBHOOK_SECRET && sig) {
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY!, { apiVersion: '2025-04-30.basil' });
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY!);
       const event = stripe.webhooks.constructEvent(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
       await handleStripeWebhook(event);
     } else {
