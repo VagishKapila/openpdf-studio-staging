@@ -3,6 +3,12 @@ import { env } from '../../config/env';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
+if (resend) {
+  console.log(`📧 Email service: configured (API key set, from: ${env.EMAIL_FROM})`);
+} else {
+  console.warn(`⚠️  Email service: NOT configured (RESEND_API_KEY missing)`);
+}
+
 function getEmailClient(): Resend {
   if (!resend) {
     throw new Error('Email service not configured. Set RESEND_API_KEY environment variable.');

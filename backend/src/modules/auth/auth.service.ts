@@ -108,12 +108,19 @@ export async function register(input: RegisterInput, ip?: string) {
 export async function login(input: LoginInput, ip?: string, userAgent?: string) {
   const [user] = await db.select().from(users).where(eq(users.email, input.email.toLowerCase())).limit(1);
 
-  if (!user || !user.passwordHash) {
+  if (!user) {
+    console.log(`[login] No user found for email: ${input.email.toLowerCase()}`);
+    throw new Error('Invalid email or password');
+  }
+
+  if (!user.passwordHash) {
+    console.log(`[login] User ${user.email} has no passwordHash (Google-only account?)`);
     throw new Error('Invalid email or password');
   }
 
   const valid = await bcrypt.compare(input.password, user.passwordHash);
   if (!valid) {
+    console.log(`[login] Password mismatch for user: ${user.email}`);
     throw new Error('Invalid email or password');
   }
 
@@ -324,17 +331,29 @@ export async function forgotPassword(email: string) {
   const tokenExpiry = new Date();
   tokenExpiry.setHours(tokenExpiry.getHours() + 1); // 1 hour expiry
 
-  await db.insert(verificationTokens).values({
-    userId: user.id,
-    token: resetToken,
-    type: 'password_reset',
-    expiresAt: tokenExpiry,
-  });
+  console.log(`[forgotPassword] User found: ${user.email}, creating reset token...`);
 
   try {
+    await db.insert(verificationTokens).values({
+      userId: user.id,
+      token: resetToken,
+      type: 'password_reset',
+      expiresAt: tokenExpiry,
+    });
+    console.log(`[forgotPassword] Reset token saved to DB`);
+  } catch (dbErr: any) {
+    console.error(`[forgotPassword] DB insert failed:`, dbErr.message, dbErr.code);
+    // Still return success to prevent enumeration
+    return { message: 'If an account exists with this email, a reset link has been sent.' };
+  }
+
+  try {
+    console.log(`[forgotPassword] Sending email via Resend to ${user.email}...`);
     await sendPasswordResetEmail(user.email, user.name || '', resetToken);
-  } catch (err) {
-    console.error('Failed to send password reset email:', err);
+    console.log(`[forgotPassword] ✅ Email sent successfully to ${user.email}`);
+  } catch (err: any) {
+    console.error(`[forgotPassword] ❌ Email send FAILED:`, err.message);
+    console.error(`[forgotPassword] Error details:`, JSON.stringify(err, null, 2));
   }
 
   await logAudit({
