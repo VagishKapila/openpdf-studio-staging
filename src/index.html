@@ -6256,7 +6256,9 @@
     // ===== LOAD PDF FOR SIGNING =====
     async function loadSigningPDF(bytes) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      const loadingTask = pdfjsLib.getDocument({ data: bytes });
+      // Pass a copy to PDF.js since it transfers the ArrayBuffer to a web worker,
+      // which detaches the original buffer and makes it unusable for pdf-lib
+      const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
       signingState.pdfDoc = await loadingTask.promise;
       signingState.pdfLibDoc = await PDFLib.PDFDocument.load(bytes);
       await renderSigningPage(1);
