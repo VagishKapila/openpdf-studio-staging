@@ -493,14 +493,14 @@
     .annotation-action-bar {
       display: none;
       flex-direction: column;
-      width: 220px;
-      background: linear-gradient(180deg, #EDE9FE 0%, #f5f3ff 100%);
-      border-left: 2px solid var(--primary);
-      padding: 16px 14px;
+      width: 200px;
+      background: #fafafa;
+      border-left: 1px solid var(--border);
+      padding: 14px 12px;
       z-index: 99;
-      gap: 8px;
+      gap: 6px;
       font-family: 'Inter', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text);
       overflow-y: auto;
       flex-shrink: 0;
@@ -574,23 +574,24 @@
       line-height: 1.4;
     }
     .color-picker-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
       width: 100%;
     }
     .color-btn {
-      width: 100%;
-      aspect-ratio: 1;
+      width: 24px;
+      height: 24px;
       border: 2px solid var(--border);
-      border-radius: 8px;
+      border-radius: 50%;
       cursor: pointer;
       transition: all 0.15s;
       padding: 0;
+      flex-shrink: 0;
     }
     .color-btn:hover {
       border-color: var(--primary);
-      transform: scale(1.1);
+      transform: scale(1.15);
     }
     .color-btn.selected {
       border-color: #333;
@@ -2125,11 +2126,11 @@
       </div>
 
       <div id="sig-upload-tab" style="display:none">
-        <div class="drop-zone" style="width:100%;height:120px;" onclick="document.getElementById('sig-upload-input').click()">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>Click to upload signature image (PNG, JPG)</span>
+        <div id="sig-upload-dropzone" class="drop-zone" style="width:100%;height:120px;cursor:pointer;" onclick="document.getElementById('sig-upload-input').click()">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span style="font-size:13px;color:var(--text-secondary);">Click to select a signature image</span>
         </div>
-        <img id="sig-upload-preview" style="display:none;max-width:100%;max-height:80px;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:4px;" alt="Signature preview">
+        <img id="sig-upload-preview" style="display:none;max-width:100%;max-height:100px;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff;" alt="Signature preview">
         <input type="file" id="sig-upload-input" accept=".png,.jpg,.jpeg" style="display:none" onchange="handleSigUpload(event)">
       </div>
 
@@ -2802,9 +2803,20 @@
         span.style.left = tx[4] + 'px';
         span.style.top = (tx[5] - fontSize) + 'px';
         span.style.fontSize = fontSize + 'px';
-        span.style.fontFamily = item.fontName ? (item.fontName.includes('Bold') ? 'Arial, sans-serif' : 'Arial, sans-serif') : 'Arial, sans-serif';
-        if (item.fontName && item.fontName.includes('Bold')) {
+        // Map PDF font names to closest web-safe equivalents
+        const fn = (item.fontName || '').toLowerCase();
+        let webFont = 'Helvetica, Arial, sans-serif';
+        if (fn.includes('times') || fn.includes('serif') && !fn.includes('sans')) {
+          webFont = '"Times New Roman", Times, serif';
+        } else if (fn.includes('courier') || fn.includes('mono') || fn.includes('consol')) {
+          webFont = '"Courier New", Courier, monospace';
+        }
+        span.style.fontFamily = webFont;
+        if (item.fontName && /bold/i.test(item.fontName)) {
           span.style.fontWeight = 'bold';
+        }
+        if (item.fontName && /italic|oblique/i.test(item.fontName)) {
+          span.style.fontStyle = 'italic';
         }
         if (angle !== 0) {
           span.style.transform = `rotate(${angle}rad)`;
@@ -2930,13 +2942,25 @@
         // Hide the original span (it's been replaced by a fabric object)
         span.style.display = 'none';
 
+        // Match the original font as closely as possible
+        const item = state.textLayerItems[idx];
+        const fn = (item?.fontName || '').toLowerCase();
+        let fabricFont = 'Helvetica, Arial, sans-serif';
+        if (fn.includes('times') || (fn.includes('serif') && !fn.includes('sans'))) {
+          fabricFont = '"Times New Roman", Times, serif';
+        } else if (fn.includes('courier') || fn.includes('mono') || fn.includes('consol')) {
+          fabricFont = '"Courier New", Courier, monospace';
+        }
+        const isItalic = /italic|oblique/i.test(item?.fontName || '');
+
         // Create a movable, resizable fabric Textbox at the same position
         const textbox = new fabric.Textbox(newText, {
           left: spanLeft,
           top: spanTop,
           fontSize: fontSize,
-          fontFamily: 'Arial, sans-serif',
+          fontFamily: fabricFont,
           fontWeight: isBold ? 'bold' : 'normal',
+          fontStyle: isItalic ? 'italic' : 'normal',
           fill: '#000000',
           width: Math.max(200, newText.length * fontSize * 0.6),
           editable: true,
@@ -2948,7 +2972,7 @@
           transparentCorners: false,
           borderColor: '#6B5CE7',
           splitByGrapheme: false,
-          backgroundColor: 'rgba(255,255,255,1)',
+          backgroundColor: 'rgba(255,255,255,0.95)',
           _isTextEdit: true,       // Mark as a PDF text edit
           _editPageNum: state.currentPage,
           _editIdx: idx,
@@ -3164,8 +3188,21 @@
       // Handle click to add text or edit PDF text
       state.fabricCanvas.on('mouse:down', function(opt) {
         if (state.currentTool === 'text' && !opt.target) {
-          // Always create a new textbox at click position when text tool is active
-          // (Don't redirect to span editing — user wants to ADD text, not edit existing)
+          // If a textbox is currently being edited, finish editing it first
+          // instead of creating a new one (click-away = confirm)
+          const activeObj = state.fabricCanvas.getActiveObject();
+          if (activeObj && activeObj.isEditing) {
+            activeObj.exitEditing();
+            // If the textbox is empty, remove it
+            if (!activeObj.text || !activeObj.text.trim()) {
+              state.fabricCanvas.remove(activeObj);
+            }
+            state.fabricCanvas.discardActiveObject();
+            state.fabricCanvas.renderAll();
+            return;
+          }
+
+          // No active editing — create a new textbox at click position
           const pointer = state.fabricCanvas.getPointer(opt.e);
           const text = new fabric.Textbox('', {
             left: pointer.x,
@@ -3667,13 +3704,16 @@
           function matchFont(fontName) {
             const name = (fontName || '').toLowerCase();
             const isBold = name.includes('bold');
-            if (name.includes('times') || name.includes('serif')) {
+            const isItalic = name.includes('italic') || name.includes('oblique');
+            // Times / serif families
+            if (name.includes('times') || (name.includes('serif') && !name.includes('sans'))) {
               return isBold ? timesRomanBold : timesRoman;
             }
-            if (name.includes('courier') || name.includes('mono')) {
+            // Courier / monospace families
+            if (name.includes('courier') || name.includes('mono') || name.includes('consol')) {
               return isBold ? courierBold : courier;
             }
-            // Default: Helvetica (sans-serif)
+            // Default: Helvetica (matches Arial, Calibri, and other sans-serif)
             return isBold ? helveticaBold : helvetica;
           }
 
@@ -3699,21 +3739,22 @@
 
               const font = matchFont(edit.fontName);
 
-              // Calculate width very generously to fully cover original text
+              // Calculate width generously to fully cover original text
               const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
-              const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.7) + 12;
+              const coverWidth = Math.max(origWidth, edit.origText.length * fontSize * 0.7) + 16;
 
               // White-out original text — generous padding to ensure full coverage
+              // PDF y-coordinate is the baseline; descenders go below, ascenders go above
               page.drawRectangle({
-                x: x - 4,
-                y: y - fontSize * 0.5,
+                x: x - 2,
+                y: y - fontSize * 0.35,
                 width: coverWidth,
-                height: fontSize * 1.8,
+                height: fontSize * 1.5,
                 color: PDFLib.rgb(1, 1, 1),
                 borderWidth: 0,
               });
 
-              // Draw new text
+              // Draw new text at original baseline position
               page.drawText(edit.newText, {
                 x: x,
                 y: y,
@@ -3968,6 +4009,13 @@
       ['draw', 'type', 'upload'].forEach(t => {
         document.getElementById(`sig-${t}-tab`).style.display = t === tab ? 'block' : 'none';
       });
+      // Reset upload tab visual state when switching away
+      if (tab !== 'upload') {
+        const dropzone = document.getElementById('sig-upload-dropzone');
+        const preview = document.getElementById('sig-upload-preview');
+        if (dropzone) dropzone.style.display = '';
+        if (preview) preview.style.display = 'none';
+      }
       // Toggle active class on tab buttons
       const tabBar = document.querySelector('#signature-modal .tab-bar');
       if (tabBar) {
@@ -3981,14 +4029,16 @@
     function handleSigUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        // Show preview of uploaded signature
         const reader = new FileReader();
         reader.onload = (e) => {
           const preview = document.getElementById('sig-upload-preview');
+          const dropzone = document.getElementById('sig-upload-dropzone');
           if (preview) {
             preview.src = e.target.result;
             preview.style.display = 'block';
           }
+          // Hide the drop zone so only the signature preview is visible
+          if (dropzone) dropzone.style.display = 'none';
         };
         reader.readAsDataURL(file);
       }
@@ -4000,13 +4050,17 @@
       const drawTab = document.getElementById('sig-draw-tab');
       const typeTab = document.getElementById('sig-type-tab');
 
+      // Place signatures near bottom of page (typical signature location)
+      const sigLeft = state.fabricCanvas.width * 0.1;
+      const sigTop = state.fabricCanvas.height * 0.78;
+
       if (drawTab.style.display !== 'none') {
         // Use drawn signature
         const dataUrl = sigPadCanvas.toDataURL();
         fabric.Image.fromURL(dataUrl, (img) => {
           img.set({
-            left: state.fabricCanvas.width / 2 - 90,
-            top: state.fabricCanvas.height / 2 - 30,
+            left: sigLeft,
+            top: sigTop,
             hasControls: true,
             hasBorders: true,
             selectable: true,
@@ -4026,8 +4080,8 @@
           fontFamily: font,
           fontSize: 32,
           fill: sigColor,
-          left: state.fabricCanvas.width / 2 - 50,
-          top: state.fabricCanvas.height / 2 - 20,
+          left: sigLeft,
+          top: sigTop,
           hasControls: true,
           hasBorders: true,
           selectable: true,
@@ -4045,8 +4099,8 @@
           reader.onload = (e) => {
             fabric.Image.fromURL(e.target.result, (img) => {
               img.set({
-                left: state.fabricCanvas.width / 2 - 90,
-                top: state.fabricCanvas.height / 2 - 30,
+                left: sigLeft,
+                top: sigTop,
                 hasControls: true,
                 hasBorders: true,
                 selectable: true,
