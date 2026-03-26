@@ -1,4 +1,4 @@
-CREATE TABLE "audit_log" (
+CREATE TABLE IF NOT EXISTS"audit_log" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"document_id" uuid,
 	"user_id" uuid,
@@ -9,7 +9,7 @@ CREATE TABLE "audit_log" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "documents" (
+CREATE TABLE IF NOT EXISTS"documents" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"file_name" varchar(500) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE "documents" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS"payments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"document_id" uuid NOT NULL,
 	"creator_id" uuid NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE "payments" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "sessions" (
+CREATE TABLE IF NOT EXISTS"sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"refresh_token" text NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE "sessions" (
 	CONSTRAINT "sessions_refresh_token_unique" UNIQUE("refresh_token")
 );
 --> statement-breakpoint
-CREATE TABLE "signature_fields" (
+CREATE TABLE IF NOT EXISTS"signature_fields" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"request_id" uuid NOT NULL,
 	"field_type" varchar(50) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE "signature_fields" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "signature_requests" (
+CREATE TABLE IF NOT EXISTS"signature_requests" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"document_id" uuid NOT NULL,
 	"sender_id" uuid NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE "signature_requests" (
 	CONSTRAINT "signature_requests_access_token_unique" UNIQUE("access_token")
 );
 --> statement-breakpoint
-CREATE TABLE "signatures" (
+CREATE TABLE IF NOT EXISTS"signatures" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"field_id" uuid NOT NULL,
 	"signer_email" varchar(255) NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE "signatures" (
 	"signed_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "templates" (
+CREATE TABLE IF NOT EXISTS"templates" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid,
 	"name" varchar(255) NOT NULL,
@@ -112,7 +112,7 @@ CREATE TABLE "templates" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS"users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"password_hash" text,
@@ -129,7 +129,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_google_id_unique" UNIQUE("google_id")
 );
 --> statement-breakpoint
-CREATE TABLE "verification_tokens" (
+CREATE TABLE IF NOT EXISTS"verification_tokens" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"token" varchar(255) NOT NULL,
@@ -152,20 +152,20 @@ ALTER TABLE "signature_requests" ADD CONSTRAINT "signature_requests_sender_id_us
 ALTER TABLE "signatures" ADD CONSTRAINT "signatures_field_id_signature_fields_id_fk" FOREIGN KEY ("field_id") REFERENCES "public"."signature_fields"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "templates" ADD CONSTRAINT "templates_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "verification_tokens" ADD CONSTRAINT "verification_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_audit_document_id" ON "audit_log" USING btree ("document_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_user_id" ON "audit_log" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_action" ON "audit_log" USING btree ("action");--> statement-breakpoint
-CREATE INDEX "idx_documents_user_id" ON "documents" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "idx_documents_status" ON "documents" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "idx_payments_document_id" ON "payments" USING btree ("document_id");--> statement-breakpoint
-CREATE INDEX "idx_payments_status" ON "payments" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "idx_sessions_user_id" ON "sessions" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "idx_sessions_refresh_token" ON "sessions" USING btree ("refresh_token");--> statement-breakpoint
-CREATE INDEX "idx_sig_requests_document_id" ON "signature_requests" USING btree ("document_id");--> statement-breakpoint
-CREATE INDEX "idx_sig_requests_sender_id" ON "signature_requests" USING btree ("sender_id");--> statement-breakpoint
-CREATE INDEX "idx_sig_requests_access_token" ON "signature_requests" USING btree ("access_token");--> statement-breakpoint
-CREATE INDEX "idx_sig_requests_status" ON "signature_requests" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "idx_users_email" ON "users" USING btree ("email");--> statement-breakpoint
-CREATE INDEX "idx_users_google_id" ON "users" USING btree ("google_id");--> statement-breakpoint
-CREATE INDEX "idx_verification_token" ON "verification_tokens" USING btree ("token");--> statement-breakpoint
-CREATE INDEX "idx_verification_user_id" ON "verification_tokens" USING btree ("user_id");
+CREATE INDEX IF NOT EXISTS"idx_audit_document_id" ON "audit_log" USING btree ("document_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_audit_user_id" ON "audit_log" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_audit_action" ON "audit_log" USING btree ("action");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_documents_user_id" ON "documents" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_documents_status" ON "documents" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_payments_document_id" ON "payments" USING btree ("document_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_payments_status" ON "payments" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sessions_user_id" ON "sessions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sessions_refresh_token" ON "sessions" USING btree ("refresh_token");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sig_requests_document_id" ON "signature_requests" USING btree ("document_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sig_requests_sender_id" ON "signature_requests" USING btree ("sender_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sig_requests_access_token" ON "signature_requests" USING btree ("access_token");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_sig_requests_status" ON "signature_requests" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_users_email" ON "users" USING btree ("email");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_users_google_id" ON "users" USING btree ("google_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_verification_token" ON "verification_tokens" USING btree ("token");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS"idx_verification_user_id" ON "verification_tokens" USING btree ("user_id");
