@@ -579,18 +579,20 @@
       gap: 6px;
       width: 100%;
     }
+    .annotation-action-bar .color-btn,
     .color-btn {
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border);
-      border-radius: 50%;
+      width: 24px !important;
+      height: 24px !important;
+      min-width: 24px;
+      border: 2px solid var(--border) !important;
+      border-radius: 50% !important;
       cursor: pointer;
       transition: all 0.15s;
-      padding: 0;
+      padding: 0 !important;
       flex-shrink: 0;
     }
     .color-btn:hover {
-      border-color: var(--primary);
+      border-color: var(--primary) !important;
       transform: scale(1.15);
     }
     .color-btn.selected {
