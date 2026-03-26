@@ -7,6 +7,8 @@ import { env } from './config/env';
 // Module imports — each module is self-contained
 import { authRoutes } from './modules/auth';
 import { convertRoutes } from './modules/convert';
+import { esignRoutes } from './modules/esign';
+import { paymentRoutes } from './modules/payments';
 
 const app = new Hono();
 
@@ -28,7 +30,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert'],
+    modules: ['auth', 'convert', 'esign', 'payments'],
   });
 });
 
@@ -41,10 +43,10 @@ app.get('/health', (c) => {
 // This keeps modules completely independent
 app.route('/auth', authRoutes);
 app.route('/convert', convertRoutes);
+app.route('/esign', esignRoutes);
+app.route('/payments', paymentRoutes);
 
-// Future modules will be added here:
-// app.route('/esign', esignRoutes);
-// app.route('/payments', paymentRoutes);
+// Future modules:
 // app.route('/dashboard', dashboardRoutes);
 
 // ===== 404 HANDLER =====

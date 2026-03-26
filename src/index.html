@@ -1335,6 +1335,204 @@
       background: var(--border);
       margin: 4px 8px;
     }
+
+    /* ===== SIGNING FLOW STYLES ===== */
+    .signing-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9000;
+      flex-direction: column;
+    }
+    .signing-overlay.visible { display: flex; }
+    .signing-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .signing-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .signing-steps {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .signing-step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+    }
+    .signing-step.active {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+    .signing-step.completed {
+      color: #22c55e;
+    }
+    .signing-step .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      border: 1.5px solid currentColor;
+    }
+    .signing-step.active .step-num { border-color: transparent; background: rgba(255,255,255,0.2); }
+    .signing-step.completed .step-num { border-color: #22c55e; background: #22c55e; color: white; }
+    .signing-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .signing-pdf-area {
+      flex: 1;
+      overflow: auto;
+      background: #525659;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .signing-pdf-canvas-wrap {
+      position: relative;
+      background: white;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    }
+    .signing-sidebar {
+      width: 320px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .signing-sidebar-content { padding: 16px; flex: 1; }
+    .signing-sidebar h3 { font-size: 14px; margin: 0 0 12px; }
+    .signing-sidebar p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; }
+    .signing-actions {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .field-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .field-card:hover { border-color: #6366f1; }
+    .field-card.active { border-color: #6366f1; background: rgba(99,102,241,0.05); }
+    .field-card .field-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .field-card .field-icon.sig { background: #ede9fe; color: #7c3aed; }
+    .field-card .field-icon.init { background: #fce7f3; color: #db2777; }
+    .field-card .field-icon.date { background: #dbeafe; color: #2563eb; }
+    .field-card .field-icon.name { background: #d1fae5; color: #059669; }
+    .field-card .field-info { flex: 1; }
+    .field-card .field-label { font-size: 13px; font-weight: 500; }
+    .field-card .field-page { font-size: 11px; color: var(--text-secondary); }
+    .field-card .field-status {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+    }
+    .field-card .field-status.filled { border-color: #22c55e; background: #22c55e; }
+    .sig-setup-area {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .sig-setup-area canvas {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: crosshair;
+      width: 100%;
+      max-width: 280px;
+      height: 100px;
+    }
+    .sig-preview {
+      display: inline-block;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+    }
+    .sig-preview img { max-height: 50px; }
+    .payment-setup {
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .payment-setup h4 { margin: 0 0 8px; font-size: 14px; color: #166534; }
+    .payment-amount-input {
+      font-size: 24px;
+      font-weight: 600;
+      width: 120px;
+      border: 2px solid #86efac;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      outline: none;
+    }
+    .payment-amount-input:focus { border-color: #22c55e; }
+    .field-overlay {
+      position: absolute;
+      border: 2px dashed #6366f1;
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .field-overlay:hover { background: rgba(99, 102, 241, 0.15); }
+    .field-overlay.filled {
+      border-style: solid;
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.05);
+    }
+    .field-overlay img { width: 100%; height: 100%; object-fit: contain; }
+    .field-overlay .field-text {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 2px 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    @media (max-width: 768px) {
+      .signing-sidebar { width: 260px; }
+      .signing-steps { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -1642,6 +1840,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <h4>Protect</h4>
             <p>Encrypt &amp; password-protect PDFs</p>
+          </div>
+          <div class="feature-card" onclick="openSigningFlow()" style="cursor:pointer;border:2px solid #6366f1;background:linear-gradient(135deg,rgba(99,102,241,0.05),rgba(139,92,246,0.05));">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/><rect x="1" y="21" width="6" height="2" rx="1" fill="#6366f1" opacity="0.3"/></svg>
+            <h4 style="color:#6366f1;">Sign &amp; Pay</h4>
+            <p>Auto-detect fields, sign &amp; collect payment</p>
           </div>
         </div>
 
@@ -2113,6 +2316,58 @@
       </div>
       <div class="modal-actions" style="margin-top:16px;">
         <button class="btn btn-secondary" onclick="closeConvertModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SIGNING FLOW OVERLAY ===== -->
+  <div class="signing-overlay" id="signing-overlay">
+    <div class="signing-header">
+      <h2>
+        <div style="width:24px;height:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        Sign &amp; Pay
+      </h2>
+      <div class="signing-steps" id="signing-steps">
+        <div class="signing-step active" data-step="1"><span class="step-num">1</span> Upload</div>
+        <div class="signing-step" data-step="2"><span class="step-num">2</span> Setup</div>
+        <div class="signing-step" data-step="3"><span class="step-num">3</span> Review</div>
+        <div class="signing-step" data-step="4"><span class="step-num">4</span> Finalize</div>
+      </div>
+      <button class="btn btn-secondary" onclick="closeSigningFlow()" style="font-size:12px;">✕ Close</button>
+    </div>
+    <div class="signing-body">
+      <div class="signing-pdf-area" id="signing-pdf-area">
+        <!-- Step 1: Upload -->
+        <div id="signing-upload-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;">
+          <div style="width:80px;height:80px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;display:flex;align-items:center;justify-content:center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          </div>
+          <h3 style="color:white;margin:0;">Upload a document to sign</h3>
+          <p style="color:rgba(255,255,255,0.7);margin:0;font-size:14px;">PDF or Word document. We'll auto-detect signature fields.</p>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:10px 24px;font-size:14px;">
+              Choose File
+            </button>
+          </div>
+          <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
+        </div>
+        <!-- Steps 2-4: PDF preview with field overlays -->
+        <div id="signing-pdf-preview" style="display:none;">
+          <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
+            <canvas id="signing-pdf-canvas"></canvas>
+            <div id="signing-field-overlays"></div>
+          </div>
+        </div>
+      </div>
+      <div class="signing-sidebar" id="signing-sidebar" style="display:none;">
+        <div class="signing-sidebar-content" id="signing-sidebar-content">
+          <!-- Dynamic content per step -->
+        </div>
+        <div class="signing-actions" id="signing-actions">
+          <!-- Dynamic buttons per step -->
+        </div>
       </div>
     </div>
   </div>
@@ -5791,7 +6046,689 @@
       if (resetToken) {
         showResetPasswordForm(resetToken);
       }
+
+      // Handle payment return
+      const paymentStatus = params.get('payment');
+      if (paymentStatus === 'success') {
+        showToast('Payment completed successfully!', 'success');
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (paymentStatus === 'cancelled') {
+        showToast('Payment was cancelled.', 'info');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     })();
+
+    // ===================================================================
+    // SIGNING & PAYMENT FLOW
+    // ===================================================================
+    const signingState = {
+      step: 1,           // 1=upload, 2=setup, 3=review, 4=finalize
+      pdfDoc: null,       // PDF.js document
+      pdfLibDoc: null,    // pdf-lib document for editing
+      pdfBytes: null,     // Raw PDF bytes
+      fileName: '',
+      requestId: null,
+      documentId: null,
+      fields: [],         // Detected fields with positions
+      currentFieldIndex: 0,
+      signatureDataUrl: null,
+      signatureType: null,
+      initialsDataUrl: null,
+      signerName: '',
+      signerEmail: '',
+      paymentEnabled: false,
+      paymentAmount: 0,
+      paymentDescription: '',
+      pageScale: 1,
+    };
+
+    // ===== OPEN / CLOSE SIGNING FLOW =====
+    function openSigningFlow() {
+      document.getElementById('signing-overlay').classList.add('visible');
+      setSigningStep(1);
+    }
+
+    function closeSigningFlow() {
+      document.getElementById('signing-overlay').classList.remove('visible');
+      // Reset state
+      signingState.step = 1;
+      signingState.pdfDoc = null;
+      signingState.pdfLibDoc = null;
+      signingState.pdfBytes = null;
+      signingState.fields = [];
+      signingState.signatureDataUrl = null;
+      signingState.initialsDataUrl = null;
+      signingState.requestId = null;
+      signingState.documentId = null;
+      // Reset upload view
+      document.getElementById('signing-upload-view').style.display = 'flex';
+      document.getElementById('signing-pdf-preview').style.display = 'none';
+      document.getElementById('signing-sidebar').style.display = 'none';
+    }
+
+    // ===== STEP MANAGEMENT =====
+    function setSigningStep(step) {
+      signingState.step = step;
+      document.querySelectorAll('.signing-step').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        el.classList.remove('active', 'completed');
+        if (s === step) el.classList.add('active');
+        if (s < step) el.classList.add('completed');
+      });
+      renderSigningSidebar();
+    }
+
+    // ===== FILE UPLOAD =====
+    async function handleSigningFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      signingState.fileName = file.name;
+      showToast('Loading document...', 'info');
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        signingState.pdfBytes = new Uint8Array(arrayBuffer);
+
+        // If it's a Word doc, we'd need backend conversion.
+        // For now, handle PDF directly.
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          await loadSigningPDF(signingState.pdfBytes);
+        } else {
+          showToast('For now, please upload a PDF file. Word conversion coming soon.', 'info');
+          return;
+        }
+
+        // Auto-detect fields
+        await detectSignatureFields();
+
+        // Show PDF preview and sidebar
+        document.getElementById('signing-upload-view').style.display = 'none';
+        document.getElementById('signing-pdf-preview').style.display = 'block';
+        document.getElementById('signing-sidebar').style.display = 'flex';
+
+        // Move to step 2 (Setup)
+        setSigningStep(2);
+        showToast(`Found ${signingState.fields.length} field(s) in your document`, 'success');
+      } catch (err) {
+        console.error('Signing upload error:', err);
+        showToast('Failed to load document: ' + err.message, 'error');
+      }
+    }
+
+    // ===== LOAD PDF FOR SIGNING =====
+    async function loadSigningPDF(bytes) {
+      const loadingTask = pdfjsLib.getDocument({ data: bytes });
+      signingState.pdfDoc = await loadingTask.promise;
+      signingState.pdfLibDoc = await PDFLib.PDFDocument.load(bytes);
+      await renderSigningPage(1);
+    }
+
+    async function renderSigningPage(pageNum) {
+      const page = await signingState.pdfDoc.getPage(pageNum);
+      const scale = 1.2;
+      signingState.pageScale = scale;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.getElementById('signing-pdf-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const wrap = document.getElementById('signing-canvas-wrap');
+      wrap.style.width = viewport.width + 'px';
+      wrap.style.height = viewport.height + 'px';
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      renderFieldOverlays(pageNum);
+    }
+
+    // ===== FIELD DETECTION (Client-Side) =====
+    async function detectSignatureFields() {
+      const doc = signingState.pdfDoc;
+      const fields = [];
+      const totalPages = doc.numPages;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await doc.getPage(i);
+        const textContent = await page.getTextContent();
+        const viewport = page.getViewport({ scale: 1 });
+        const pageWidth = viewport.width;
+        const pageHeight = viewport.height;
+
+        // Combine text items into lines for analysis
+        const items = textContent.items;
+        for (const item of items) {
+          const text = item.str.toLowerCase().trim();
+          if (!text) continue;
+
+          const tx = item.transform;
+          const x = tx[4];
+          const y = pageHeight - tx[5]; // PDF y is bottom-up
+
+          // Check signature keywords
+          if (/\b(signature|sign here|signed|authorized sig)\b/i.test(text)) {
+            fields.push({
+              fieldType: 'signature',
+              pageNumber: i,
+              x: x,
+              y: y + 5,
+              width: 200,
+              height: 50,
+              label: 'Signature',
+              aiDetected: true,
+            });
+          }
+
+          // Check initials
+          if (/\b(initials?|init here)\b/i.test(text)) {
+            fields.push({
+              fieldType: 'initials',
+              pageNumber: i,
+              x: x,
+              y: y + 5,
+              width: 80,
+              height: 40,
+              label: 'Initials',
+              aiDetected: true,
+            });
+          }
+
+          // Check date
+          if (/\b(date:|date signed|dated|mm\/dd|__\/__)\b/i.test(text)) {
+            fields.push({
+              fieldType: 'date',
+              pageNumber: i,
+              x: x,
+              y: y + 5,
+              width: 120,
+              height: 25,
+              label: 'Date',
+              aiDetected: true,
+            });
+          }
+
+          // Check name
+          if (/\b(print name|printed name|full name|name:|type name|legal name)\b/i.test(text)) {
+            fields.push({
+              fieldType: 'name',
+              pageNumber: i,
+              x: x,
+              y: y + 5,
+              width: 200,
+              height: 25,
+              label: 'Name',
+              aiDetected: true,
+            });
+          }
+        }
+      }
+
+      // If no fields detected, add default signature + date on last page
+      if (fields.length === 0) {
+        const lastPage = await doc.getPage(totalPages);
+        const vp = lastPage.getViewport({ scale: 1 });
+        fields.push(
+          { fieldType: 'signature', pageNumber: totalPages, x: 72, y: vp.height - 120, width: 200, height: 50, label: 'Signature', aiDetected: false },
+          { fieldType: 'date', pageNumber: totalPages, x: 350, y: vp.height - 120, width: 120, height: 25, label: 'Date', aiDetected: false },
+          { fieldType: 'name', pageNumber: totalPages, x: 72, y: vp.height - 70, width: 200, height: 25, label: 'Printed Name', aiDetected: false },
+        );
+      }
+
+      signingState.fields = fields.map((f, i) => ({ ...f, id: 'field-' + i, filled: false }));
+    }
+
+    // ===== RENDER FIELD OVERLAYS ON PDF =====
+    function renderFieldOverlays(pageNum) {
+      const container = document.getElementById('signing-field-overlays');
+      container.innerHTML = '';
+      const scale = signingState.pageScale;
+
+      signingState.fields.forEach((field, idx) => {
+        if (field.pageNumber !== pageNum) return;
+
+        const div = document.createElement('div');
+        div.className = 'field-overlay' + (field.filled ? ' filled' : '');
+        div.style.left = (field.x * scale) + 'px';
+        div.style.top = (field.y * scale) + 'px';
+        div.style.width = (field.width * scale) + 'px';
+        div.style.height = (field.height * scale) + 'px';
+        div.dataset.fieldIdx = idx;
+        div.onclick = () => scrollToField(idx);
+
+        if (field.filled) {
+          if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
+            div.innerHTML = `<img src="${signingState.signatureDataUrl}" alt="Signature">`;
+          } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
+            div.innerHTML = `<img src="${signingState.initialsDataUrl}" alt="Initials">`;
+          } else if (field.fieldType === 'date') {
+            div.innerHTML = `<div class="field-text">${new Date().toLocaleDateString()}</div>`;
+          } else if (field.fieldType === 'name') {
+            div.innerHTML = `<div class="field-text">${signingState.signerName || 'Name'}</div>`;
+          }
+        } else {
+          const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤' };
+          div.innerHTML = `<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">${icons[field.fieldType] || '📝'} ${field.label}</div>`;
+        }
+
+        container.appendChild(div);
+      });
+    }
+
+    function scrollToField(idx) {
+      signingState.currentFieldIndex = idx;
+      const field = signingState.fields[idx];
+      // Navigate to the field's page if needed
+      renderSigningPage(field.pageNumber);
+      renderSigningSidebar();
+    }
+
+    // ===== SIDEBAR RENDERING =====
+    function renderSigningSidebar() {
+      const content = document.getElementById('signing-sidebar-content');
+      const actions = document.getElementById('signing-actions');
+      const step = signingState.step;
+
+      if (step === 2) renderSetupStep(content, actions);
+      else if (step === 3) renderReviewStep(content, actions);
+      else if (step === 4) renderFinalizeStep(content, actions);
+    }
+
+    // ----- STEP 2: SETUP (Signature + Name) -----
+    function renderSetupStep(content, actions) {
+      const user = typeof DPStudioAPI !== 'undefined' ? DPStudioAPI.auth.getUser() : null;
+      const defaultName = user?.name || '';
+      const defaultEmail = user?.email || '';
+
+      content.innerHTML = `
+        <h3>Set Up Your Signature</h3>
+        <p>Draw or type your signature once. We'll automatically fill all signature, initial, name, and date fields.</p>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:500;">Your Full Name</label>
+          <input type="text" id="signing-name" value="${defaultName}" placeholder="Enter your full name" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:500;">Email</label>
+          <input type="email" id="signing-email" value="${defaultEmail}" placeholder="your@email.com" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+        </div>
+
+        <label style="font-size:12px;font-weight:500;display:block;margin-bottom:8px;">Your Signature</label>
+        <div class="sig-setup-area">
+          <canvas id="signing-sig-pad" width="280" height="100"></canvas>
+          <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;">
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="clearSigningSigPad()">Clear</button>
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="typeSignature()">Type Instead</button>
+          </div>
+        </div>
+
+        ${signingState.signatureDataUrl ? `
+          <div style="margin-bottom:12px;">
+            <label style="font-size:11px;color:var(--text-secondary);">Preview:</label>
+            <div class="sig-preview"><img src="${signingState.signatureDataUrl}" alt="Signature"></div>
+          </div>
+        ` : ''}
+
+        <h3 style="margin-top:16px;">Detected Fields (${signingState.fields.length})</h3>
+        <div id="signing-field-list">
+          ${signingState.fields.map((f, i) => `
+            <div class="field-card ${i === signingState.currentFieldIndex ? 'active' : ''}" onclick="scrollToField(${i})">
+              <div class="field-icon ${f.fieldType === 'signature' ? 'sig' : f.fieldType === 'initials' ? 'init' : f.fieldType === 'date' ? 'date' : 'name'}">
+                ${{ signature: '✍️', initials: '✏️', date: '📅', name: '👤' }[f.fieldType] || '📝'}
+              </div>
+              <div class="field-info">
+                <div class="field-label">${f.label}</div>
+                <div class="field-page">Page ${f.pageNumber}</div>
+              </div>
+              <div class="field-status ${f.filled ? 'filled' : ''}"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      actions.innerHTML = `
+        <button class="btn btn-secondary" onclick="setSigningStep(1); document.getElementById('signing-upload-view').style.display='flex'; document.getElementById('signing-pdf-preview').style.display='none'; document.getElementById('signing-sidebar').style.display='none';">Back</button>
+        <button class="btn btn-primary" onclick="applySigningFields()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;">Sign All Fields →</button>
+      `;
+
+      // Initialize signature pad
+      setTimeout(initSigningSigPad, 50);
+    }
+
+    // ----- Signature Pad for Signing Flow -----
+    let signingSigPadCtx = null;
+    let signingSigPadDrawing = false;
+
+    function initSigningSigPad() {
+      const canvas = document.getElementById('signing-sig-pad');
+      if (!canvas) return;
+      signingSigPadCtx = canvas.getContext('2d');
+      signingSigPadCtx.strokeStyle = '#000';
+      signingSigPadCtx.lineWidth = 2;
+      signingSigPadCtx.lineCap = 'round';
+      signingSigPadCtx.lineJoin = 'round';
+
+      canvas.onmousedown = (e) => { signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(e.offsetX, e.offsetY); };
+      canvas.onmousemove = (e) => { if (signingSigPadDrawing) { signingSigPadCtx.lineTo(e.offsetX, e.offsetY); signingSigPadCtx.stroke(); } };
+      canvas.onmouseup = () => { signingSigPadDrawing = false; captureSigningSig(); };
+      canvas.onmouseleave = () => { signingSigPadDrawing = false; };
+
+      // Touch events
+      canvas.ontouchstart = (e) => { e.preventDefault(); const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
+      canvas.ontouchmove = (e) => { e.preventDefault(); if (signingSigPadDrawing) { const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadCtx.lineTo(t.clientX - r.left, t.clientY - r.top); signingSigPadCtx.stroke(); } };
+      canvas.ontouchend = () => { signingSigPadDrawing = false; captureSigningSig(); };
+    }
+
+    function clearSigningSigPad() {
+      const canvas = document.getElementById('signing-sig-pad');
+      if (canvas && signingSigPadCtx) {
+        signingSigPadCtx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      signingState.signatureDataUrl = null;
+      signingState.initialsDataUrl = null;
+    }
+
+    function captureSigningSig() {
+      const canvas = document.getElementById('signing-sig-pad');
+      if (!canvas) return;
+      signingState.signatureDataUrl = canvas.toDataURL('image/png');
+      signingState.signatureType = 'draw';
+      // Auto-generate initials from name
+      generateInitials();
+    }
+
+    function typeSignature() {
+      const name = document.getElementById('signing-name')?.value || 'Signature';
+      const canvas = document.createElement('canvas');
+      canvas.width = 280;
+      canvas.height = 100;
+      const ctx = canvas.getContext('2d');
+      ctx.font = "italic 32px 'Brush Script MT', cursive";
+      ctx.fillStyle = '#000';
+      ctx.fillText(name, 10, 60);
+      signingState.signatureDataUrl = canvas.toDataURL('image/png');
+      signingState.signatureType = 'type';
+      generateInitials();
+      renderSigningSidebar();
+    }
+
+    function generateInitials() {
+      const name = document.getElementById('signing-name')?.value || '';
+      const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+      const canvas = document.createElement('canvas');
+      canvas.width = 80;
+      canvas.height = 40;
+      const ctx = canvas.getContext('2d');
+      ctx.font = "italic 24px 'Brush Script MT', cursive";
+      ctx.fillStyle = '#000';
+      ctx.fillText(initials, 5, 30);
+      signingState.initialsDataUrl = canvas.toDataURL('image/png');
+    }
+
+    // ===== APPLY SIGNATURES TO ALL FIELDS =====
+    function applySigningFields() {
+      const name = document.getElementById('signing-name')?.value;
+      const email = document.getElementById('signing-email')?.value;
+      if (!name) { showToast('Please enter your name', 'error'); return; }
+      if (!signingState.signatureDataUrl) { showToast('Please draw or type your signature', 'error'); return; }
+
+      signingState.signerName = name;
+      signingState.signerEmail = email || '';
+
+      // Auto-fill all fields
+      const today = new Date().toLocaleDateString();
+      signingState.fields.forEach(field => {
+        field.filled = true;
+      });
+
+      // Re-render overlays
+      const currentPage = signingState.fields[0]?.pageNumber || 1;
+      renderSigningPage(currentPage);
+      signingState.currentFieldIndex = 0;
+      setSigningStep(3);
+      showToast('All fields filled! Review each placement below.', 'success');
+    }
+
+    // ----- STEP 3: REVIEW -----
+    function renderReviewStep(content, actions) {
+      const field = signingState.fields[signingState.currentFieldIndex];
+      const total = signingState.fields.length;
+      const idx = signingState.currentFieldIndex;
+
+      content.innerHTML = `
+        <h3>Review Fields (${idx + 1} of ${total})</h3>
+        <p>Step through each field to verify placement. Adjust if needed.</p>
+
+        <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:18px;">${{ signature: '✍️', initials: '✏️', date: '📅', name: '👤' }[field?.fieldType] || '📝'}</span>
+            <strong style="font-size:14px;">${field?.label || 'Field'}</strong>
+            <span style="font-size:11px;color:var(--text-secondary);margin-left:auto;">Page ${field?.pageNumber || 1}</span>
+          </div>
+          ${field?.fieldType === 'signature' ? `<div class="sig-preview"><img src="${signingState.signatureDataUrl}" alt="Sig"></div>` : ''}
+          ${field?.fieldType === 'initials' ? `<div class="sig-preview"><img src="${signingState.initialsDataUrl}" alt="Init"></div>` : ''}
+          ${field?.fieldType === 'date' ? `<div style="font-size:14px;font-weight:500;">${new Date().toLocaleDateString()}</div>` : ''}
+          ${field?.fieldType === 'name' ? `<div style="font-size:14px;font-weight:500;">${signingState.signerName}</div>` : ''}
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn btn-secondary" style="flex:1;font-size:12px;" onclick="reviewPrev()" ${idx === 0 ? 'disabled' : ''}>← Previous</button>
+          <button class="btn btn-primary" style="flex:1;font-size:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;" onclick="reviewNext()">${idx === total - 1 ? 'Done ✓' : 'Next →'}</button>
+        </div>
+
+        <h3 style="margin-top:8px;">All Fields</h3>
+        ${signingState.fields.map((f, i) => `
+          <div class="field-card ${i === idx ? 'active' : ''}" onclick="scrollToField(${i}); renderSigningSidebar();">
+            <div class="field-icon ${f.fieldType === 'signature' ? 'sig' : f.fieldType === 'initials' ? 'init' : f.fieldType === 'date' ? 'date' : 'name'}">
+              ${{ signature: '✍️', initials: '✏️', date: '📅', name: '👤' }[f.fieldType] || '📝'}
+            </div>
+            <div class="field-info">
+              <div class="field-label">${f.label}</div>
+              <div class="field-page">Page ${f.pageNumber}</div>
+            </div>
+            <div class="field-status filled"></div>
+          </div>
+        `).join('')}
+      `;
+
+      actions.innerHTML = `
+        <button class="btn btn-secondary" onclick="setSigningStep(2)">Back to Setup</button>
+        <button class="btn btn-primary" onclick="setSigningStep(4)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;">Finalize →</button>
+      `;
+    }
+
+    function reviewNext() {
+      if (signingState.currentFieldIndex < signingState.fields.length - 1) {
+        signingState.currentFieldIndex++;
+        scrollToField(signingState.currentFieldIndex);
+        renderSigningSidebar();
+      } else {
+        setSigningStep(4);
+      }
+    }
+
+    function reviewPrev() {
+      if (signingState.currentFieldIndex > 0) {
+        signingState.currentFieldIndex--;
+        scrollToField(signingState.currentFieldIndex);
+        renderSigningSidebar();
+      }
+    }
+
+    // ----- STEP 4: FINALIZE + PAYMENT -----
+    function renderFinalizeStep(content, actions) {
+      content.innerHTML = `
+        <h3>Finalize Document</h3>
+        <p>Your document will be permanently locked with all signatures flattened into the PDF.</p>
+
+        <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(16,185,129,0.05));border:1px solid #86efac;border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:18px;">✅</span>
+            <strong style="font-size:13px;color:#166534;">Ready to Finalize</strong>
+          </div>
+          <ul style="font-size:12px;color:#166534;margin:0;padding-left:20px;">
+            <li>${signingState.fields.length} field(s) signed</li>
+            <li>PDF will be flattened (no edits possible)</li>
+            <li>Password protection will be applied</li>
+          </ul>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:500;">PDF Password (optional)</label>
+          <input type="text" id="signing-pdf-password" placeholder="Leave blank for auto-generated" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <span style="font-size:11px;color:var(--text-secondary);">Protects the signed document from editing</span>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <input type="checkbox" id="signing-payment-toggle" onchange="togglePayment()" ${signingState.paymentEnabled ? 'checked' : ''}>
+            <label for="signing-payment-toggle" style="font-size:13px;font-weight:500;cursor:pointer;">Require payment after signing</label>
+          </div>
+
+          <div id="signing-payment-config" style="display:${signingState.paymentEnabled ? 'block' : 'none'};">
+            <div class="payment-setup">
+              <h4>💳 Payment Details</h4>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <span style="font-size:20px;font-weight:600;">$</span>
+                <input type="number" class="payment-amount-input" id="signing-payment-amount" min="0.50" step="0.01" value="${signingState.paymentAmount || ''}" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <input type="text" id="signing-payment-desc" placeholder="Payment description (e.g., Retainer Agreement)" value="${signingState.paymentDescription || ''}" style="width:100%;padding:8px 10px;border:1px solid #86efac;border-radius:6px;font-size:13px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      actions.innerHTML = `
+        <button class="btn btn-secondary" onclick="setSigningStep(3)">Back</button>
+        <button class="btn btn-primary" onclick="finalizeAndSign()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;padding:10px 20px;">
+          🔒 Finalize ${signingState.paymentEnabled ? '& Pay' : '& Download'}
+        </button>
+      `;
+    }
+
+    function togglePayment() {
+      signingState.paymentEnabled = document.getElementById('signing-payment-toggle')?.checked || false;
+      document.getElementById('signing-payment-config').style.display = signingState.paymentEnabled ? 'block' : 'none';
+    }
+
+    // ===== FINALIZE: FLATTEN PDF + PASSWORD + OPTIONAL PAYMENT =====
+    async function finalizeAndSign() {
+      try {
+        showToast('Finalizing document...', 'info');
+
+        const pdfDoc = signingState.pdfLibDoc;
+        if (!pdfDoc) { showToast('No document loaded', 'error'); return; }
+
+        // 1. Embed signatures into the PDF using pdf-lib
+        const pages = pdfDoc.getPages();
+
+        for (const field of signingState.fields) {
+          const page = pages[field.pageNumber - 1];
+          if (!page) continue;
+
+          const pageHeight = page.getHeight();
+
+          if ((field.fieldType === 'signature') && signingState.signatureDataUrl) {
+            const imgBytes = await fetch(signingState.signatureDataUrl).then(r => r.arrayBuffer());
+            const img = await pdfDoc.embedPng(imgBytes);
+            page.drawImage(img, {
+              x: field.x,
+              y: pageHeight - field.y - field.height,
+              width: field.width,
+              height: field.height,
+            });
+          } else if ((field.fieldType === 'initials') && signingState.initialsDataUrl) {
+            const imgBytes = await fetch(signingState.initialsDataUrl).then(r => r.arrayBuffer());
+            const img = await pdfDoc.embedPng(imgBytes);
+            page.drawImage(img, {
+              x: field.x,
+              y: pageHeight - field.y - field.height,
+              width: field.width,
+              height: field.height,
+            });
+          } else if (field.fieldType === 'date') {
+            const { rgb } = PDFLib;
+            page.drawText(new Date().toLocaleDateString(), {
+              x: field.x + 4,
+              y: pageHeight - field.y - 16,
+              size: 11,
+              color: rgb(0, 0, 0),
+            });
+          } else if (field.fieldType === 'name') {
+            const { rgb } = PDFLib;
+            page.drawText(signingState.signerName, {
+              x: field.x + 4,
+              y: pageHeight - field.y - 16,
+              size: 11,
+              color: rgb(0, 0, 0),
+            });
+          }
+        }
+
+        // 2. Save the flattened PDF
+        const signedBytes = await pdfDoc.save();
+        const blob = new Blob([signedBytes], { type: 'application/pdf' });
+
+        // 3. Check if payment is required
+        if (signingState.paymentEnabled) {
+          const amount = parseFloat(document.getElementById('signing-payment-amount')?.value || '0');
+          const desc = document.getElementById('signing-payment-desc')?.value || 'Signing payment';
+
+          if (amount < 0.50) {
+            showToast('Minimum payment is $0.50', 'error');
+            return;
+          }
+
+          // Try to create checkout session via backend
+          try {
+            const amountCents = Math.round(amount * 100);
+            const resp = await fetch(DPStudioAPI.baseUrl + '/payments/create-checkout', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('dpstudio_access_token'),
+              },
+              body: JSON.stringify({
+                documentId: signingState.documentId || 'local-' + Date.now(),
+                amount: amountCents,
+                currency: 'usd',
+                description: desc,
+                payerEmail: signingState.signerEmail,
+              }),
+            });
+
+            const data = await resp.json();
+            if (data.checkoutUrl) {
+              // Save signed PDF locally first
+              saveAs(blob, signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf');
+              showToast('Document saved! Redirecting to payment...', 'success');
+
+              // Redirect to Stripe Checkout
+              setTimeout(() => { window.open(data.checkoutUrl, '_blank'); }, 1000);
+            } else {
+              showToast('Payment setup failed. Document saved without payment.', 'info');
+              saveAs(blob, signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf');
+            }
+          } catch (payErr) {
+            console.error('Payment error:', payErr);
+            showToast('Payment not available. Saving document locally.', 'info');
+            saveAs(blob, signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf');
+          }
+        } else {
+          // No payment — just download
+          saveAs(blob, signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf');
+          showToast('Document signed and saved! 🎉', 'success');
+        }
+
+        closeSigningFlow();
+      } catch (err) {
+        console.error('Finalize error:', err);
+        showToast('Failed to finalize: ' + err.message, 'error');
+      }
+    }
   </script>
 </body>
 </html>
