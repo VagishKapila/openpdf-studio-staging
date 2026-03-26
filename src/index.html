@@ -6137,7 +6137,7 @@
       // Require sign-in before accessing signing flow
       const user = typeof DPStudioAPI !== 'undefined' ? DPStudioAPI.auth.getUser() : null;
       if (!user) {
-        showToast('Please sign in to use Sign & Pay', 'info');
+        showToast('Sign in or create an account first', 'info');
         openAuthModal('login');
         return;
       }
