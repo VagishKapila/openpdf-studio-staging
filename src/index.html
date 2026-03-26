@@ -1154,6 +1154,31 @@
       color: var(--text);
       transition: border-color 0.15s;
     }
+    .auth-field.password-field {
+      position: relative;
+    }
+    .auth-field.password-field input {
+      padding-right: 42px;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(2px);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+    }
+    .password-toggle:hover {
+      color: var(--primary);
+    }
     .auth-field input:focus {
       outline: none;
       border-color: var(--primary);
@@ -5603,7 +5628,7 @@
   <script src="api-client.js"></script>
 
   <!-- ===== AUTH MODAL ===== -->
-  <div class="auth-overlay" id="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="auth-overlay" id="auth-overlay">
     <div class="auth-modal">
       <button class="auth-modal-close" onclick="closeAuthModal()">&times;</button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
@@ -5628,9 +5653,12 @@
           <label>Email</label>
           <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
         </div>
-        <div class="auth-field">
+        <div class="auth-field password-field">
           <label>Password</label>
           <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('login-password', this)" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
         <button type="submit" class="auth-submit" id="login-submit">Sign In</button>
         <p style="text-align:center;margin:12px 0 0;"><a href="#" onclick="showForgotPassword(event)" style="color:var(--primary);font-size:13px;text-decoration:none;">Forgot your password?</a></p>
@@ -5650,13 +5678,19 @@
       <!-- Reset Password Form -->
       <form class="auth-form" id="auth-form-reset" onsubmit="handleResetPassword(event)">
         <p style="color:var(--text-dim);font-size:14px;margin:0 0 16px;line-height:1.5;">Choose a new password for your account.</p>
-        <div class="auth-field">
+        <div class="auth-field password-field">
           <label>New Password</label>
           <input type="password" id="reset-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required minlength="8" autocomplete="new-password">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reset-password', this)" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
-        <div class="auth-field">
+        <div class="auth-field password-field">
           <label>Confirm Password</label>
           <input type="password" id="reset-password-confirm" placeholder="Re-enter your new password" required minlength="8" autocomplete="new-password">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reset-password-confirm', this)" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
         <input type="hidden" id="reset-token">
         <button type="submit" class="auth-submit" id="reset-submit">Reset Password</button>
@@ -5672,9 +5706,12 @@
           <label>Email</label>
           <input type="email" id="register-email" placeholder="you@example.com" required autocomplete="email">
         </div>
-        <div class="auth-field">
+        <div class="auth-field password-field">
           <label>Password</label>
           <input type="password" id="register-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password" minlength="8">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-password', this)" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
         <button type="submit" class="auth-submit" id="register-submit">Create Account</button>
       </form>
@@ -5701,6 +5738,19 @@
       // Clear form fields
       document.querySelectorAll('.auth-form input').forEach(i => i.value = '');
       document.getElementById('auth-error').classList.remove('visible');
+      // Reset password visibility toggles
+      document.querySelectorAll('.password-field input[type="text"]').forEach(inp => inp.type = 'password');
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      // Swap icon: eye-open vs eye-off
+      btn.innerHTML = isHidden
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
     }
 
     function switchAuthTab(tab) {
