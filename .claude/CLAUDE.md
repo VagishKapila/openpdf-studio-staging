@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-DocPix Studio is a free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, images, and documents in one place. No subscriptions.
+DocPix Studio is a full-featured document platform for editing PDFs, collecting e-signatures, processing payments, and managing document workflows — all in one place. Available as a SaaS with free trial, paid plans (Starter $29/mo, Pro $99/mo, Enterprise custom), and white-label options for businesses. Open-source core with premium features.
 
 - **Frontend (Editor)**: Vanilla HTML/CSS/JS served via GitHub Pages from `main` branch — single-file SPA in `src/index.html`
 - **Frontend (Dashboard)**: React 19 + TypeScript + Vite + Tailwind in `dashboard/` — separate app
