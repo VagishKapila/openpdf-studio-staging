@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* White-label CSS variables — loaded dynamically per org */
+:root {
+  --brand-primary: #6366F1;
+  --brand-secondary: #8B5CF6;
+  --brand-bg: #EEF2FF;
+  --brand-text: #1E293B;
+  --brand-font: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--brand-font);
+  color: var(--brand-text);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

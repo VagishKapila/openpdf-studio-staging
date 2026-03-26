@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, real, jsonb, uuid, varchar, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, real, jsonb, uuid, varchar, index, date, decimal } from 'drizzle-orm/pg-core';
 
 // ===== USERS =====
 export const users = pgTable('users', {
@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   companyLogo: text('company_logo_url'),
   googleId: varchar('google_id', { length: 255 }).unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
+  isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -37,6 +38,7 @@ export const sessions = pgTable('sessions', {
 export const documents = pgTable('documents', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'set null' }),
   fileName: varchar('file_name', { length: 500 }).notNull(),
   originalFileName: varchar('original_file_name', { length: 500 }),
   mimeType: varchar('mime_type', { length: 100 }),
@@ -177,6 +179,140 @@ export const verificationTokens = pgTable('verification_tokens', {
   index('idx_verification_user_id').on(table.userId),
 ]);
 
+// ===== ORGANIZATIONS (White-Label Tenants) =====
+export const organizations = pgTable('organizations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id),
+  plan: varchar('plan', { length: 20 }).default('free').notNull(),
+  // plan: free | starter | professional | enterprise
+  logoUrl: text('logo_url'),
+  primaryColor: varchar('primary_color', { length: 7 }).default('#6366F1'),
+  secondaryColor: varchar('secondary_color', { length: 7 }).default('#8B5CF6'),
+  customDomain: varchar('custom_domain', { length: 255 }),
+  emailFromName: varchar('email_from_name', { length: 255 }),
+  footerText: text('footer_text').default('Powered by DocPix Studio'),
+  settings: jsonb('settings').default({}),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_organizations_slug').on(table.slug),
+  index('idx_organizations_owner_id').on(table.ownerId),
+]);
+
+// ===== ORG MEMBERS (RBAC) =====
+export const orgMembers = pgTable('org_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 20 }).default('member').notNull(),
+  // role: owner | admin | member | viewer
+  invitedBy: uuid('invited_by').references(() => users.id),
+  joinedAt: timestamp('joined_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_org_members_org_id').on(table.orgId),
+  index('idx_org_members_user_id').on(table.userId),
+]);
+
+// ===== DOCUMENT PATTERNS (AI Intelligence) =====
+export const documentPatterns = pgTable('document_patterns', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }),
+  fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
+  fieldPositions: jsonb('field_positions').default([]),
+  commonEdits: jsonb('common_edits').default([]),
+  frequency: integer('frequency').default(1).notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  confidence: decimal('confidence', { precision: 3, scale: 2 }).default('0.00'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_doc_patterns_org_id').on(table.orgId),
+  index('idx_doc_patterns_fingerprint').on(table.fingerprint),
+]);
+
+// ===== SIGNING REMINDERS (AI-powered) =====
+export const signingReminders = pgTable('signing_reminders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  requestId: uuid('request_id').notNull().references(() => signatureRequests.id, { onDelete: 'cascade' }),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 20 }).default('auto').notNull(),
+  // type: auto | manual | escalation
+  channel: varchar('channel', { length: 20 }).default('email').notNull(),
+  // channel: email | sms | in_app
+  scheduledAt: timestamp('scheduled_at').notNull(),
+  sentAt: timestamp('sent_at'),
+  recipientEmail: varchar('recipient_email', { length: 255 }).notNull(),
+  message: text('message'),
+  attempt: integer('attempt').default(1).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_reminders_request_id').on(table.requestId),
+  index('idx_reminders_org_id').on(table.orgId),
+  index('idx_reminders_scheduled_at').on(table.scheduledAt),
+]);
+
+// ===== DAILY REPORTS (pre-computed per org) =====
+export const dailyReports = pgTable('daily_reports', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  reportDate: date('report_date').notNull(),
+  docsSent: integer('docs_sent').default(0).notNull(),
+  docsSigned: integer('docs_signed').default(0).notNull(),
+  docsPending: integer('docs_pending').default(0).notNull(),
+  docsExpired: integer('docs_expired').default(0).notNull(),
+  revenue: integer('revenue').default(0).notNull(), // cents
+  newClients: integer('new_clients').default(0).notNull(),
+  avgTimeToSign: integer('avg_time_to_sign').default(0).notNull(), // seconds
+  errors: jsonb('errors').default([]),
+  aiSuggestions: integer('ai_suggestions').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_daily_reports_org_id').on(table.orgId),
+  index('idx_daily_reports_date').on(table.reportDate),
+]);
+
+// ===== NOTIFICATION INBOX =====
+export const notificationInbox = pgTable('notification_inbox', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull(),
+  // type: document_signed | payment_received | reminder_sent | error | system
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message'),
+  data: jsonb('data'),
+  read: boolean('read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_notifications_user_id').on(table.userId),
+  index('idx_notifications_read').on(table.read),
+]);
+
+// ===== FEEDBACK (AI-triaged client feedback) =====
+export const feedback = pgTable('feedback', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  category: varchar('category', { length: 20 }).default('general').notNull(),
+  // category: bug | feature_request | general | security
+  priority: varchar('priority', { length: 20 }).default('medium').notNull(),
+  // priority: critical | high | medium | low
+  message: text('message').notNull(),
+  aiSummary: text('ai_summary'),
+  status: varchar('status', { length: 20 }).default('new').notNull(),
+  // status: new | acknowledged | in_progress | resolved | closed
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_feedback_org_id').on(table.orgId),
+  index('idx_feedback_priority').on(table.priority),
+  index('idx_feedback_status').on(table.status),
+]);
+
 // ===== TYPE EXPORTS =====
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -185,3 +321,11 @@ export type NewDocument = typeof documents.$inferInsert;
 export type SignatureRequest = typeof signatureRequests.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
+export type OrgMember = typeof orgMembers.$inferSelect;
+export type DocumentPattern = typeof documentPatterns.$inferSelect;
+export type SigningReminder = typeof signingReminders.$inferSelect;
+export type DailyReport = typeof dailyReports.$inferSelect;
+export type Notification = typeof notificationInbox.$inferSelect;
+export type FeedbackEntry = typeof feedback.$inferSelect;
