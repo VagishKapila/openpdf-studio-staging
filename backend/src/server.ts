@@ -1,8 +1,19 @@
 import { serve } from '@hono/node-server';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import app from './app';
 import { env } from './config/env';
+import { db } from './shared/db';
 
 const port = env.PORT;
+
+// Run database migrations before starting server
+try {
+  await migrate(db, { migrationsFolder: './drizzle' });
+  console.log('✅ Database migrations applied');
+} catch (error) {
+  console.error('⚠️  Migration warning:', error);
+  // Don't exit — migrations may already be applied
+}
 
 console.log(`
 ╔══════════════════════════════════════════════╗
