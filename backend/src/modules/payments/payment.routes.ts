@@ -107,6 +107,58 @@ paymentRoutes.post('/webhook', async (c) => {
   }
 });
 
+// ===== QUICK CHECKOUT (Sign & Pay flow) =====
+// POST /payments/quick-checkout
+// No auth required — creates a simple Stripe Checkout for the signing flow
+// Does NOT create a payment record in DB (no document/user reference needed)
+paymentRoutes.post('/quick-checkout', async (c) => {
+  try {
+    const body = await c.req.json();
+
+    if (!body.amount || body.amount < 50) {
+      return c.json({ error: 'amount is required and must be at least 50 cents' }, 400);
+    }
+
+    const s = new Stripe(env.STRIPE_SECRET_KEY!);
+
+    // Determine return URLs based on request origin
+    const origin = c.req.header('origin') || c.req.header('referer') || env.FRONTEND_URL;
+    const baseUrl = origin?.replace(/\/$/, '') || env.FRONTEND_URL;
+
+    const session = await s.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: body.currency || 'usd',
+          product_data: {
+            name: body.description || 'Document Signing Payment',
+            description: 'Payment for signed document via DocPix Studio',
+          },
+          unit_amount: body.amount,
+        },
+        quantity: 1,
+      }],
+      customer_email: body.payerEmail || undefined,
+      success_url: body.successUrl || `${baseUrl}?payment=success`,
+      cancel_url: body.cancelUrl || `${baseUrl}?payment=cancelled`,
+      metadata: {
+        source: 'sign-and-pay',
+        documentName: body.documentName || 'Unknown',
+      },
+    });
+
+    return c.json({
+      success: true,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    });
+  } catch (error: any) {
+    console.error('Quick checkout error:', error);
+    return c.json({ error: error.message || 'Failed to create checkout' }, 500);
+  }
+});
+
 // ===== GET STRIPE PUBLISHABLE KEY =====
 // GET /payments/config
 paymentRoutes.get('/config', async (c) => {

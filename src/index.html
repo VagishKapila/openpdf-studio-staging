@@ -7222,22 +7222,24 @@
           try {
             const apiBase = (typeof DPStudioAPI !== 'undefined' && DPStudioAPI.baseUrl)
               ? DPStudioAPI.baseUrl
-              : 'https://dpstudio-backend-production.up.railway.app';
+              : 'https://openpdf-studio-production.up.railway.app';
             const token = localStorage.getItem('dpstudio_access_token');
             const amountCents = Math.round(amount * 100);
 
-            const resp = await fetch(apiBase + '/payments/create-checkout', {
+            const currentOrigin = window.location.origin;
+            const resp = await fetch(apiBase + '/payments/quick-checkout', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
               },
               body: JSON.stringify({
-                documentId: signingState.documentId || 'local-' + Date.now(),
                 amount: amountCents,
                 currency: 'usd',
                 description: desc,
+                documentName: signingState.file?.name || 'Document',
                 payerEmail: signingState.signerEmail,
+                successUrl: currentOrigin + window.location.pathname + '?payment=success',
+                cancelUrl: currentOrigin + window.location.pathname + '?payment=cancelled',
               }),
             });
 
