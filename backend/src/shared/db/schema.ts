@@ -316,6 +316,93 @@ export const verificationTokens = pgTable('verification_tokens', {
   index('idx_verification_user_id').on(table.userId),
 ]);
 
+// ===== DOCUMENT PROTECTION =====
+export const documentProtection = pgTable('document_protection', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  documentId: uuid('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+
+  // Password protection
+  userPassword: text('user_password'),        // password to OPEN the PDF (hashed)
+  ownerPassword: text('owner_password'),      // password to EDIT the PDF (hashed)
+  rawUserPassword: text('raw_user_password'), // encrypted for recovery/display (AES)
+  rawOwnerPassword: text('raw_owner_password'),
+
+  // Permission flags (what the user CAN'T do)
+  disablePrinting: boolean('disable_printing').default(true).notNull(),
+  disableCopying: boolean('disable_copying').default(true).notNull(),
+  disableEditing: boolean('disable_editing').default(true).notNull(),
+  disableAnnotations: boolean('disable_annotations').default(true).notNull(),
+  disableFormFilling: boolean('disable_form_filling').default(true).notNull(),
+  disableExtraction: boolean('disable_extraction').default(true).notNull(),
+
+  // Watermark
+  watermarkEnabled: boolean('watermark_enabled').default(false).notNull(),
+  watermarkText: varchar('watermark_text', { length: 500 }),
+  watermarkOpacity: real('watermark_opacity').default(0.15).notNull(),
+  watermarkFontSize: integer('watermark_font_size').default(48).notNull(),
+  watermarkColor: varchar('watermark_color', { length: 20 }).default('#888888').notNull(),
+  watermarkAngle: real('watermark_angle').default(-45).notNull(),
+
+  // Protection metadata
+  protectedS3Key: text('protected_s3_key'),  // S3 key for protected version
+  protectionAppliedAt: timestamp('protection_applied_at'),
+  protectionMethod: varchar('protection_method', { length: 50 }).default('aes-256').notNull(),
+  // method: aes-128 | aes-256 | rc4-128
+
+  // Auto-protection settings
+  autoProtected: boolean('auto_protected').default(false).notNull(), // was this auto-applied after signing?
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_doc_protection_document_id').on(table.documentId),
+  index('idx_doc_protection_user_id').on(table.userId),
+  index('idx_doc_protection_org_id').on(table.orgId),
+]);
+
+// ===== PROTECTION PRESETS (Org-Level Defaults) =====
+export const protectionPresets = pgTable('protection_presets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  isGlobal: boolean('is_global').default(false).notNull(), // super-admin global default
+
+  // Auto-protect settings
+  autoProtectAfterSigning: boolean('auto_protect_after_signing').default(true).notNull(),
+  autoProtectEnabled: boolean('auto_protect_enabled').default(true).notNull(),
+
+  // Default password behavior
+  generateRandomPasswords: boolean('generate_random_passwords').default(true).notNull(),
+  requireUserPassword: boolean('require_user_password').default(false).notNull(),
+  requireOwnerPassword: boolean('require_owner_password').default(true).notNull(),
+
+  // Default permissions
+  disablePrinting: boolean('disable_printing').default(true).notNull(),
+  disableCopying: boolean('disable_copying').default(true).notNull(),
+  disableEditing: boolean('disable_editing').default(true).notNull(),
+  disableAnnotations: boolean('disable_annotations').default(true).notNull(),
+  disableFormFilling: boolean('disable_form_filling').default(true).notNull(),
+  disableExtraction: boolean('disable_extraction').default(true).notNull(),
+
+  // Default watermark
+  watermarkEnabled: boolean('watermark_enabled').default(false).notNull(),
+  watermarkText: varchar('watermark_text', { length: 500 }),
+  watermarkOpacity: real('watermark_opacity').default(0.15).notNull(),
+
+  // Encryption method
+  protectionMethod: varchar('protection_method', { length: 50 }).default('aes-256').notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_protection_presets_org_id').on(table.orgId),
+  index('idx_protection_presets_user_id').on(table.userId),
+]);
+
 // ===== PLATFORM SETTINGS =====
 export const platformSettings = pgTable('platform_settings', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -344,3 +431,7 @@ export type DocumentPattern = typeof documentPatterns.$inferSelect;
 export type SigningReminder = typeof signingReminders.$inferSelect;
 export type Notification = typeof notificationInbox.$inferSelect;
 export type PlatformSetting = typeof platformSettings.$inferSelect;
+export type DocumentProtection = typeof documentProtection.$inferSelect;
+export type NewDocumentProtection = typeof documentProtection.$inferInsert;
+export type ProtectionPreset = typeof protectionPresets.$inferSelect;
+export type NewProtectionPreset = typeof protectionPresets.$inferInsert;
