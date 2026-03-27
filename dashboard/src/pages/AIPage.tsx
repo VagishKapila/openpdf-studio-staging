@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   PieChart, Pie, BarChart, Bar, Cell, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KPICard } from '@/components/dashboard/KPICard';
@@ -397,11 +397,11 @@ export function AIPage() {
                       </div>
                       <div className="flex-shrink-0">
                         {reminder.type === 'escalation' ? (
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" title="Escalation" />
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" aria-label="Escalation" />
                         ) : reminder.type === 'manual' ? (
-                          <MessageSquare className="w-4 h-4 text-blue-600" title="Manual" />
+                          <MessageSquare className="w-4 h-4 text-blue-600" aria-label="Manual" />
                         ) : (
-                          <Loader className="w-4 h-4 text-gray-400" title="Auto" />
+                          <Loader className="w-4 h-4 text-gray-400" aria-label="Auto" />
                         )}
                       </div>
                     </div>

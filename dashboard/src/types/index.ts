@@ -53,9 +53,13 @@ export interface DocumentRecord {
   userId: string;
   orgId: string | null;
   name: string;
+  fileName?: string;
+  originalFileName?: string;
   type: string;
   s3Key: string | null;
   size: number;
+  fileSize?: number;
+  pageCount?: number;
   status: 'draft' | 'sent' | 'viewed' | 'signed' | 'paid' | 'completed' | 'archived';
   metadata: Record<string, unknown>;
   createdAt: string;

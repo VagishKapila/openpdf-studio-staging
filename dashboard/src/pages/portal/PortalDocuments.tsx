@@ -267,12 +267,12 @@ export function PortalDocuments() {
 
     filteredDocs.forEach((doc) => {
       if (doc.status && grouped[doc.status as keyof typeof grouped]) {
-        grouped[doc.status].push(doc);
+        grouped[doc.status as keyof typeof grouped]!.push(doc);
       }
     });
 
     Object.keys(grouped).forEach((key) => {
-      grouped[key].sort((a, b) =>
+      grouped[key as keyof typeof grouped]!.sort((a: DocumentRecord, b: DocumentRecord) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     });
