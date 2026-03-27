@@ -6,7 +6,7 @@
 
 const DPStudioAPI = (() => {
   // ===== CONFIG =====
-  const API_BASE = 'https://openpdf-studio-production.up.railway.app';
+  const API_BASE = 'https://dpstudio-backend-production.up.railway.app';
   const TOKEN_KEY = 'dpstudio_access_token';
   const REFRESH_KEY = 'dpstudio_refresh_token';
   const USER_KEY = 'dpstudio_user';
@@ -356,7 +356,8 @@ const DPStudioAPI = (() => {
     marketplace,
     onAuthChange,
     APIError,
-    // Expose for debugging
+    // Expose API base URL
+    baseUrl: API_BASE,
     _getApiBase: () => API_BASE,
   };
 })();
