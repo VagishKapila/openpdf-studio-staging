@@ -11,6 +11,9 @@ import { esignRoutes } from './modules/esign';
 import { paymentRoutes } from './modules/payments';
 import { adminRoutes } from './modules/admin';
 import { orgRoutes } from './modules/org';
+import { notificationRoutes } from './modules/notifications';
+import { reminderRoutes } from './modules/reminders';
+import { aiRoutes } from './modules/ai';
 
 const app = new Hono();
 
@@ -32,7 +35,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert', 'esign', 'payments', 'admin', 'org'],
+    modules: ['auth', 'convert', 'esign', 'payments', 'admin', 'org', 'notifications', 'reminders', 'ai'],
   });
 });
 
@@ -49,6 +52,9 @@ app.route('/esign', esignRoutes);
 app.route('/payments', paymentRoutes);
 app.route('/admin', adminRoutes);
 app.route('/org', orgRoutes);
+app.route('/notifications', notificationRoutes);
+app.route('/reminders', reminderRoutes);
+app.route('/ai', aiRoutes);
 
 // ===== 404 HANDLER =====
 app.notFound((c) => {

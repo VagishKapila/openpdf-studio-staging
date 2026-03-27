@@ -3,7 +3,18 @@
  * Handles JWT auth, token refresh, and typed requests.
  */
 
-import type { ApiResponse, ApiError } from '@/types';
+import type {
+  ApiResponse,
+  ApiError,
+  Organization,
+  OrgDashboardData,
+  OrgMemberDetail,
+  OrgNotification,
+  OrgMembership,
+  DocumentRecord,
+  DailyReport,
+  Feedback,
+} from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -184,6 +195,94 @@ class ApiClient {
       nodeVersion: string;
       timestamp: string;
     }>>('/admin/system/health');
+  }
+
+  // ── Org Portal ──
+  async getMyOrgs() {
+    return this.request<ApiResponse<OrgMembership[]>>('/org/');
+  }
+
+  async getOrgDetails(slug: string) {
+    return this.request<ApiResponse<Organization & { currentUserRole: string }>>(`/org/${slug}`);
+  }
+
+  async getOrgDashboard(slug: string) {
+    return this.request<ApiResponse<OrgDashboardData>>(`/org/${slug}/dashboard`);
+  }
+
+  async getOrgDocuments(slug: string, params?: { page?: number; limit?: number; status?: string }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.status) query.set('status', params.status);
+    return this.request<ApiResponse<DocumentRecord[]>>(`/org/${slug}/documents?${query}`);
+  }
+
+  async getOrgMembers(slug: string) {
+    return this.request<ApiResponse<OrgMemberDetail[]>>(`/org/${slug}/members`);
+  }
+
+  async inviteOrgMember(slug: string, data: { email: string; name?: string; role?: string }) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/members/invite`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateOrgMemberRole(slug: string, userId: string, role: string) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/members/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removeOrgMember(slug: string, userId: string) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateOrgBranding(slug: string, data: Partial<Organization>) {
+    return this.request<ApiResponse<Organization>>(`/org/${slug}/branding`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateOrgSettings(slug: string, data: Record<string, unknown>) {
+    return this.request<ApiResponse<Organization>>(`/org/${slug}/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOrgNotifications(slug: string, unread?: boolean) {
+    const query = unread ? '?unread=true' : '';
+    return this.request<ApiResponse<OrgNotification[]>>(`/org/${slug}/notifications${query}`);
+  }
+
+  async markNotificationRead(slug: string, notifId: string) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/notifications/${notifId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async submitFeedback(slug: string, data: { message: string; category?: string }) {
+    return this.request<ApiResponse<Feedback>>(`/org/${slug}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createOrg(data: { name: string; slug: string }) {
+    return this.request<ApiResponse<Organization>>('/org/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOrgAnalytics(slug: string) {
+    return this.request<ApiResponse<DailyReport[]>>(`/org/${slug}/analytics`);
   }
 }
 

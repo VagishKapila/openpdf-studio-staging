@@ -117,3 +117,46 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
 </html>`,
   });
 }
+
+// ===== GENERIC NOTIFICATION EMAIL =====
+export async function sendNotificationEmail(to: string, subject: string, heading: string, bodyText: string, ctaText?: string, ctaUrl?: string) {
+  const client = getEmailClient();
+
+  const ctaButton = ctaText && ctaUrl ? `
+    <a href="${ctaUrl}" style="display:inline-block;background:#6366f1;color:white;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;">
+      ${ctaText}
+    </a>` : '';
+
+  await client.emails.send({
+    from: `DocPix Studio <${env.EMAIL_FROM}>`,
+    to,
+    subject,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:480px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px 24px;text-align:center;">
+      <div style="display:inline-flex;align-items:center;gap:8px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/>
+          <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
+        </svg>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+      </div>
+    </div>
+    <div style="padding:32px 24px;">
+      <h1 style="margin:0 0 8px;font-size:22px;color:#18181b;">${heading}</h1>
+      <p style="margin:0 0 24px;color:#71717a;font-size:15px;line-height:1.5;">${bodyText}</p>
+      ${ctaButton}
+    </div>
+  </div>
+</body>
+</html>`,
+  });
+}

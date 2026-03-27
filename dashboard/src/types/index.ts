@@ -219,3 +219,49 @@ export interface ApiError {
   code?: string;
   status: number;
 }
+
+// ── Org Portal Types ──
+export interface OrgDashboardData {
+  organization: Organization;
+  currentUserRole: 'owner' | 'admin' | 'member' | 'viewer';
+  documents: {
+    total: number;
+    signed: number;
+    pending: number;
+    draft: number;
+  };
+  memberCount: number;
+  revenue?: {
+    total: number;
+    thisMonth: number;
+  };
+}
+
+export interface OrgMemberDetail {
+  id: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: string | null;
+  createdAt: string;
+  userName: string | null;
+  userEmail: string;
+  userAvatar: string | null;
+}
+
+export interface OrgNotification {
+  id: string;
+  userId: string;
+  orgId: string | null;
+  type: string;
+  title: string;
+  message: string;
+  data: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface OrgMembership {
+  org: Organization;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: string | null;
+}

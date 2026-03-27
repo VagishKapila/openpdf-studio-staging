@@ -7,6 +7,7 @@ import { api } from './api';
 import type {
   DashboardStats, User, DocumentRecord, AuditLogEntry,
   Organization, Feedback, ChartSeries, ApiResponse,
+  OrgDashboardData, OrgMemberDetail, OrgNotification, OrgMembership, DailyReport,
 } from '@/types';
 
 // ── Dashboard ──
@@ -144,6 +145,124 @@ export function useUpdateSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+// ── Portal Hooks ──
+
+export function useMyOrgs() {
+  return useQuery<ApiResponse<OrgMembership[]>>({
+    queryKey: ['my-orgs'],
+    queryFn: () => api.getMyOrgs(),
+  });
+}
+
+export function useOrgDashboard(slug: string) {
+  return useQuery<ApiResponse<OrgDashboardData>>({
+    queryKey: ['org', slug, 'dashboard'],
+    queryFn: () => api.getOrgDashboard(slug),
+    enabled: !!slug,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useOrgDocuments(slug: string, params: { page: number; limit: number; status: string }) {
+  return useQuery<ApiResponse<DocumentRecord[]>>({
+    queryKey: ['org', slug, 'documents', params],
+    queryFn: () => api.getOrgDocuments(slug, params),
+    enabled: !!slug,
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useOrgMembers(slug: string) {
+  return useQuery<ApiResponse<OrgMemberDetail[]>>({
+    queryKey: ['org', slug, 'members'],
+    queryFn: () => api.getOrgMembers(slug),
+    enabled: !!slug,
+  });
+}
+
+export function useOrgNotifications(slug: string) {
+  return useQuery<ApiResponse<OrgNotification[]>>({
+    queryKey: ['org', slug, 'notifications'],
+    queryFn: () => api.getOrgNotifications(slug),
+    enabled: !!slug,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useOrgAnalytics(slug: string) {
+  return useQuery<ApiResponse<DailyReport[]>>({
+    queryKey: ['org', slug, 'analytics'],
+    queryFn: () => api.getOrgAnalytics(slug),
+    enabled: !!slug,
+  });
+}
+
+export function useInviteMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: { email: string; name?: string; role?: string } }) =>
+      api.inviteOrgMember(slug, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'members'] });
+    },
+  });
+}
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, userId, role }: { slug: string; userId: string; role: string }) =>
+      api.updateOrgMemberRole(slug, userId, role),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'members'] });
+    },
+  });
+}
+
+export function useRemoveMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, userId }: { slug: string; userId: string }) =>
+      api.removeOrgMember(slug, userId),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'members'] });
+    },
+  });
+}
+
+export function useUpdateOrgBranding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: Partial<Organization> }) =>
+      api.updateOrgBranding(slug, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug] });
+    },
+  });
+}
+
+export function useCreateOrg() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; slug: string }) =>
+      api.createOrg(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-orgs'] });
+    },
+  });
+}
+
+export function useSubmitFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: { message: string; category?: string } }) =>
+      api.submitFeedback(slug, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug] });
     },
   });
 }

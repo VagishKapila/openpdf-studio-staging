@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
-import { users, documents, payments, auditLog, signatureRequests, organizations, feedback } from '../../shared/db/schema';
+import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers } from '../../shared/db/schema';
 import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
 
 const admin = new Hono();
@@ -111,18 +111,24 @@ admin.get('/users/:id', async (c) => {
   }
 });
 
-// ── Suspend / Reactivate User ──
+// ── Update User (active/plan/superadmin) ──
 admin.patch('/users/:id', async (c) => {
   const userId = c.req.param('id');
   const body = await c.req.json();
   try {
     const [updated] = await db
       .update(users)
-      .set({ isActive: body.isActive, updatedAt: new Date() })
+      .set({
+        isActive: body.isActive ?? undefined,
+        plan: body.plan ?? undefined,
+        isSuperAdmin: body.isSuperAdmin ?? undefined,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, userId))
       .returning();
     return c.json({ data: updated });
   } catch (err: any) {
+    console.error('[admin] Update user error:', err.message);
     return c.json({ error: 'Failed to update user' }, 500);
   }
 });
@@ -199,6 +205,35 @@ admin.get('/organizations', async (c) => {
   }
 });
 
+// ── Documents List ──
+admin.get('/documents', async (c) => {
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = parseInt(c.req.query('limit') || '25');
+  const status = c.req.query('status');
+  const offset = (page - 1) * limit;
+
+  try {
+    const conditions = status ? eq(documents.status, status) : undefined;
+
+    const [{ total }] = await db.select({ total: count() }).from(documents).where(conditions);
+    const rows = await db
+      .select()
+      .from(documents)
+      .where(conditions)
+      .orderBy(desc(documents.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return c.json({
+      data: rows,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err: any) {
+    console.error('[admin] List documents error:', err.message);
+    return c.json({ error: 'Failed to fetch documents' }, 500);
+  }
+});
+
 // ── Feedback ──
 admin.get('/feedback', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
@@ -223,7 +258,171 @@ admin.get('/feedback', async (c) => {
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (err: any) {
+    console.error('[admin] List feedback error:', err.message);
     return c.json({ error: 'Failed to fetch feedback' }, 500);
+  }
+});
+
+// ── Update Feedback Status/Priority ──
+admin.patch('/feedback/:id', async (c) => {
+  const feedbackId = c.req.param('id');
+  const body = await c.req.json();
+
+  if (!body.status && !body.priority) {
+    return c.json({ error: 'Must provide status or priority' }, 400);
+  }
+
+  try {
+    const [updated] = await db
+      .update(feedback)
+      .set({
+        status: body.status ?? undefined,
+        priority: body.priority ?? undefined,
+      })
+      .where(eq(feedback.id, feedbackId))
+      .returning();
+
+    if (!updated) {
+      return c.json({ error: 'Feedback not found' }, 404);
+    }
+
+    return c.json({ data: updated });
+  } catch (err: any) {
+    console.error('[admin] Update feedback error:', err.message);
+    return c.json({ error: 'Failed to update feedback' }, 500);
+  }
+});
+
+// ── Create Organization (admin override) ──
+admin.post('/organizations', async (c) => {
+  const body = await c.req.json();
+
+  if (!body.name || !body.slug || !body.ownerId) {
+    return c.json({ error: 'Name, slug, and ownerId are required' }, 400);
+  }
+
+  // Validate slug format
+  if (!/^[a-z0-9-]+$/.test(body.slug)) {
+    return c.json({ error: 'Slug must be lowercase alphanumeric with hyphens only' }, 400);
+  }
+
+  try {
+    // Verify owner exists
+    const [ownerUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, body.ownerId))
+      .limit(1);
+
+    if (!ownerUser) {
+      return c.json({ error: 'Owner user not found' }, 404);
+    }
+
+    const [newOrg] = await db
+      .insert(organizations)
+      .values({
+        name: body.name,
+        slug: body.slug,
+        ownerId: body.ownerId,
+        plan: body.plan || 'free',
+      })
+      .returning();
+
+    // Add owner as organization member
+    await db.insert(orgMembers).values({
+      orgId: newOrg.id,
+      userId: body.ownerId,
+      role: 'owner',
+      joinedAt: new Date(),
+    });
+
+    return c.json({ data: newOrg }, 201);
+  } catch (err: any) {
+    if (err.code === '23505') {
+      return c.json({ error: 'Organization slug already taken' }, 409);
+    }
+    console.error('[admin] Create organization error:', err.message);
+    return c.json({ error: 'Failed to create organization' }, 500);
+  }
+});
+
+// ── Update Organization (admin override) ──
+admin.patch('/organizations/:id', async (c) => {
+  const orgId = c.req.param('id');
+  const body = await c.req.json();
+
+  try {
+    const [updated] = await db
+      .update(organizations)
+      .set({
+        name: body.name ?? undefined,
+        plan: body.plan ?? undefined,
+        isActive: body.isActive ?? undefined,
+        logoUrl: body.logoUrl ?? undefined,
+        primaryColor: body.primaryColor ?? undefined,
+        secondaryColor: body.secondaryColor ?? undefined,
+        customDomain: body.customDomain ?? undefined,
+        emailFromName: body.emailFromName ?? undefined,
+        footerText: body.footerText ?? undefined,
+        settings: body.settings ?? undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, orgId))
+      .returning();
+
+    if (!updated) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+
+    return c.json({ data: updated });
+  } catch (err: any) {
+    console.error('[admin] Update organization error:', err.message);
+    return c.json({ error: 'Failed to update organization' }, 500);
+  }
+});
+
+// ── Platform Settings (GET/PUT) ──
+admin.get('/settings', async (c) => {
+  try {
+    // Get settings from a special settings organization or config store
+    // For now, return hardcoded defaults that can be extended
+    const settings = {
+      platformName: 'DocPix Studio',
+      maintenanceMode: false,
+      emailNotificationsEnabled: true,
+      signatureExpiryDays: 30,
+      maxDocumentSizeMb: 50,
+      enableAiFieldDetection: true,
+      stripeTestMode: true,
+    };
+
+    return c.json({ data: settings });
+  } catch (err: any) {
+    console.error('[admin] Get settings error:', err.message);
+    return c.json({ error: 'Failed to fetch settings' }, 500);
+  }
+});
+
+admin.put('/settings', async (c) => {
+  const body = await c.req.json();
+
+  try {
+    // For now, return updated settings (in production, store in DB or Redis)
+    const settings = {
+      platformName: body.platformName ?? 'DocPix Studio',
+      maintenanceMode: body.maintenanceMode ?? false,
+      emailNotificationsEnabled: body.emailNotificationsEnabled ?? true,
+      signatureExpiryDays: body.signatureExpiryDays ?? 30,
+      maxDocumentSizeMb: body.maxDocumentSizeMb ?? 50,
+      enableAiFieldDetection: body.enableAiFieldDetection ?? true,
+      stripeTestMode: body.stripeTestMode ?? true,
+    };
+
+    // TODO: Store settings in DB or Redis
+    return c.json({ data: settings });
+  } catch (err: any) {
+    console.error('[admin] Update settings error:', err.message);
+    return c.json({ error: 'Failed to update settings' }, 500);
   }
 });
 
