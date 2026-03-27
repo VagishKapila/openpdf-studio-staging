@@ -91,6 +91,13 @@ class ApiClient {
     return this.request<ApiResponse<import('@/types').User>>(`/admin/users/${id}`);
   }
 
+  async updateUser(id: string, data: { isActive?: boolean; plan?: string; isSuperAdmin?: boolean }) {
+    return this.request<ApiResponse<import('@/types').User>>(`/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Documents ──
   async getDocuments(params?: { page?: number; limit?: number; status?: string }) {
     const query = new URLSearchParams();
@@ -125,6 +132,20 @@ class ApiClient {
     return this.request<ApiResponse<import('@/types').Organization[]>>(`/admin/organizations?${query}`);
   }
 
+  async createOrganization(data: { name: string; slug: string }) {
+    return this.request<ApiResponse<import('@/types').Organization>>('/admin/organizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateOrganization(id: string, data: Partial<import('@/types').Organization>) {
+    return this.request<ApiResponse<import('@/types').Organization>>(`/admin/organizations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Feedback ──
   async getFeedback(params?: { page?: number; limit?: number; category?: string; priority?: string }) {
     const query = new URLSearchParams();
@@ -133,6 +154,21 @@ class ApiClient {
     if (params?.category) query.set('category', params.category);
     if (params?.priority) query.set('priority', params.priority);
     return this.request<ApiResponse<import('@/types').Feedback[]>>(`/admin/feedback?${query}`);
+  }
+
+  async updateFeedback(id: string, data: { status?: string; priority?: string }) {
+    return this.request<ApiResponse<import('@/types').Feedback>>(`/admin/feedback/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── Settings ──
+  async updateSettings(data: Record<string, unknown>) {
+    return this.request<ApiResponse<Record<string, unknown>>>('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   // ── System Health ──

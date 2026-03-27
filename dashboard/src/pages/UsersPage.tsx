@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Shield, ShieldOff, Mail, ExternalLink } from 'lucide-react';
-import { useUsers } from '@/lib/hooks';
+import { Shield, ShieldOff, Mail, ExternalLink, Loader } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useUsers, useUpdateUser } from '@/lib/hooks';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { Pagination } from '@/components/shared/Pagination';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -136,6 +137,21 @@ export function UsersPage() {
 }
 
 function UserDrawer({ user, onClose }: { user: User; onClose: () => void }) {
+  const updateMutation = useUpdateUser();
+
+  const handleSuspend = async () => {
+    try {
+      await updateMutation.mutateAsync({
+        id: user.id,
+        data: { isActive: false },
+      });
+      toast.success('User suspended');
+      setTimeout(() => onClose(), 500);
+    } catch (err) {
+      toast.error('Failed to suspend user');
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40" onClick={onClose} />
@@ -173,7 +189,18 @@ function UserDrawer({ user, onClose }: { user: User; onClose: () => void }) {
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-2">
             <DrawerAction icon={Mail} label="Send Verification Email" />
             <DrawerAction icon={ExternalLink} label="View Activity Log" />
-            <DrawerAction icon={ShieldOff} label="Suspend User" variant="danger" />
+            <button
+              onClick={handleSuspend}
+              disabled={updateMutation.isPending}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updateMutation.isPending ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <ShieldOff className="w-4 h-4" />
+              )}
+              {updateMutation.isPending ? 'Suspending...' : 'Suspend User'}
+            </button>
           </div>
         </div>
       </div>

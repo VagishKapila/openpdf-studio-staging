@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Bug, Lightbulb, MessageCircle, ShieldAlert, Sparkles, ChevronRight } from 'lucide-react';
-import { useFeedback } from '@/lib/hooks';
+import { Bug, Lightbulb, MessageCircle, ShieldAlert, Sparkles, ChevronRight, Loader } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useFeedback, useUpdateFeedback } from '@/lib/hooks';
 import { Pagination } from '@/components/shared/Pagination';
 import { FilterSelect } from '@/components/shared/FilterSelect';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -111,6 +112,19 @@ function FeedbackCard({ item, isExpanded, onToggle }: { item: Feedback; isExpand
   const catInfo = categoryIcons[item.category] ?? categoryIcons['general']!;
   const Icon = catInfo.icon;
   const timeAgo = formatDistanceToNow(new Date(item.createdAt), { addSuffix: true });
+  const updateMutation = useUpdateFeedback();
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: item.id,
+        data: { status: newStatus },
+      });
+      toast.success(`Status updated to ${newStatus}`);
+    } catch (err) {
+      toast.error('Failed to update feedback status');
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -163,8 +177,11 @@ function FeedbackCard({ item, isExpanded, onToggle }: { item: Feedback; isExpand
               {STATUS_OPTIONS.filter((s) => s.value !== item.status).slice(0, 3).map((s) => (
                 <button
                   key={s.value}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => handleStatusChange(s.value)}
+                  disabled={updateMutation.isPending}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
+                  {updateMutation.isPending && <Loader className="w-3 h-3 animate-spin" />}
                   Mark {s.label}
                 </button>
               ))}

@@ -1,7 +1,8 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  ScrollText, Building2, MessageSquare, Settings,
+  ScrollText, Building2, MessageSquare, Settings, LogOut,
 } from 'lucide-react';
 
 const navItems = [
@@ -16,6 +17,27 @@ const navItems = [
 ];
 
 export function DashboardLayout() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userJson = localStorage.getItem('dpstudio_admin_user');
+    if (userJson) {
+      try {
+        setUser(JSON.parse(userJson));
+      } catch (e) {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('dpstudio_admin_token');
+    localStorage.removeItem('dpstudio_admin_refresh');
+    localStorage.removeItem('dpstudio_admin_user');
+    navigate('/login');
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
@@ -64,10 +86,22 @@ export function DashboardLayout() {
             Super Admin Dashboard
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">admin@docpixstudio.com</span>
-            <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-medium">VK</span>
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'Admin'}</span>
+              <span className="text-xs text-gray-500">{user?.email || 'admin@docpixstudio.com'}</span>
             </div>
+            <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-medium">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="ml-2 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
 

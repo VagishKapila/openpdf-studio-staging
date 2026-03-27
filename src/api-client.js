@@ -1,12 +1,12 @@
 /**
  * DocPix Studio — API Client
- * Handles all backend communication: auth, convert, documents, and future modules.
- * Designed with marketplace/dashboard expansion in mind.
+ * Handles all backend communication: auth, convert, documents, esign, payments, org.
+ * Modular design — each backend route group has a corresponding client module.
  */
 
 const DPStudioAPI = (() => {
   // ===== CONFIG =====
-  const API_BASE = 'https://openpdf-studio-production.up.railway.app';
+  const API_BASE = window.DPSTUDIO_API_BASE || 'https://dpstudio-backend-production.up.railway.app';
   const TOKEN_KEY = 'dpstudio_access_token';
   const REFRESH_KEY = 'dpstudio_refresh_token';
   const USER_KEY = 'dpstudio_user';
@@ -200,6 +200,38 @@ const DPStudioAPI = (() => {
     isLoggedIn() {
       return !!getAccessToken();
     },
+
+    async verifyEmail(token) {
+      return request('/auth/verify-email', {
+        method: 'POST',
+        body: { token },
+        auth: false,
+      });
+    },
+
+    async resendVerification(email) {
+      return request('/auth/resend-verification', {
+        method: 'POST',
+        body: { email },
+        auth: false,
+      });
+    },
+
+    async forgotPassword(email) {
+      return request('/auth/forgot-password', {
+        method: 'POST',
+        body: { email },
+        auth: false,
+      });
+    },
+
+    async resetPassword(token, password) {
+      return request('/auth/reset-password', {
+        method: 'POST',
+        body: { token, password },
+        auth: false,
+      });
+    },
   };
 
   // ===== CONVERT MODULE =====
@@ -312,12 +344,125 @@ const DPStudioAPI = (() => {
     },
   };
 
+  // ===== ESIGN MODULE =====
+  const esign = {
+    async prepare(file, options = {}) {
+      const formData = new FormData();
+      formData.append('file', file);
+      Object.entries(options).forEach(([k, v]) => formData.append(k, String(v)));
+      return request('/esign/prepare', {
+        method: 'POST',
+        body: formData,
+      });
+    },
+
+    async detectFields(documentId) {
+      return request(`/esign/detect-fields`, {
+        method: 'POST',
+        body: { documentId },
+      });
+    },
+
+    async getRequest(id) {
+      return request(`/esign/${id}`);
+    },
+
+    async saveFields(id, fields) {
+      return request(`/esign/${id}/fields`, {
+        method: 'POST',
+        body: { fields },
+      });
+    },
+
+    async sign(id, signatureData) {
+      return request(`/esign/${id}/sign`, {
+        method: 'POST',
+        body: signatureData,
+      });
+    },
+
+    async finalize(id, options = {}) {
+      return request(`/esign/${id}/finalize`, {
+        method: 'POST',
+        body: options,
+      });
+    },
+  };
+
+  // ===== PAYMENTS MODULE =====
+  const payments = {
+    async getConfig() {
+      return request('/payments/config');
+    },
+
+    async createCheckout(documentId, amount, description, currency = 'usd') {
+      return request('/payments/create-checkout', {
+        method: 'POST',
+        body: { documentId, amount, description, currency },
+      });
+    },
+
+    async getStatus(paymentId) {
+      return request(`/payments/${paymentId}`);
+    },
+
+    async getByDocument(documentId) {
+      return request(`/payments/document/${documentId}`);
+    },
+  };
+
+  // ===== ORG MODULE =====
+  const org = {
+    async create(name, slug) {
+      return request('/org', {
+        method: 'POST',
+        body: { name, slug },
+      });
+    },
+
+    async getDashboard(slug) {
+      return request(`/org/${slug}/dashboard`);
+    },
+
+    async updateBranding(slug, branding) {
+      return request(`/org/${slug}/branding`, {
+        method: 'PATCH',
+        body: branding,
+      });
+    },
+
+    async getMembers(slug) {
+      return request(`/org/${slug}/members`);
+    },
+
+    async inviteMember(slug, email, role = 'member') {
+      return request(`/org/${slug}/members/invite`, {
+        method: 'POST',
+        body: { email, role },
+      });
+    },
+
+    async getAnalytics(slug) {
+      return request(`/org/${slug}/analytics`);
+    },
+
+    async submitFeedback(slug, message, category = 'general') {
+      return request(`/org/${slug}/feedback`, {
+        method: 'POST',
+        body: { message, category },
+      });
+    },
+  };
+
   // ===== PUBLIC API =====
   return {
     auth,
     convert,
     documents,
     marketplace,
+    esign,
+    payments,
+    org,
     onAuthChange,
     APIError,
     // Expose for debugging

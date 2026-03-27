@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Building2, Globe, Palette, ExternalLink, Plus } from 'lucide-react';
-import { useOrganizations, useDashboardStats } from '@/lib/hooks';
+import { Building2, Globe, Palette, ExternalLink, Plus, Loader, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useOrganizations, useDashboardStats, useCreateOrganization } from '@/lib/hooks';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { Pagination } from '@/components/shared/Pagination';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -13,6 +14,7 @@ import type { Organization } from '@/types';
 export function OrganizationsPage() {
   const [page, setPage] = useState(1);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const limit = 25;
 
   const { data, isLoading, isError, error, refetch } = useOrganizations({ page, limit });
@@ -110,7 +112,10 @@ export function OrganizationsPage() {
         subtitle={`${meta?.total ?? 0} tenants · ${stats?.activeOrganizations ?? 0} active`}
         onRefresh={() => refetch()}
         actions={
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors">
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors"
+          >
             <Plus className="w-3.5 h-3.5" /> New Org
           </button>
         }
@@ -130,6 +135,7 @@ export function OrganizationsPage() {
       )}
 
       {selectedOrg && <OrgDrawer org={selectedOrg} onClose={() => setSelectedOrg(null)} />}
+      {showCreateForm && <CreateOrgModal onClose={() => setShowCreateForm(false)} onSuccess={() => { setShowCreateForm(false); refetch(); }} />}
     </div>
   );
 }
@@ -227,5 +233,104 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
       <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
       <span className="text-sm text-gray-900 dark:text-white">{value}</span>
     </div>
+  );
+}
+
+function CreateOrgModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const createMutation = useCreateOrganization();
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!name.trim() || !slug.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await createMutation.mutateAsync({ name, slug });
+      toast.success('Organization created successfully');
+      onSuccess();
+    } catch (err) {
+      const message = (err as any)?.message || 'Failed to create organization';
+      setError(message);
+      toast.error(message);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Create Organization</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Organization Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={createMutation.isPending}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
+                placeholder="e.g., ACME Corp"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Slug
+              </label>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                disabled={createMutation.isPending}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
+                placeholder="e.g., acme-corp"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">URL-friendly identifier (lowercase, hyphens only)</p>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={createMutation.isPending}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createMutation.isPending && <Loader className="w-4 h-4 animate-spin" />}
+                {createMutation.isPending ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }
