@@ -1,6 +1,6 @@
 # OpenPDF Studio
 
-A free, open-source PDF and image editor built with Tauri 2.0 and React.
+A PDF and image editor built with Tauri 2.0 and React. Free core features with premium paid tiers.
 
 **Developer**: VagishKapila
 **Repository**: https://github.com/VagishKapila/openpdf-studio

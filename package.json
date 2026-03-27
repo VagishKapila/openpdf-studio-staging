@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "OpenPDF Studio - Free, open-source PDF and image editor",
+  "description": "OpenPDF Studio - PDF and image editor with free and premium features",
   "author": "VagishKapila",
   "license": "MIT OR Apache-2.0",
   "repository": {

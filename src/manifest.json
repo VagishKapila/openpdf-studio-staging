@@ -1,7 +1,7 @@
 {
   "name": "DocPix Studio",
   "short_name": "DocPix",
-  "description": "Free PDF & Image Editor — Edit PDFs, images, and documents in one place. No subscriptions.",
+  "description": "PDF & Image Editor — Edit PDFs, images, and documents in one place. Free core features, premium tools available.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FAFAFA",

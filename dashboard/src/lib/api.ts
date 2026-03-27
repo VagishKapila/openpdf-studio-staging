@@ -139,11 +139,14 @@ class ApiClient {
   async getSystemHealth() {
     return this.request<ApiResponse<{
       uptime: number;
-      errorRate: number;
-      apiLatencyP95: number;
-      dbQueryP95: number;
-      s3UploadSuccess: number;
-      activeSessions: number;
+      memoryUsage: {
+        rss: number;
+        heapTotal: number;
+        heapUsed: number;
+        external: number;
+      };
+      nodeVersion: string;
+      timestamp: string;
     }>>('/admin/system/health');
   }
 }

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema, verifyEmailSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.validators';
+import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema } from './auth.validators';
 import * as authService from './auth.service';
 import { requireAuth, getUser } from '../../shared/middleware/auth';
 
@@ -148,74 +148,5 @@ authRoutes.patch('/me', requireAuth, async (c) => {
       return c.json({ error: 'Validation failed', details: error.issues }, 400);
     }
     return c.json({ error: 'Failed to update profile' }, 500);
-  }
-});
-
-// POST /auth/verify-email
-authRoutes.post('/verify-email', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { token } = verifyEmailSchema.parse(body);
-    const result = await authService.verifyEmail(token);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    if (error.message?.includes('Invalid') || error.message?.includes('expired') || error.message?.includes('already used')) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Verify email error:', error);
-    return c.json({ error: 'Email verification failed' }, 500);
-  }
-});
-
-// POST /auth/resend-verification (requires auth)
-authRoutes.post('/resend-verification', requireAuth, async (c) => {
-  try {
-    const user = getUser(c);
-    const result = await authService.resendVerificationEmail(user.id);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.message === 'Email already verified') {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Resend verification error:', error);
-    return c.json({ error: 'Failed to resend verification email' }, 500);
-  }
-});
-
-// POST /auth/forgot-password
-authRoutes.post('/forgot-password', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email } = forgotPasswordSchema.parse(body);
-    const result = await authService.forgotPassword(email);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    console.error('Forgot password error:', error);
-    return c.json({ error: 'Failed to process request' }, 500);
-  }
-});
-
-// POST /auth/reset-password
-authRoutes.post('/reset-password', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { token, password } = resetPasswordSchema.parse(body);
-    const result = await authService.resetPassword(token, password);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    if (error.message?.includes('Invalid') || error.message?.includes('expired') || error.message?.includes('already used')) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Reset password error:', error);
-    return c.json({ error: 'Password reset failed' }, 500);
   }
 });

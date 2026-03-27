@@ -2,7 +2,7 @@
 TAURI 2.0 PACKAGING FILES MANIFEST FOR OPENPDF STUDIO
 ================================================================================
 
-Project: OpenPDF Studio - Free, open-source PDF and image editor
+Project: OpenPDF Studio - PDF and image editor with free and premium features
 Version: 1.0.0
 Developer: VagishKapila
 Created: March 2024

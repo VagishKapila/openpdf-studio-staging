@@ -392,4 +392,4 @@ User opens an image (PNG, JPG, etc.)
 | **Services/accounts** | **5 accounts** | **~$136/yr** |
 | **TOTAL** | **~48 products** | **~$136/year** |
 
-Every single library is open-source and free. The only costs are domain registration and app store accounts.
+All third-party libraries used are open-source. The only recurring costs are domain registration and app store accounts.

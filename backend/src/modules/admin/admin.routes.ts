@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../../shared/middleware/auth.middleware';
+import { requireAuth } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
 import { users, documents, payments, auditLog, signatureRequests, organizations, feedback } from '../../shared/db/schema';
@@ -8,7 +8,7 @@ import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
 const admin = new Hono();
 
 // All admin routes require authentication + super admin
-admin.use('/*', authMiddleware, requireSuperAdmin);
+admin.use('/*', requireAuth, requireSuperAdmin);
 
 // ── Dashboard Stats ──
 admin.get('/dashboard/stats', async (c) => {

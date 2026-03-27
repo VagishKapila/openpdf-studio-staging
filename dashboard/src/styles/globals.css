@@ -21,3 +21,19 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Settings form inputs */
+@layer components {
+  .settings-input {
+    @apply w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors;
+  }
+}
+
+/* Slide-in animation for drawers */
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out;
+}

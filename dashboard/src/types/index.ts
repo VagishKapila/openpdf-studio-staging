@@ -160,6 +160,7 @@ export interface AuditLogEntry {
 // ── Dashboard Stats ──
 export interface DashboardStats {
   totalUsers: number;
+  verifiedUsers: number;
   activeUsers: number;
   newUsersToday: number;
   newUsersThisWeek: number;
@@ -170,6 +171,7 @@ export interface DashboardStats {
   avgTurnaroundTime: number;
   totalRevenue: number;
   revenueThisMonth: number;
+  paymentSuccessRate: number;
   monthlyChurnRate: number;
   totalOrganizations: number;
   activeOrganizations: number;

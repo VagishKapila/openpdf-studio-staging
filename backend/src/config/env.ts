@@ -8,7 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production']).default('development'),
   API_BASE_URL: z.string().url().default('http://localhost:3001'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
-  CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174'),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
@@ -23,12 +23,12 @@ const envSchema = z.object({
   AWS_REGION: z.string().default('us-east-1'),
   AWS_S3_BUCKET: z.string().default('dpstudio-documents'),
 
-  RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default('noreply@barshyrvirtual.com'),
-
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default('noreply@barshyrvirtual.com'),
 
   ANTHROPIC_API_KEY: z.string().optional(),
 });

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../../shared/middleware/auth.middleware';
+import { requireAuth, getUser } from '../../shared/middleware/auth';
 import { db } from '../../shared/db';
 import { organizations, orgMembers, documents, dailyReports, feedback } from '../../shared/db/schema';
 import { eq, and, desc, count, sql } from 'drizzle-orm';
@@ -7,11 +7,11 @@ import { eq, and, desc, count, sql } from 'drizzle-orm';
 const org = new Hono();
 
 // All org routes require authentication
-org.use('/*', authMiddleware);
+org.use('/*', requireAuth);
 
 // ── Create Organization ──
 org.post('/', async (c) => {
-  const userId = c.get('userId');
+  const userId = getUser(c).id;
   const body = await c.req.json();
 
   try {
@@ -108,7 +108,7 @@ org.get('/:slug/members', async (c) => {
 // ── Invite Member ──
 org.post('/:slug/members/invite', async (c) => {
   const slug = c.req.param('slug');
-  const userId = c.get('userId');
+  const userId = getUser(c).id;
   const body = await c.req.json();
 
   try {
@@ -145,7 +145,7 @@ org.get('/:slug/analytics', async (c) => {
 // ── Submit Feedback ──
 org.post('/:slug/feedback', async (c) => {
   const slug = c.req.param('slug');
-  const userId = c.get('userId');
+  const userId = getUser(c).id;
   const body = await c.req.json();
 
   try {

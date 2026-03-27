@@ -1,35 +1,8 @@
 import { serve } from '@hono/node-server';
-import { sql } from 'drizzle-orm';
 import app from './app';
 import { env } from './config/env';
-import { db } from './shared/db';
-import { readFileSync } from 'fs';
 
 const port = env.PORT;
-
-// Run database migrations before starting server
-try {
-  const migrationSql = readFileSync('./drizzle/0000_lovely_leech.sql', 'utf-8');
-  const statements = migrationSql.split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean);
-  let applied = 0;
-  let skipped = 0;
-  for (const stmt of statements) {
-    try {
-      await db.execute(sql.raw(stmt));
-      applied++;
-    } catch (e: any) {
-      // 42P07 = duplicate table, 42710 = duplicate constraint, 42P16 = duplicate index
-      if (['42P07', '42710', '42P16'].includes(e.code)) {
-        skipped++;
-      } else {
-        console.error('⚠️  Migration statement error:', e.message);
-      }
-    }
-  }
-  console.log(`✅ Database migrations: ${applied} applied, ${skipped} already existed`);
-} catch (error) {
-  console.error('⚠️  Migration warning:', error);
-}
 
 console.log(`
 ╔══════════════════════════════════════════════╗
