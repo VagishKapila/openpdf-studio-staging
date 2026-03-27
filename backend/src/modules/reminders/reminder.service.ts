@@ -2,6 +2,7 @@ import { db } from '../../shared/db';
 import { signingReminders, signatureRequests, documents } from '../../shared/db/schema';
 import { eq, and, lte, isNull, desc } from 'drizzle-orm';
 import { notifyReminderSent } from '../notifications/notification.service';
+import { sendNotificationEmail } from '../../shared/services/email.service';
 
 export interface ScheduleReminderParams {
   requestId: string;
@@ -84,6 +85,22 @@ export async function autoScheduleReminders(requestId: string, orgId: string | n
   }
 }
 
+// Send a reminder email to the recipient
+export async function sendReminderEmail(to: string, documentName: string, signerName: string, message?: string) {
+  try {
+    await sendNotificationEmail(
+      to,
+      `Reminder: ${documentName} is waiting for your signature`,
+      `Document Reminder`,
+      message || `Hi ${signerName}, you have a document waiting for your signature. Please review and sign "${documentName}" at your earliest convenience.`,
+      'Sign Document',
+      `${process.env.FRONTEND_URL || 'https://vagishkapila.github.io'}/openpdf-studio`,
+    );
+  } catch (error) {
+    console.error(`[reminders] Failed to send reminder email to ${to}: ${error}`);
+  }
+}
+
 // Process due reminders (called by a periodic job or on request)
 export async function processDueReminders() {
   const now = new Date();
@@ -93,9 +110,11 @@ export async function processDueReminders() {
       .select({
         reminder: signingReminders,
         request: signatureRequests,
+        document: documents,
       })
       .from(signingReminders)
       .innerJoin(signatureRequests, eq(signatureRequests.id, signingReminders.requestId))
+      .innerJoin(documents, eq(documents.id, signatureRequests.documentId))
       .where(and(
         lte(signingReminders.scheduledAt, now),
         isNull(signingReminders.sentAt),
@@ -104,7 +123,7 @@ export async function processDueReminders() {
       .limit(50);
 
     let processed = 0;
-    for (const { reminder, request } of dueReminders) {
+    for (const { reminder, request, document } of dueReminders) {
       // Skip if request is already signed/declined
       if (['signed', 'declined', 'expired'].includes(request.status)) {
         // Mark reminder as sent (skip it)
@@ -114,8 +133,17 @@ export async function processDueReminders() {
         continue;
       }
 
-      // TODO: Actually send the email/SMS here using email.service.ts
-      // For now, just mark as sent and create a notification for the sender
+      // Send the reminder email
+      if (reminder.channel === 'email' || reminder.channel === 'in_app') {
+        await sendReminderEmail(
+          reminder.recipientEmail,
+          document.fileName,
+          request.recipientName || 'there',
+          reminder.message || undefined,
+        );
+      }
+
+      // Mark reminder as sent
       await db.update(signingReminders)
         .set({ sentAt: now })
         .where(eq(signingReminders.id, reminder.id));
@@ -125,7 +153,7 @@ export async function processDueReminders() {
         request.senderId,
         reminder.orgId,
         reminder.recipientEmail,
-        'Document', // Would need to join documents table for name
+        document.fileName,
       );
 
       processed++;

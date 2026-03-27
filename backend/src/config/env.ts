@@ -30,6 +30,9 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('noreply@barshyrvirtual.com'),
 
+  TELNYX_API_KEY: z.string().optional(),
+  TELNYX_FROM_NUMBER: z.string().optional(),
+
   ANTHROPIC_API_KEY: z.string().optional(),
 });
 

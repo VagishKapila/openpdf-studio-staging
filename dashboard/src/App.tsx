@@ -10,6 +10,7 @@ import { AuditLogPage } from './pages/AuditLogPage';
 import { OrganizationsPage } from './pages/OrganizationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { FeedbackPage } from './pages/FeedbackPage';
+import { AIPage } from './pages/AIPage';
 import LoginPage from './pages/LoginPage';
 import { PortalLayout } from './pages/portal/PortalLayout';
 import { PortalDashboard } from './pages/portal/PortalDashboard';
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="ai" element={<AIPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

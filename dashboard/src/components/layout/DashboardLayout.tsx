@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  ScrollText, Building2, MessageSquare, Settings, LogOut,
+  ScrollText, Building2, MessageSquare, Brain, Settings, LogOut,
 } from 'lucide-react';
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/audit-log', icon: ScrollText, label: 'Audit Log' },
   { to: '/organizations', icon: Building2, label: 'Organizations' },
   { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  { to: '/ai', icon: Brain, label: 'AI Intelligence' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

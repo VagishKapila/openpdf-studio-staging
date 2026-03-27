@@ -284,6 +284,25 @@ class ApiClient {
   async getOrgAnalytics(slug: string) {
     return this.request<ApiResponse<DailyReport[]>>(`/org/${slug}/analytics`);
   }
+
+  // ── AI Intelligence ──
+  async getAIPatterns(orgId?: string) {
+    const path = orgId ? `/ai/patterns/${orgId}` : '/admin/ai/patterns';
+    return this.request<ApiResponse<import('@/types').DocumentPattern[]>>(path);
+  }
+
+  async getAIRiskScans() {
+    return this.request<ApiResponse<any[]>>('/admin/ai/risk-scans');
+  }
+
+  async getAIFeedbackStats() {
+    return this.request<ApiResponse<any>>('/admin/ai/feedback-stats');
+  }
+
+  async getReminders(orgId?: string) {
+    const path = orgId ? `/reminders/org/${orgId}` : '/admin/reminders';
+    return this.request<ApiResponse<import('@/types').SigningReminder[]>>(path);
+  }
 }
 
 export const api = new ApiClient();

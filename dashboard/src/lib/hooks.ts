@@ -266,3 +266,21 @@ export function useSubmitFeedback() {
     },
   });
 }
+
+// ── AI Intelligence ──
+
+export function useAIPatterns(orgId?: string) {
+  return useQuery<ApiResponse<import('@/types').DocumentPattern[]>>({
+    queryKey: ['ai', 'patterns', orgId],
+    queryFn: () => api.getAIPatterns(orgId),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useReminders(orgId?: string) {
+  return useQuery<ApiResponse<import('@/types').SigningReminder[]>>({
+    queryKey: ['reminders', orgId],
+    queryFn: () => api.getReminders(orgId),
+    refetchInterval: 30_000,
+  });
+}
