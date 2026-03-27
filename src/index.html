@@ -15,7 +15,11 @@
 
   <!-- PDF.js for rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <script>
+    // Set worker source globally ONCE — do NOT load worker as a script tag
+    // Loading it as a script causes "fake worker" fallback which freezes the UI
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 
   <!-- pdf-lib for editing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -896,6 +900,10 @@
     @keyframes slideIn {
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     /* ===== PROGRESS BAR ===== */
@@ -2360,15 +2368,28 @@
       <div class="signing-pdf-area" id="signing-pdf-area">
         <!-- Step 1: Upload -->
         <div id="signing-upload-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;">
-          <div style="width:80px;height:80px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;display:flex;align-items:center;justify-content:center;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <!-- Upload prompt (visible by default) -->
+          <div id="signing-upload-prompt">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+              <div style="width:80px;height:80px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;display:flex;align-items:center;justify-content:center;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              </div>
+              <h3 style="color:white;margin:0;">Upload a document to sign</h3>
+              <p style="color:rgba(255,255,255,0.7);margin:0;font-size:14px;">PDF or Word document. We'll auto-detect signature fields.</p>
+              <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" id="signing-choose-file-btn" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:10px 24px;font-size:14px;">
+                  Choose File
+                </button>
+              </div>
+            </div>
           </div>
-          <h3 style="color:white;margin:0;">Upload a document to sign</h3>
-          <p style="color:rgba(255,255,255,0.7);margin:0;font-size:14px;">PDF or Word document. We'll auto-detect signature fields.</p>
-          <div style="display:flex;gap:10px;">
-            <button class="btn btn-primary" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:10px 24px;font-size:14px;">
-              Choose File
-            </button>
+          <!-- Loading spinner (hidden by default) -->
+          <div id="signing-upload-loading" style="display:none;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+              <div style="width:60px;height:60px;border:4px solid rgba(255,255,255,0.2);border-top:4px solid #8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+              <h3 style="color:white;margin:0;" id="signing-loading-text">Loading document...</h3>
+              <p style="color:rgba(255,255,255,0.7);margin:0;font-size:13px;" id="signing-loading-detail">Detecting signature fields</p>
+            </div>
           </div>
           <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
         </div>
@@ -2708,7 +2729,6 @@
 
     async function loadPDF(data) {
       try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         state.pdfDoc = await pdfjsLib.getDocument({ data }).promise;
         state.totalPages = state.pdfDoc.numPages;
         state.currentPage = 1;
@@ -6257,6 +6277,14 @@
       document.getElementById('signing-upload-view').style.display = 'flex';
       document.getElementById('signing-pdf-preview').style.display = 'none';
       document.getElementById('signing-sidebar').style.display = 'none';
+      // Reset loading state
+      const uploadPrompt = document.getElementById('signing-upload-prompt');
+      const uploadLoading = document.getElementById('signing-upload-loading');
+      if (uploadPrompt) uploadPrompt.style.display = 'block';
+      if (uploadLoading) uploadLoading.style.display = 'none';
+      // Clear file input so same file can be re-selected
+      const fileInput = document.getElementById('signing-file-input');
+      if (fileInput) fileInput.value = '';
     }
 
     // ===== STEP MANAGEMENT =====
@@ -6273,26 +6301,41 @@
 
     // ===== FILE UPLOAD =====
     async function handleSigningFileUpload(event) {
-      const file = event.target.files[0];
+      const file = event.target.files?.[0] || (event.detail && event.detail.file);
       if (!file) return;
 
       signingState.fileName = file.name;
-      showToast('Loading document...', 'info');
+
+      // Show loading state
+      const uploadPrompt = document.getElementById('signing-upload-prompt');
+      const uploadLoading = document.getElementById('signing-upload-loading');
+      const loadingText = document.getElementById('signing-loading-text');
+      const loadingDetail = document.getElementById('signing-loading-detail');
+
+      if (uploadPrompt) uploadPrompt.style.display = 'none';
+      if (uploadLoading) uploadLoading.style.display = 'flex';
+      if (loadingText) loadingText.textContent = 'Loading document...';
+      if (loadingDetail) loadingDetail.textContent = 'Reading file';
 
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        signingState.pdfBytes = new Uint8Array(arrayBuffer);
-
-        // If it's a Word doc, we'd need backend conversion.
-        // For now, handle PDF directly.
-        if (file.name.toLowerCase().endsWith('.pdf')) {
-          await loadSigningPDF(signingState.pdfBytes);
-        } else {
+        // If it's not a PDF, reject early
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
           showToast('For now, please upload a PDF file. Word conversion coming soon.', 'info');
+          if (uploadPrompt) uploadPrompt.style.display = 'block';
+          if (uploadLoading) uploadLoading.style.display = 'none';
           return;
         }
 
+        if (loadingDetail) loadingDetail.textContent = 'Processing PDF...';
+
+        const arrayBuffer = await file.arrayBuffer();
+        signingState.pdfBytes = new Uint8Array(arrayBuffer);
+
+        if (loadingDetail) loadingDetail.textContent = 'Rendering pages...';
+        await loadSigningPDF(signingState.pdfBytes);
+
         // Auto-detect fields
+        if (loadingDetail) loadingDetail.textContent = 'Detecting signature fields...';
         await detectSignatureFields();
 
         // Show PDF preview and sidebar
@@ -6305,13 +6348,18 @@
         showToast(`Found ${signingState.fields.length} field(s) in your document`, 'success');
       } catch (err) {
         console.error('Signing upload error:', err);
-        showToast('Failed to load document: ' + err.message, 'error');
+        showToast('Failed to load document: ' + (err.message || 'Unknown error'), 'error');
+        // Reset to upload prompt so user can try again
+        if (uploadPrompt) uploadPrompt.style.display = 'block';
+        if (uploadLoading) uploadLoading.style.display = 'none';
       }
+
+      // Reset file input so the same file can be re-selected
+      if (event.target && event.target.value) event.target.value = '';
     }
 
     // ===== LOAD PDF FOR SIGNING =====
     async function loadSigningPDF(bytes) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       // Pass a copy to PDF.js since it transfers the ArrayBuffer to a web worker,
       // which detaches the original buffer and makes it unusable for pdf-lib
       const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
