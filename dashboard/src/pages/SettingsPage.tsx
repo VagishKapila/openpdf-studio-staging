@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import {
   Settings, Palette, Bell, Key, Shield,
-  Save, Eye, EyeOff, Copy, Check,
+  Save, Eye, EyeOff, Copy, Check, Loader2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { useAdminSettings, useUpdateSettings } from '@/lib/hooks';
 
 type Tab = 'general' | 'branding' | 'notifications' | 'api' | 'security';
 
@@ -17,6 +18,21 @@ const tabs: { key: Tab; label: string; icon: typeof Settings }[] = [
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('general');
+  const { data: settingsData, isLoading: isLoadingSettings } = useAdminSettings();
+  const updateSettings = useUpdateSettings();
+
+  const settings = settingsData?.data || null;
+
+  if (isLoadingSettings) {
+    return (
+      <div>
+        <PageHeader title="Settings" subtitle="Platform configuration and preferences" />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -45,11 +61,11 @@ export function SettingsPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {activeTab === 'general' && <GeneralSettings />}
-          {activeTab === 'branding' && <BrandingSettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'api' && <ApiKeySettings />}
-          {activeTab === 'security' && <SecuritySettings />}
+          {activeTab === 'general' && <GeneralSettings settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'branding' && <BrandingSettings settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'notifications' && <NotificationSettings settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'api' && <ApiKeySettings settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'security' && <SecuritySettings settings={settings} updateSettings={updateSettings} />}
         </div>
       </div>
     </div>
@@ -57,17 +73,46 @@ export function SettingsPage() {
 }
 
 // ── General Settings ──
-function GeneralSettings() {
+function GeneralSettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
+  const [values, setValues] = useState({
+    platformName: settings?.general?.platformName || 'DocPix Studio',
+    supportEmail: settings?.general?.supportEmail || 'support@docpixstudio.com',
+    defaultPlan: settings?.general?.defaultPlan || 'free',
+    maxUploadSizeMB: settings?.general?.maxUploadSizeMB || 25,
+    maintenanceMode: settings?.general?.maintenanceMode || false,
+  });
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync({
+      section: 'general',
+      values,
+    });
+  };
+
   return (
     <SettingsCard title="General Configuration" description="Core platform settings">
       <FieldGroup label="Platform Name" description="Shown in the top nav and emails">
-        <input type="text" defaultValue="DocPix Studio" className="settings-input" />
+        <input
+          type="text"
+          value={values.platformName}
+          onChange={(e) => setValues({ ...values, platformName: e.target.value })}
+          className="settings-input"
+        />
       </FieldGroup>
       <FieldGroup label="Support Email" description="Users will see this as the reply-to address">
-        <input type="email" defaultValue="support@docpixstudio.com" className="settings-input" />
+        <input
+          type="email"
+          value={values.supportEmail}
+          onChange={(e) => setValues({ ...values, supportEmail: e.target.value })}
+          className="settings-input"
+        />
       </FieldGroup>
       <FieldGroup label="Default User Plan" description="Plan assigned to new registrations">
-        <select defaultValue="free" className="settings-input">
+        <select
+          value={values.defaultPlan}
+          onChange={(e) => setValues({ ...values, defaultPlan: e.target.value })}
+          className="settings-input"
+        >
           <option value="free">Free</option>
           <option value="starter">Starter</option>
           <option value="professional">Professional</option>
@@ -75,92 +120,186 @@ function GeneralSettings() {
       </FieldGroup>
       <FieldGroup label="Max Upload Size" description="Maximum file size for document uploads">
         <div className="flex items-center gap-2">
-          <input type="number" defaultValue={25} className="settings-input w-24" />
+          <input
+            type="number"
+            value={values.maxUploadSizeMB}
+            onChange={(e) => setValues({ ...values, maxUploadSizeMB: parseInt(e.target.value) })}
+            className="settings-input w-24"
+          />
           <span className="text-sm text-gray-500">MB</span>
         </div>
       </FieldGroup>
       <FieldGroup label="Maintenance Mode" description="Temporarily disable the platform for all non-admin users">
-        <ToggleSwitch defaultChecked={false} />
+        <ToggleSwitch
+          checked={values.maintenanceMode}
+          onChange={(checked) => setValues({ ...values, maintenanceMode: checked })}
+        />
       </FieldGroup>
-      <SaveButton />
+      <SaveButton onClick={handleSave} isLoading={updateSettings.isPending} />
     </SettingsCard>
   );
 }
 
 // ── Branding Settings ──
-function BrandingSettings() {
+function BrandingSettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
+  const [values, setValues] = useState({
+    primaryColor: settings?.branding?.primaryColor || '#6366F1',
+    secondaryColor: settings?.branding?.secondaryColor || '#8B5CF6',
+    logoUrl: settings?.branding?.logoUrl || '',
+    footerText: settings?.branding?.footerText || 'Powered by DocPix Studio',
+  });
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync({
+      section: 'branding',
+      values,
+    });
+  };
+
   return (
     <SettingsCard title="Default Branding" description="Defaults for new organizations. Each org can override these.">
       <FieldGroup label="Primary Color" description="Main brand color (hex)">
         <div className="flex items-center gap-2">
-          <input type="color" defaultValue="#6366F1" className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200" />
-          <input type="text" defaultValue="#6366F1" className="settings-input w-28 font-mono" />
+          <input
+            type="color"
+            value={values.primaryColor}
+            onChange={(e) => setValues({ ...values, primaryColor: e.target.value })}
+            className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200"
+          />
+          <input
+            type="text"
+            value={values.primaryColor}
+            onChange={(e) => setValues({ ...values, primaryColor: e.target.value })}
+            className="settings-input w-28 font-mono"
+          />
         </div>
       </FieldGroup>
       <FieldGroup label="Secondary Color" description="Accent and gradient color">
         <div className="flex items-center gap-2">
-          <input type="color" defaultValue="#8B5CF6" className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200" />
-          <input type="text" defaultValue="#8B5CF6" className="settings-input w-28 font-mono" />
+          <input
+            type="color"
+            value={values.secondaryColor}
+            onChange={(e) => setValues({ ...values, secondaryColor: e.target.value })}
+            className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200"
+          />
+          <input
+            type="text"
+            value={values.secondaryColor}
+            onChange={(e) => setValues({ ...values, secondaryColor: e.target.value })}
+            className="settings-input w-28 font-mono"
+          />
         </div>
       </FieldGroup>
       <FieldGroup label="Logo URL" description="Default logo shown in emails and signing pages">
-        <input type="url" placeholder="https://example.com/logo.svg" className="settings-input" />
+        <input
+          type="url"
+          value={values.logoUrl}
+          onChange={(e) => setValues({ ...values, logoUrl: e.target.value })}
+          placeholder="https://example.com/logo.svg"
+          className="settings-input"
+        />
       </FieldGroup>
       <FieldGroup label="Footer Text" description="Shown at the bottom of client dashboards">
-        <input type="text" defaultValue="Powered by DocPix Studio" className="settings-input" />
+        <input
+          type="text"
+          value={values.footerText}
+          onChange={(e) => setValues({ ...values, footerText: e.target.value })}
+          className="settings-input"
+        />
       </FieldGroup>
 
       {/* Preview */}
       <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
         <p className="text-xs font-medium text-gray-500 mb-3">Preview</p>
         <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          <div className="h-14 flex items-center px-4 gap-2" style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}>
+          <div className="h-14 flex items-center px-4 gap-2" style={{ background: `linear-gradient(135deg, ${values.primaryColor}, ${values.secondaryColor})` }}>
             <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
               <span className="text-white text-xs font-bold">DP</span>
             </div>
             <span className="text-white font-semibold text-sm">DocPix Studio</span>
           </div>
           <div className="bg-gray-50 dark:bg-gray-900 p-3 text-center">
-            <p className="text-xs text-gray-400">Powered by DocPix Studio</p>
+            <p className="text-xs text-gray-400">{values.footerText}</p>
           </div>
         </div>
       </div>
-      <SaveButton />
+      <SaveButton onClick={handleSave} isLoading={updateSettings.isPending} />
     </SettingsCard>
   );
 }
 
 // ── Notification Settings ──
-function NotificationSettings() {
+function NotificationSettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
+  const [values, setValues] = useState({
+    emailEnabled: settings?.notifications?.emailEnabled ?? true,
+    smsEnabled: settings?.notifications?.smsEnabled ?? false,
+    dailyDigest: settings?.notifications?.dailyDigest ?? true,
+    weeklyReport: settings?.notifications?.weeklyReport ?? true,
+    anomalyAlerts: settings?.notifications?.anomalyAlerts ?? true,
+    slackWebhookUrl: settings?.notifications?.slackWebhookUrl || '',
+  });
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync({
+      section: 'notifications',
+      values,
+    });
+  };
+
   return (
     <SettingsCard title="Notification Preferences" description="Configure how and when alerts are sent">
       <FieldGroup label="Email Notifications" description="Send email alerts for critical events">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.emailEnabled}
+          onChange={(checked) => setValues({ ...values, emailEnabled: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="SMS Alerts" description="Send SMS for urgent signing reminders (requires Telnyx)">
-        <ToggleSwitch defaultChecked={false} />
+        <ToggleSwitch
+          checked={values.smsEnabled}
+          onChange={(checked) => setValues({ ...values, smsEnabled: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Daily Digest" description="Send a daily summary email at 9 AM">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.dailyDigest}
+          onChange={(checked) => setValues({ ...values, dailyDigest: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Weekly Report" description="Send a weekly analytics report every Monday">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.weeklyReport}
+          onChange={(checked) => setValues({ ...values, weeklyReport: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Anomaly Alerts" description="Auto-detect and alert on metric anomalies">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.anomalyAlerts}
+          onChange={(checked) => setValues({ ...values, anomalyAlerts: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Slack Webhook URL" description="Critical alerts sent to this Slack channel">
-        <input type="url" placeholder="https://hooks.slack.com/services/..." className="settings-input" />
+        <input
+          type="url"
+          value={values.slackWebhookUrl}
+          onChange={(e) => setValues({ ...values, slackWebhookUrl: e.target.value })}
+          placeholder="https://hooks.slack.com/services/..."
+          className="settings-input"
+        />
       </FieldGroup>
-      <SaveButton />
+      <SaveButton onClick={handleSave} isLoading={updateSettings.isPending} />
     </SettingsCard>
   );
 }
 
 // ── API Key Settings ──
-function ApiKeySettings() {
+function ApiKeySettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [values, setValues] = useState({
+    webhookUrl: settings?.api?.webhookUrl || '',
+    allowedOrigins: settings?.api?.allowedOrigins || 'https://vagishkapila.github.io',
+  });
   const fakeKey = 'dpx_live_sk_7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c';
 
   function copyKey() {
@@ -168,6 +307,13 @@ function ApiKeySettings() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync({
+      section: 'api',
+      values,
+    });
+  };
 
   return (
     <SettingsCard title="API Keys" description="Manage API keys for external integrations">
@@ -195,14 +341,26 @@ function ApiKeySettings() {
       </FieldGroup>
 
       <FieldGroup label="Webhook URL" description="We'll POST events to this URL">
-        <input type="url" placeholder="https://your-app.com/webhooks/docpix" className="settings-input" />
+        <input
+          type="url"
+          value={values.webhookUrl}
+          onChange={(e) => setValues({ ...values, webhookUrl: e.target.value })}
+          placeholder="https://your-app.com/webhooks/docpix"
+          className="settings-input"
+        />
       </FieldGroup>
 
       <FieldGroup label="Allowed Origins" description="CORS origins for browser API calls">
-        <input type="text" defaultValue="https://vagishkapila.github.io" className="settings-input" />
+        <input
+          type="text"
+          value={values.allowedOrigins}
+          onChange={(e) => setValues({ ...values, allowedOrigins: e.target.value })}
+          className="settings-input"
+        />
       </FieldGroup>
 
-      <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+      <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+        <SaveButton onClick={handleSave} isLoading={updateSettings.isPending} />
         <button className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
           Rotate API Key
         </button>
@@ -212,41 +370,103 @@ function ApiKeySettings() {
 }
 
 // ── Security Settings ──
-function SecuritySettings() {
+function SecuritySettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
+  const [values, setValues] = useState({
+    requireEmailVerification: settings?.security?.requireEmailVerification ?? true,
+    allowGoogleOAuth: settings?.security?.allowGoogleOAuth ?? true,
+    sessionTimeoutHours: settings?.security?.sessionTimeoutHours ?? 24,
+    maxLoginAttempts: settings?.security?.maxLoginAttempts ?? 5,
+    passwordMinLength: settings?.security?.passwordMinLength ?? true,
+    passwordRequireUppercase: settings?.security?.passwordRequireUppercase ?? true,
+    passwordRequireNumber: settings?.security?.passwordRequireNumber ?? true,
+    passwordRequireSpecial: settings?.security?.passwordRequireSpecial ?? false,
+    require2FA: settings?.security?.require2FA ?? false,
+  });
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync({
+      section: 'security',
+      values,
+    });
+  };
+
   return (
     <SettingsCard title="Security" description="Authentication and access control settings">
       <FieldGroup label="Require Email Verification" description="Users must verify email before accessing features">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.requireEmailVerification}
+          onChange={(checked) => setValues({ ...values, requireEmailVerification: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Allow Google OAuth" description="Enable Sign in with Google">
-        <ToggleSwitch defaultChecked={true} />
+        <ToggleSwitch
+          checked={values.allowGoogleOAuth}
+          onChange={(checked) => setValues({ ...values, allowGoogleOAuth: checked })}
+        />
       </FieldGroup>
       <FieldGroup label="Session Timeout" description="Auto-logout after inactivity (hours)">
-        <input type="number" defaultValue={24} className="settings-input w-24" />
+        <input
+          type="number"
+          value={values.sessionTimeoutHours}
+          onChange={(e) => setValues({ ...values, sessionTimeoutHours: parseInt(e.target.value) })}
+          className="settings-input w-24"
+        />
       </FieldGroup>
       <FieldGroup label="Max Login Attempts" description="Lock account after N failed attempts">
-        <input type="number" defaultValue={5} className="settings-input w-24" />
+        <input
+          type="number"
+          value={values.maxLoginAttempts}
+          onChange={(e) => setValues({ ...values, maxLoginAttempts: parseInt(e.target.value) })}
+          className="settings-input w-24"
+        />
       </FieldGroup>
       <FieldGroup label="Password Policy" description="Minimum password requirements">
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" defaultChecked className="rounded border-gray-300" /> Min 8 characters
+            <input
+              type="checkbox"
+              checked={values.passwordMinLength}
+              onChange={(e) => setValues({ ...values, passwordMinLength: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Min 8 characters
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" defaultChecked className="rounded border-gray-300" /> Require uppercase letter
+            <input
+              type="checkbox"
+              checked={values.passwordRequireUppercase}
+              onChange={(e) => setValues({ ...values, passwordRequireUppercase: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Require uppercase letter
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" defaultChecked className="rounded border-gray-300" /> Require number
+            <input
+              type="checkbox"
+              checked={values.passwordRequireNumber}
+              onChange={(e) => setValues({ ...values, passwordRequireNumber: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Require number
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" className="rounded border-gray-300" /> Require special character
+            <input
+              type="checkbox"
+              checked={values.passwordRequireSpecial}
+              onChange={(e) => setValues({ ...values, passwordRequireSpecial: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Require special character
           </label>
         </div>
       </FieldGroup>
       <FieldGroup label="Two-Factor Authentication" description="Require 2FA for admin accounts">
-        <ToggleSwitch defaultChecked={false} />
+        <ToggleSwitch
+          checked={values.require2FA}
+          onChange={(checked) => setValues({ ...values, require2FA: checked })}
+        />
       </FieldGroup>
-      <SaveButton />
+      <SaveButton onClick={handleSave} isLoading={updateSettings.isPending} />
     </SettingsCard>
   );
 }
@@ -273,25 +493,29 @@ function FieldGroup({ label, description, children }: { label: string; descripti
   );
 }
 
-function ToggleSwitch({ defaultChecked }: { defaultChecked: boolean }) {
-  const [on, setOn] = useState(defaultChecked);
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <button
-      onClick={() => setOn(!on)}
+      onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        on ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'
+        checked ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'
       }`}
     >
-      <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+      <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
   );
 }
 
-function SaveButton() {
+function SaveButton({ onClick, isLoading }: { onClick: () => void; isLoading?: boolean }) {
   return (
     <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
-      <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors">
-        <Save className="w-4 h-4" /> Save Changes
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        Save Changes
       </button>
     </div>
   );

@@ -316,6 +316,17 @@ export const verificationTokens = pgTable('verification_tokens', {
   index('idx_verification_user_id').on(table.userId),
 ]);
 
+// ===== PLATFORM SETTINGS =====
+export const platformSettings = pgTable('platform_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: jsonb('value').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_platform_settings_key').on(table.key),
+]);
+
 // ===== TYPE EXPORTS =====
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -332,3 +343,4 @@ export type DailyReport = typeof dailyReports.$inferSelect;
 export type DocumentPattern = typeof documentPatterns.$inferSelect;
 export type SigningReminder = typeof signingReminders.$inferSelect;
 export type Notification = typeof notificationInbox.$inferSelect;
+export type PlatformSetting = typeof platformSettings.$inferSelect;

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
-import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers } from '../../shared/db/schema';
+import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings } from '../../shared/db/schema';
 import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
 
 const admin = new Hono();
@@ -384,45 +384,95 @@ admin.patch('/organizations/:id', async (c) => {
 // ── Platform Settings (GET/PUT) ──
 admin.get('/settings', async (c) => {
   try {
-    // Get settings from a special settings organization or config store
-    // For now, return hardcoded defaults that can be extended
-    const settings = {
-      platformName: 'DocPix Studio',
-      maintenanceMode: false,
-      emailNotificationsEnabled: true,
-      signatureExpiryDays: 30,
-      maxDocumentSizeMb: 50,
-      enableAiFieldDetection: true,
-      stripeTestMode: true,
+    const rows = await db.select().from(platformSettings);
+    const settings: Record<string, any> = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    // Merge with defaults
+    const defaults = {
+      general: {
+        platformName: 'DocPix Studio',
+        supportEmail: 'support@docpixstudio.com',
+        defaultPlan: 'free',
+        maxUploadSizeMB: 25,
+        maintenanceMode: false,
+      },
+      branding: {
+        primaryColor: '#6366F1',
+        secondaryColor: '#8B5CF6',
+        logoUrl: '',
+        footerText: 'Powered by DocPix Studio',
+      },
+      notifications: {
+        emailEnabled: true,
+        smsEnabled: false,
+        dailyDigest: true,
+        weeklyReport: true,
+        anomalyAlerts: true,
+        slackWebhookUrl: '',
+      },
+      api: {
+        webhookUrl: '',
+        allowedOrigins: 'https://vagishkapila.github.io',
+      },
+      security: {
+        requireEmailVerification: true,
+        allowGoogleOAuth: true,
+        sessionTimeoutHours: 24,
+        maxLoginAttempts: 5,
+        passwordMinLength: true,
+        passwordRequireUppercase: true,
+        passwordRequireNumber: true,
+        passwordRequireSpecial: false,
+        require2FA: false,
+      },
     };
-
-    return c.json({ data: settings });
-  } catch (err: any) {
-    console.error('[admin] Get settings error:', err.message);
-    return c.json({ error: 'Failed to fetch settings' }, 500);
+    // Overlay saved values on top of defaults
+    for (const [key, val] of Object.entries(settings)) {
+      if (defaults[key as keyof typeof defaults]) {
+        defaults[key as keyof typeof defaults] = { ...defaults[key as keyof typeof defaults], ...val as any };
+      }
+    }
+    return c.json({ success: true, data: defaults });
+  } catch (error) {
+    console.error('[admin] Failed to get settings:', error);
+    return c.json({ success: false, error: 'Failed to load settings' }, 500);
   }
 });
 
 admin.put('/settings', async (c) => {
-  const body = await c.req.json();
-
   try {
-    // For now, return updated settings (in production, store in DB or Redis)
-    const settings = {
-      platformName: body.platformName ?? 'DocPix Studio',
-      maintenanceMode: body.maintenanceMode ?? false,
-      emailNotificationsEnabled: body.emailNotificationsEnabled ?? true,
-      signatureExpiryDays: body.signatureExpiryDays ?? 30,
-      maxDocumentSizeMb: body.maxDocumentSizeMb ?? 50,
-      enableAiFieldDetection: body.enableAiFieldDetection ?? true,
-      stripeTestMode: body.stripeTestMode ?? true,
-    };
+    const body = await c.req.json();
+    const userId = (c as any).userId;
 
-    // TODO: Store settings in DB or Redis
-    return c.json({ data: settings });
-  } catch (err: any) {
-    console.error('[admin] Update settings error:', err.message);
-    return c.json({ error: 'Failed to update settings' }, 500);
+    // body should be { section: 'general' | 'branding' | etc, values: {...} }
+    const { section, values } = body;
+    if (!section || !values) {
+      return c.json({ success: false, error: 'section and values required' }, 400);
+    }
+
+    // Upsert the setting
+    await db
+      .insert(platformSettings)
+      .values({
+        key: section,
+        value: values,
+        updatedBy: userId,
+      })
+      .onConflictDoUpdate({
+        target: platformSettings.key,
+        set: {
+          value: values,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        },
+      });
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('[admin] Failed to save settings:', error);
+    return c.json({ success: false, error: 'Failed to save settings' }, 500);
   }
 });
 

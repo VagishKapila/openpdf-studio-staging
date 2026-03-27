@@ -175,7 +175,11 @@ class ApiClient {
   }
 
   // ── Settings ──
-  async updateSettings(data: Record<string, unknown>) {
+  async getSettings() {
+    return this.request<ApiResponse<Record<string, any>>>('/admin/settings');
+  }
+
+  async updateSettings(data: { section: string; values: Record<string, unknown> }) {
     return this.request<ApiResponse<Record<string, unknown>>>('/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -291,12 +295,16 @@ class ApiClient {
     return this.request<ApiResponse<import('@/types').DocumentPattern[]>>(path);
   }
 
-  async getAIRiskScans() {
-    return this.request<ApiResponse<any[]>>('/admin/ai/risk-scans');
+  async getRiskScans() {
+    return this.request<ApiResponse<any[]>>('/ai/risk-scans');
   }
 
-  async getAIFeedbackStats() {
-    return this.request<ApiResponse<any>>('/admin/ai/feedback-stats');
+  async getFeedbackStats() {
+    return this.request<ApiResponse<{
+      totalTriaged: number;
+      byCategory: Array<{ name: string; value: number; color: string }>;
+      byPriority: Array<{ name: string; value: number; color: string }>;
+    }>>('/ai/feedback-stats');
   }
 
   async getReminders(orgId?: string) {

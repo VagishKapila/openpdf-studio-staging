@@ -13,96 +13,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { CardSkeleton, TableSkeleton } from '@/components/shared/LoadingSkeleton';
 import { ErrorState } from '@/components/shared/ErrorState';
-import { useAIPatterns, useReminders } from '@/lib/hooks';
-
-// Mock data for risk scans (would come from API)
-const mockRiskScans = [
-  {
-    id: 'risk_1',
-    documentName: 'NDA_Q1_2026.pdf',
-    riskLevel: 'danger',
-    score: 8.5,
-    flagCount: 5,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'risk_2',
-    documentName: 'Service_Agreement.pdf',
-    riskLevel: 'warning',
-    score: 6.2,
-    flagCount: 3,
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'risk_3',
-    documentName: 'Employment_Contract.pdf',
-    riskLevel: 'safe',
-    score: 2.1,
-    flagCount: 0,
-    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'risk_4',
-    documentName: 'Liability_Waiver.pdf',
-    riskLevel: 'warning',
-    score: 5.8,
-    flagCount: 2,
-    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-// Mock feedback data
-const mockFeedbackStats = {
-  totalTriaged: 247,
-  byCategory: [
-    { name: 'Bugs', value: 89, color: '#ef4444' },
-    { name: 'Features', value: 103, color: '#f59e0b' },
-    { name: 'Security', value: 32, color: '#dc2626' },
-    { name: 'General', value: 23, color: '#3b82f6' },
-  ],
-  byPriority: [
-    { name: 'Critical', value: 15, color: '#dc2626' },
-    { name: 'High', value: 47, color: '#f97316' },
-    { name: 'Medium', value: 128, color: '#eab308' },
-    { name: 'Low', value: 57, color: '#6b7280' },
-  ],
-};
-
-// Mock reminders data
-const mockReminders = [
-  {
-    id: 'rem_1',
-    requestId: 'req_101',
-    recipientEmail: 'john@acme.com',
-    type: 'auto',
-    scheduledAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    channel: 'email',
-  },
-  {
-    id: 'rem_2',
-    requestId: 'req_102',
-    recipientEmail: 'jane@acme.com',
-    type: 'escalation',
-    scheduledAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
-    channel: 'email',
-  },
-  {
-    id: 'rem_3',
-    requestId: 'req_103',
-    recipientEmail: 'bob@acme.com',
-    type: 'auto',
-    scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    channel: 'sms',
-  },
-  {
-    id: 'rem_4',
-    requestId: 'req_104',
-    recipientEmail: 'alice@acme.com',
-    type: 'manual',
-    scheduledAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-    channel: 'email',
-  },
-];
+import { useAIPatterns, useReminders, useRiskScans, useFeedbackStats } from '@/lib/hooks';
 
 function getRiskIcon(riskLevel: string) {
   switch (riskLevel) {
@@ -139,18 +50,33 @@ function getConfidenceColor(confidence: number) {
 export function AIPage() {
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
   const { data: patternsData, isLoading: patternsLoading, isError: patternsError, refetch: refetchPatterns } = useAIPatterns();
+  const { data: riskScansData, isLoading: riskScansLoading, isError: riskScansError, refetch: refetchRiskScans } = useRiskScans();
+  const { data: feedbackStatsData, isLoading: feedbackStatsLoading, isError: feedbackStatsError, refetch: refetchFeedbackStats } = useFeedbackStats();
   const { data: remindersData, isLoading: remindersLoading, isError: remindersError, refetch: refetchReminders } = useReminders();
 
   const patterns = patternsData?.data ?? [];
+  const riskScans = riskScansData?.data ?? [];
+  const feedbackStats = feedbackStatsData?.data ?? {
+    totalTriaged: 0,
+    byCategory: [],
+    byPriority: [],
+  };
   const reminders = remindersData?.data ?? [];
 
-  // Calculate reminder stats
-  const sentToday = 12;
-  const pending = 8;
-  const escalated = 2;
-  const successRate = 94.5;
+  // Calculate reminder stats from reminders data
+  const now = new Date().getTime();
+  const sentToday = reminders.filter(r => {
+    const sentTime = r.sentAt ? new Date(r.sentAt).getTime() : null;
+    return sentTime && (now - sentTime < 24 * 60 * 60 * 1000);
+  }).length;
+  const pending = reminders.filter(r => !r.sentAt).length;
+  const escalated = reminders.filter(r => r.type === 'escalation').length;
+  const successRate = reminders.length > 0 ? Math.round((reminders.filter(r => r.sentAt).length / reminders.length) * 100) : 0;
 
-  if (patternsLoading || remindersLoading) {
+  const isLoading = patternsLoading || riskScansLoading || feedbackStatsLoading || remindersLoading;
+  const hasError = patternsError || riskScansError || feedbackStatsError || remindersError;
+
+  if (isLoading) {
     return (
       <div>
         <PageHeader title="AI Intelligence" subtitle="Document patterns, risk analysis, feedback triage, and smart reminders" />
@@ -162,11 +88,11 @@ export function AIPage() {
     );
   }
 
-  if (patternsError || remindersError) {
+  if (hasError) {
     return (
       <div>
         <PageHeader title="AI Intelligence" />
-        <ErrorState message="Failed to load AI data" onRetry={() => { refetchPatterns(); refetchReminders(); }} />
+        <ErrorState message="Failed to load AI data" onRetry={() => { refetchPatterns(); refetchRiskScans(); refetchFeedbackStats(); refetchReminders(); }} />
       </div>
     );
   }
@@ -176,7 +102,7 @@ export function AIPage() {
       <PageHeader
         title="AI Intelligence"
         subtitle="Document patterns, risk analysis, feedback triage, and smart reminders"
-        onRefresh={() => { refetchPatterns(); refetchReminders(); }}
+        onRefresh={() => { refetchPatterns(); refetchRiskScans(); refetchFeedbackStats(); refetchReminders(); }}
       />
 
       {/* SECTION 1: Document Pattern Learning */}
@@ -301,36 +227,43 @@ export function AIPage() {
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Recent Risk Scans</p>
           </div>
           <div className="space-y-1">
-            {mockRiskScans.map((scan) => {
-              const RiskIcon = getRiskIcon(scan.riskLevel);
-              const timeAgo = formatDistanceToNow(new Date(scan.createdAt), { addSuffix: true });
-              const isExpanded = expandedRisk === scan.id;
-              return (
-                <button
-                  key={scan.id}
-                  onClick={() => setExpandedRisk(isExpanded ? null : scan.id)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-0"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <RiskIcon className={`w-5 h-5 flex-shrink-0 ${getRiskColor(scan.riskLevel)}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{scan.documentName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{timeAgo}</p>
+            {riskScans.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-gray-500">
+                <Shield className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                No risk scans found
+              </div>
+            ) : (
+              riskScans.map((scan) => {
+                const RiskIcon = getRiskIcon(scan.riskLevel);
+                const timeAgo = formatDistanceToNow(new Date(scan.createdAt), { addSuffix: true });
+                const isExpanded = expandedRisk === scan.id;
+                return (
+                  <button
+                    key={scan.id}
+                    onClick={() => setExpandedRisk(isExpanded ? null : scan.id)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-0"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <RiskIcon className={`w-5 h-5 flex-shrink-0 ${getRiskColor(scan.riskLevel)}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{scan.documentName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{timeAgo}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{scan.score.toFixed(1)}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{scan.flagCount} flags</p>
+                        </div>
+                        <StatusBadge status={scan.riskLevel} />
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{scan.score.toFixed(1)}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{scan.flagCount} flags</p>
-                      </div>
-                      <StatusBadge status={scan.riskLevel} />
-                      <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -342,7 +275,7 @@ export function AIPage() {
             <MessageSquare className="w-5 h-5 text-blue-600" />
             Feedback Triage
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{mockFeedbackStats.totalTriaged} total AI-triaged feedback items</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{feedbackStats.totalTriaged} total AI-triaged feedback items</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -351,7 +284,7 @@ export function AIPage() {
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">By Category</h4>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart
-                data={mockFeedbackStats.byCategory}
+                data={feedbackStats.byCategory}
                 margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -359,7 +292,7 @@ export function AIPage() {
                 <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
                 <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {mockFeedbackStats.byCategory.map((entry, index) => (
+                  {feedbackStats.byCategory.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -373,7 +306,7 @@ export function AIPage() {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={mockFeedbackStats.byPriority}
+                  data={feedbackStats.byPriority}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -382,7 +315,7 @@ export function AIPage() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {mockFeedbackStats.byPriority.map((entry, index) => (
+                  {feedbackStats.byPriority.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -394,10 +327,27 @@ export function AIPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard label="Bugs Found" value={mockFeedbackStats.byCategory[0].value} icon={AlertCircle} />
-          <KPICard label="Feature Requests" value={mockFeedbackStats.byCategory[1].value} icon={TrendingUp} />
-          <KPICard label="Security Reports" value={mockFeedbackStats.byCategory[2].value} icon={Shield} />
-          <KPICard label="Critical Items" value={mockFeedbackStats.byPriority[0].value} trend="down" change={-3} />
+          <KPICard
+            label="Bugs Found"
+            value={feedbackStats.byCategory.find(c => c.name === 'Bugs')?.value ?? 0}
+            icon={AlertCircle}
+          />
+          <KPICard
+            label="Feature Requests"
+            value={feedbackStats.byCategory.find(c => c.name === 'Features')?.value ?? 0}
+            icon={TrendingUp}
+          />
+          <KPICard
+            label="Security Reports"
+            value={feedbackStats.byCategory.find(c => c.name === 'Security')?.value ?? 0}
+            icon={Shield}
+          />
+          <KPICard
+            label="Critical Items"
+            value={feedbackStats.byPriority.find(p => p.name === 'Critical')?.value ?? 0}
+            trend="down"
+            change={-3}
+          />
         </div>
       </section>
 

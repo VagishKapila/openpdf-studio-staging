@@ -88,6 +88,14 @@ export function useFeedback(params: { page: number; limit: number; category: str
   });
 }
 
+// ── Settings ──
+export function useAdminSettings() {
+  return useQuery<ApiResponse<Record<string, any>>>({
+    queryKey: ['settings'],
+    queryFn: () => api.getSettings(),
+  });
+}
+
 // ── Mutations ──
 
 export function useUpdateUser() {
@@ -140,7 +148,7 @@ export function useUpdateOrganization() {
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: { section: string; values: Record<string, unknown> }) =>
       api.updateSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -273,6 +281,26 @@ export function useAIPatterns(orgId?: string) {
   return useQuery<ApiResponse<import('@/types').DocumentPattern[]>>({
     queryKey: ['ai', 'patterns', orgId],
     queryFn: () => api.getAIPatterns(orgId),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useRiskScans() {
+  return useQuery<ApiResponse<any[]>>({
+    queryKey: ['ai', 'risk-scans'],
+    queryFn: () => api.getRiskScans(),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useFeedbackStats() {
+  return useQuery<ApiResponse<{
+    totalTriaged: number;
+    byCategory: Array<{ name: string; value: number; color: string }>;
+    byPriority: Array<{ name: string; value: number; color: string }>;
+  }>>({
+    queryKey: ['ai', 'feedback-stats'],
+    queryFn: () => api.getFeedbackStats(),
     refetchInterval: 60_000,
   });
 }
