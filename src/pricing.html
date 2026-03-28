@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocuFlow — Pricing</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #fafafe; }
+
+  .hero {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+    padding: 80px 24px 60px;
+    text-align: center;
+    color: white;
+  }
+  .hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 12px; }
+  .hero p { font-size: 18px; opacity: 0.9; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* Payment method cards */
+  .methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: -40px; position: relative; z-index: 2; }
+  @media (max-width: 768px) { .methods { grid-template-columns: 1fr; } }
+
+  .method-card {
+    background: white;
+    border-radius: 16px;
+    padding: 36px 28px;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.1);
+    border: 2px solid #e8e8f0;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .method-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(99,102,241,0.15); }
+  .method-card.recommended { border-color: #6366f1; }
+  .method-card.recommended .badge {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .method-card .icon { font-size: 36px; margin-bottom: 12px; }
+  .method-card h3 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #1a1a2e; }
+  .method-card .subtitle { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+  .fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0f5;
+  }
+  .fee-row:last-child { border-bottom: none; }
+  .fee-label { font-size: 15px; color: #555; }
+  .fee-value { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+  .fee-value.highlight { color: #6366f1; font-size: 17px; }
+
+  .savings-tag {
+    background: #ecfdf5;
+    color: #059669;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  /* Monthly fee section */
+  .monthly-section {
+    margin: 60px auto;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    padding: 48px 36px;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.08);
+    max-width: 700px;
+  }
+  .monthly-section h2 { font-size: 28px; margin-bottom: 8px; }
+  .monthly-section .price { font-size: 56px; font-weight: 700; color: #6366f1; margin: 16px 0; }
+  .monthly-section .price span { font-size: 20px; color: #888; font-weight: 400; }
+  .monthly-section .includes { text-align: left; max-width: 420px; margin: 24px auto 0; }
+  .monthly-section .includes li {
+    list-style: none;
+    padding: 10px 0;
+    font-size: 15px;
+    color: #444;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .monthly-section .includes li::before { content: "\2713"; color: #6366f1; font-weight: 700; margin-right: 10px; }
+
+  /* Fee breakdown */
+  .breakdown {
+    margin: 60px auto;
+    max-width: 800px;
+  }
+  .breakdown h2 { text-align: center; font-size: 28px; margin-bottom: 8px; }
+  .breakdown .sub { text-align: center; color: #888; font-size: 15px; margin-bottom: 36px; }
+
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+  }
+  .breakdown-table th {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .breakdown-table td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f5;
+    color: #444;
+  }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table tr:nth-child(even) td { background: #fafaff; }
+  .breakdown-table .total-row td { font-weight: 700; color: #1a1a2e; background: #f0edff; }
+
+  /* Payout section */
+  .payout-section {
+    margin: 60px auto;
+    max-width: 800px;
+  }
+  .payout-section h2 { text-align: center; font-size: 28px; margin-bottom: 8px; }
+  .payout-section .sub { text-align: center; color: #888; font-size: 15px; margin-bottom: 36px; }
+
+  .payout-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 600px) { .payout-options { grid-template-columns: 1fr; } }
+
+  .payout-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    border: 2px solid #e8e8f0;
+    text-align: center;
+  }
+  .payout-card.default { border-color: #6366f1; }
+  .payout-card h4 { font-size: 18px; margin-bottom: 6px; }
+  .payout-card .payout-fee { font-size: 14px; color: #888; margin-bottom: 10px; }
+  .payout-card .payout-detail { font-size: 13px; color: #666; line-height: 1.5; }
+
+  /* Chargeback protection callout */
+  .callout {
+    margin: 60px auto;
+    max-width: 800px;
+    background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+    border: 2px solid #86efac;
+    border-radius: 16px;
+    padding: 36px;
+  }
+  .callout h3 { font-size: 22px; color: #166534; margin-bottom: 12px; }
+  .callout p { font-size: 15px; color: #333; line-height: 1.7; }
+  .callout .stat { font-size: 32px; font-weight: 700; color: #059669; display: block; margin: 12px 0; }
+
+  /* Fine print */
+  .fine-print {
+    margin: 60px auto;
+    max-width: 800px;
+    padding: 32px;
+    background: #f8f8fc;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #888;
+    line-height: 1.8;
+  }
+  .fine-print h4 { color: #555; margin-bottom: 8px; font-size: 14px; }
+
+  .footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: #999;
+    font-size: 13px;
+  }
+
+  .cta-section {
+    text-align: center;
+    margin: 48px auto 60px;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 16px 48px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(99,102,241,0.4); }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Simple, Transparent Pricing</h1>
+  <p>Accept payments from your clients with credit cards, debit cards, or bank transfers. No hidden fees. No surprises.</p>
+</div>
+
+<!-- Payment Method Cards -->
+<div class="container">
+  <div class="methods">
+
+    <!-- Credit Card -->
+    <div class="method-card">
+      <div class="icon">&#128179;</div>
+      <h3>Credit Card &mdash; Stripe Processing Fee</h3>
+      <p class="subtitle">Visa, Mastercard, Amex, Discover</p>
+      <div class="fee-row">
+        <span class="fee-label">Transaction fee</span>
+        <span class="fee-value highlight">3.3% + $0.40</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">Example on $4,000 payment</span>
+        <span class="fee-value">$132.40</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">You receive</span>
+        <span class="fee-value">$3,867.60</span>
+      </div>
+    </div>
+
+    <!-- ACH / Bank Transfer -->
+    <div class="method-card recommended">
+      <span class="badge">LOWEST FEES &amp; LOWEST RISK</span>
+      <div class="icon">&#127974;</div>
+      <h3>ACH Bank Transfer &mdash; Stripe Processing Fee</h3>
+      <p class="subtitle">Direct bank debit &mdash; lowest fees, strongest payment protection</p>
+      <div class="fee-row">
+        <span class="fee-label">Transaction fee</span>
+        <span class="fee-value highlight">1.3% (max $25)</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">Example on $4,000 payment</span>
+        <span class="fee-value">$25.00</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">You receive</span>
+        <span class="fee-value">$3,975.00</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <span class="savings-tag">Save $107+ vs credit card on $4,000</span>
+      </div>
+    </div>
+
+    <!-- Debit Card -->
+    <div class="method-card">
+      <div class="icon">&#128183;</div>
+      <h3>Debit Card &mdash; Stripe Processing Fee</h3>
+      <p class="subtitle">Directly from your client's checking account</p>
+      <div class="fee-row">
+        <span class="fee-label">Transaction fee</span>
+        <span class="fee-value highlight">3.3% + $0.40</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">Example on $4,000 payment</span>
+        <span class="fee-value">$132.40</span>
+      </div>
+      <div class="fee-row">
+        <span class="fee-label">You receive</span>
+        <span class="fee-value">$3,867.60</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Monthly Account Fee -->
+<div class="container">
+  <div class="monthly-section">
+    <h2>Monthly Account Fee</h2>
+    <div class="price">$6 <span>/ month</span></div>
+    <p style="color: #888; font-size: 15px; margin-bottom: 8px;">Per active account. Only charged in months you process payments.</p>
+    <ul class="includes">
+      <li>Unlimited transactions</li>
+      <li>Accept credit cards, debit cards, and ACH</li>
+      <li>Branded payment pages for your clients</li>
+      <li>Automatic payouts to your bank account</li>
+      <li>Real-time payment dashboard</li>
+      <li>Document signing integrated with payments</li>
+      <li>Chargeback protection with ACH payments</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Fee Breakdown Table -->
+<div class="container">
+  <div class="breakdown">
+    <h2>Stripe Processing Fee Breakdown</h2>
+    <p class="sub">Example on a $4,000 client payment</p>
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>Stripe Fee</th>
+          <th>Credit / Debit Card</th>
+          <th>ACH Bank Transfer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Stripe processing fee</td>
+          <td>3.3% + $0.40</td>
+          <td>1.3% (capped at $25)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total fee on $4,000</td>
+          <td>$132.40</td>
+          <td>$25.00</td>
+        </tr>
+        <tr class="total-row">
+          <td>You receive</td>
+          <td>$3,867.60</td>
+          <td>$3,975.00</td>
+        </tr>
+        <tr>
+          <td>You save with ACH</td>
+          <td>&mdash;</td>
+          <td style="color: #059669; font-weight: 700;">$107.40 per transaction</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Payout Options -->
+<div class="container">
+  <div class="payout-section">
+    <h2>Stripe Standard Payout Schedules</h2>
+    <p class="sub">Industry-standard payout options &mdash; choose how often you receive funds in your bank account</p>
+    <div class="payout-options">
+      <div class="payout-card default">
+        <h4>Standard &mdash; Every 2 Business Days</h4>
+        <p class="payout-fee">Stripe fee: 0.25% + $0.25 per payout</p>
+        <p class="payout-detail">The default Stripe payout schedule. Funds are automatically deposited to your bank account every 2 business days.</p>
+      </div>
+      <div class="payout-card">
+        <h4>Weekly / Bi-Weekly</h4>
+        <p class="payout-fee">Stripe fee: 0.25% + $0.25 per payout</p>
+        <p class="payout-detail">Consolidate payouts to once or twice a week. Same Stripe payout fee, fewer deposits, simpler bookkeeping.</p>
+      </div>
+      <div class="payout-card">
+        <h4>Monthly</h4>
+        <p class="payout-fee">Stripe fee: 0.25% + $0.25 per payout</p>
+        <p class="payout-detail">One consolidated Stripe payout each month. Simplifies your reconciliation.</p>
+      </div>
+      <div class="payout-card">
+        <h4>Instant Payouts</h4>
+        <p class="payout-fee">Stripe fee: 1.7% per payout ($0.50 min)</p>
+        <p class="payout-detail">Money in minutes to your debit card or bank account. Same instant payout option used by Robinhood, Lyft, and other major platforms.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACH Chargeback Protection Callout -->
+<div class="container">
+  <div class="callout">
+    <h3>Why Firms Choose ACH</h3>
+    <p>
+      When clients pay by credit card, they can dispute the charge up to 120 days later &mdash; even after you've completed the work.
+      ACH bank transfers dramatically reduce this risk. Disputes are rare, the burden of proof falls on the client, and the dispute window is much shorter.
+    </p>
+    <span class="stat">Save $107+ per transaction vs credit card</span>
+    <p>
+      On a $4,000 payment, your firm pays just $25 in total fees with ACH compared to $132.40 with a credit card. Lower fees, lower risk, faster certainty.
+    </p>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="container">
+  <div class="cta-section">
+    <a href="#" class="cta-btn">Get Started Free</a>
+    <p style="margin-top: 14px; color: #888; font-size: 14px;">No setup fees. No contracts. Cancel anytime.</p>
+  </div>
+</div>
+
+<!-- Fine Print -->
+<div class="container">
+  <div class="fine-print">
+    <h4>Additional Information</h4>
+    <p>
+      All payments are securely processed through Stripe, a PCI Level 1 certified payment processor.
+      Failed ACH payments incur a $4 Stripe fee. Disputed payments incur a $15 Stripe dispute fee regardless of payment method.
+      Monthly account fees are only charged during months when at least one payout is issued.
+      Instant payouts are available to eligible US debit cards and bank accounts. Standard payout timing is 2 business days.
+      All fees are subject to change with 30 days notice. International card transactions may incur an additional 1.5% fee.
+    </p>
+  </div>
+</div>
+
+<div class="footer">
+  <p>&copy; 2026 DocuFlow. All rights reserved. Powered by Stripe.</p>
+</div>
+
+</body>
+</html>
