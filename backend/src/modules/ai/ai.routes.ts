@@ -87,7 +87,7 @@ ai.get('/risk-scans', async (c) => {
   try {
     const { db } = await import('../../shared/db');
     const { documents } = await import('../../shared/db/schema');
-    const { desc, limit } = await import('drizzle-orm');
+    const { desc } = await import('drizzle-orm');
 
     // Fetch 10 most recent documents
     const recentDocs = await db
@@ -98,7 +98,8 @@ ai.get('/risk-scans', async (c) => {
 
     // Analyze risk for each document
     const riskScans = recentDocs.map(doc => {
-      const textContent = doc.metadata?.textContent || doc.fileName || '';
+      const meta = doc.metadata as Record<string, any> | null;
+      const textContent = meta?.textContent || doc.fileName || '';
       const riskAnalysis = analyzeContractRisk(textContent);
 
       // Map risk levels: red -> danger, yellow -> warning, green -> safe
