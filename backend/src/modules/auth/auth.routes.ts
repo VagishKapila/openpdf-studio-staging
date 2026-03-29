@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema } from './auth.validators';
 import * as authService from './auth.service';
 import { requireAuth, getUser } from '../../shared/middleware/auth';
@@ -186,7 +187,6 @@ authRoutes.post('/set-password', requireAuth, async (c) => {
       return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
 
-    const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(password, 12);
 
     await db.update(users)
