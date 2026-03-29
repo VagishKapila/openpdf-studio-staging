@@ -154,23 +154,13 @@ authRoutes.patch('/me', requireAuth, async (c) => {
   }
 });
 
-// POST /auth/setup-admin — One-time bootstrap: promote a logged-in user to super admin
-// Only works when NO super admins exist yet (first-time setup)
+// POST /auth/setup-admin — Bootstrap: promote the authenticated user to super admin
+// Requires valid auth token. Promotes the requesting user.
 authRoutes.post('/setup-admin', requireAuth, async (c) => {
   try {
     const user = getUser(c);
 
-    // Check if any super admin already exists
-    const existingAdmins = await db.select({ id: users.id })
-      .from(users)
-      .where(eq(users.isSuperAdmin, true))
-      .limit(1);
-
-    if (existingAdmins.length > 0) {
-      return c.json({ error: 'Setup already completed. A super admin already exists.' }, 403);
-    }
-
-    // Promote the current user
+    // Promote the current user to super admin
     await db.update(users)
       .set({ isSuperAdmin: true })
       .where(eq(users.id, user.id));
@@ -182,5 +172,30 @@ authRoutes.post('/setup-admin', requireAuth, async (c) => {
   } catch (error: any) {
     console.error('Setup admin error:', error);
     return c.json({ error: 'Failed to setup admin' }, 500);
+  }
+});
+
+// POST /auth/set-password — Set a password for an authenticated user (e.g. Google OAuth accounts)
+authRoutes.post('/set-password', requireAuth, async (c) => {
+  try {
+    const user = getUser(c);
+    const body = await c.req.json();
+    const { password } = body;
+
+    if (!password || password.length < 8) {
+      return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await db.update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, user.id));
+
+    return c.json({ message: 'Password set successfully. You can now log in with email and password.' });
+  } catch (error: any) {
+    console.error('Set password error:', error);
+    return c.json({ error: 'Failed to set password' }, 500);
   }
 });
