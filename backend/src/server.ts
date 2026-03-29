@@ -9,8 +9,16 @@ const port = env.PORT;
 
 // Run database migrations before starting server
 try {
-  const migrationSql = readFileSync('./drizzle/0000_lovely_leech.sql', 'utf-8');
-  const statements = migrationSql.split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean);
+  // Run all migration files in order
+  const migrationFiles = ['./drizzle/0000_lovely_leech.sql', './drizzle/0001_add_branding_subscriptions.sql'];
+  const allStatements: string[] = [];
+  for (const file of migrationFiles) {
+    try {
+      const sql = readFileSync(file, 'utf-8');
+      allStatements.push(...sql.split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean));
+    } catch { /* file may not exist yet */ }
+  }
+  const statements = allStatements;
   let applied = 0;
   let skipped = 0;
   for (const stmt of statements) {

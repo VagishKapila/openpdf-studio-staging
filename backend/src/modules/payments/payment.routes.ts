@@ -11,6 +11,16 @@ import Stripe from 'stripe';
 
 const paymentRoutes = new Hono();
 
+// ===== GET STRIPE PUBLISHABLE KEY =====
+// GET /payments/config (no auth — frontend needs this before login)
+// IMPORTANT: Defined BEFORE /:paymentId to avoid parameter route matching
+paymentRoutes.get('/config', async (c) => {
+  return c.json({
+    publishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
+    testMode: env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_') || false,
+  });
+});
+
 // ===== CREATE CHECKOUT SESSION =====
 // POST /payments/create-checkout
 // Requires auth — the document owner creates a payment request
@@ -157,15 +167,6 @@ paymentRoutes.post('/quick-checkout', async (c) => {
     console.error('Quick checkout error:', error);
     return c.json({ error: error.message || 'Failed to create checkout' }, 500);
   }
-});
-
-// ===== GET STRIPE PUBLISHABLE KEY =====
-// GET /payments/config
-paymentRoutes.get('/config', async (c) => {
-  return c.json({
-    publishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
-    testMode: env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_') || false,
-  });
 });
 
 export { paymentRoutes };
