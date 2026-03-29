@@ -2,15 +2,18 @@ import { Hono } from 'hono';
 import { requireAuth } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
-import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings } from '../../shared/db/schema';
+import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings, brandingConfigs, subscriptions } from '../../shared/db/schema';
 import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
+import { env } from '../../config/env';
+import Stripe from 'stripe';
+import { getUser } from '../../shared/middleware/auth';
 
 const admin = new Hono();
 
 // All admin routes require authentication + super admin
 admin.use('/*', requireAuth, requireSuperAdmin);
 
-// ── Dashboard Stats ──
+// ââ Dashboard Stats ââ
 admin.get('/dashboard/stats', async (c) => {
   try {
     const [userStats] = await db.select({
@@ -64,7 +67,7 @@ admin.get('/dashboard/stats', async (c) => {
   }
 });
 
-// ── Users List ──
+// ââ Users List ââ
 admin.get('/users', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -99,7 +102,7 @@ admin.get('/users', async (c) => {
   }
 });
 
-// ── User Detail ──
+// ââ User Detail ââ
 admin.get('/users/:id', async (c) => {
   const userId = c.req.param('id');
   try {
@@ -111,7 +114,7 @@ admin.get('/users/:id', async (c) => {
   }
 });
 
-// ── Update User (active/plan/superadmin) ──
+// ââ Update User (active/plan/superadmin) ââ
 admin.patch('/users/:id', async (c) => {
   const userId = c.req.param('id');
   const body = await c.req.json();
@@ -133,7 +136,7 @@ admin.patch('/users/:id', async (c) => {
   }
 });
 
-// ── Audit Log ──
+// ââ Audit Log ââ
 admin.get('/audit-log', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '50');
@@ -161,7 +164,7 @@ admin.get('/audit-log', async (c) => {
   }
 });
 
-// ── Revenue ──
+// ââ Revenue ââ
 admin.get('/revenue', async (c) => {
   try {
     const rows = await db
@@ -181,7 +184,7 @@ admin.get('/revenue', async (c) => {
   }
 });
 
-// ── Organizations ──
+// ââ Organizations ââ
 admin.get('/organizations', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -205,7 +208,7 @@ admin.get('/organizations', async (c) => {
   }
 });
 
-// ── Documents List ──
+// ââ Documents List ââ
 admin.get('/documents', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -234,7 +237,7 @@ admin.get('/documents', async (c) => {
   }
 });
 
-// ── Feedback ──
+// ââ Feedback ââ
 admin.get('/feedback', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -263,7 +266,7 @@ admin.get('/feedback', async (c) => {
   }
 });
 
-// ── Update Feedback Status/Priority ──
+// ââ Update Feedback Status/Priority ââ
 admin.patch('/feedback/:id', async (c) => {
   const feedbackId = c.req.param('id');
   const body = await c.req.json();
@@ -293,7 +296,7 @@ admin.patch('/feedback/:id', async (c) => {
   }
 });
 
-// ── Create Organization (admin override) ──
+// ââ Create Organization (admin override) ââ
 admin.post('/organizations', async (c) => {
   const body = await c.req.json();
 
@@ -346,7 +349,7 @@ admin.post('/organizations', async (c) => {
   }
 });
 
-// ── Update Organization (admin override) ──
+// ââ Update Organization (admin override) ââ
 admin.patch('/organizations/:id', async (c) => {
   const orgId = c.req.param('id');
   const body = await c.req.json();
@@ -381,7 +384,7 @@ admin.patch('/organizations/:id', async (c) => {
   }
 });
 
-// ── Platform Settings (GET/PUT) ──
+// ââ Platform Settings (GET/PUT) ââ
 admin.get('/settings', async (c) => {
   try {
     const rows = await db.select().from(platformSettings);
@@ -476,7 +479,7 @@ admin.put('/settings', async (c) => {
   }
 });
 
-// ── System Health ──
+// ââ System Health ââ
 admin.get('/system/health', async (c) => {
   return c.json({
     data: {
@@ -486,6 +489,136 @@ admin.get('/system/health', async (c) => {
       timestamp: new Date().toISOString(),
     }
   });
+});
+
+// ââ Branding Config (from user-level, non-admin) ââ
+admin.get('/branding', async (c) => {
+  try {
+    const userId = getUser(c).id;
+    const [config] = await db.select()
+      .from(brandingConfigs)
+      .where(eq(brandingConfigs.userId, userId));
+
+    return c.json(config || {
+      companyName: 'DocuFlow',
+      primaryColor: '#6366f1',
+      secondaryColor: '#8b5cf6',
+      accentColor: '#a78bfa',
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to load branding' }, 500);
+  }
+});
+
+admin.put('/branding', async (c) => {
+  try {
+    const userId = getUser(c).id;
+    const body = await c.req.json();
+
+    const values = {
+      userId,
+      companyName: body.companyName || 'DocuFlow',
+      logoUrl: body.logoUrl || null,
+      primaryColor: body.primaryColor || '#6366f1',
+      secondaryColor: body.secondaryColor || '#8b5cf6',
+      accentColor: body.accentColor || '#a78bfa',
+      customDomain: body.customDomain || null,
+      emailFromName: body.emailFromName || null,
+      emailFooterText: body.emailFooterText || null,
+      signingPageTitle: body.signingPageTitle || null,
+      signingPageSubtitle: body.signingPageSubtitle || null,
+      updatedAt: new Date(),
+    };
+
+    const [existing] = await db.select()
+      .from(brandingConfigs)
+      .where(eq(brandingConfigs.userId, userId));
+
+    let config;
+    if (existing) {
+      [config] = await db.update(brandingConfigs)
+        .set(values)
+        .where(eq(brandingConfigs.userId, userId))
+        .returning();
+    } else {
+      [config] = await db.insert(brandingConfigs)
+        .values(values)
+        .returning();
+    }
+
+    return c.json({ success: true, branding: config });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to update branding' }, 500);
+  }
+});
+
+// ââ Stripe Billing Portal ââ
+admin.post('/billing-portal', async (c) => {
+  try {
+    if (!env.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 503);
+    }
+
+    const userId = getUser(c).id;
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+
+    const [sub] = await db.select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId));
+
+    if (!sub?.stripeCustomerId) {
+      return c.json({ error: 'No billing account found. Subscribe first.' }, 404);
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: `${env.FRONTEND_URL}/openpdf-studio/dashboard.html`,
+    });
+
+    return c.json({ url: session.url });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to create billing portal' }, 500);
+  }
+});
+
+// ââ Create Subscription Checkout ($17/mo) ââ
+admin.post('/subscribe', async (c) => {
+  try {
+    if (!env.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 503);
+    }
+
+    const user = getUser(c);
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+    const body = await c.req.json();
+
+    const origin = c.req.header('origin') || env.FRONTEND_URL;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      customer_email: user.email,
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'DocuFlow Pro',
+            description: 'Monthly account fee â unlimited transactions, branded pages, document signing',
+          },
+          unit_amount: 1700,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      }],
+      success_url: `${origin}/openpdf-studio/dashboard.html?subscription=success`,
+      cancel_url: `${origin}/openpdf-studio/pricing.html?subscription=cancelled`,
+      metadata: { userId: user.id },
+    });
+
+    return c.json({ checkoutUrl: session.url, sessionId: session.id });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to create subscription' }, 500);
+  }
 });
 
 export default admin;

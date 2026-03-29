@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuFlow — Dashboard</title>
+  <meta name="description" content="Manage documents, signatures, and payments.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="DocuFlow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8fafc; color: #0f172a; font-size: 14px; line-height: 1.5;
+      overflow: hidden; height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select { font-family: inherit; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* ===== LAYOUT ===== */
+    .app { display: flex; height: 100vh; }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 230px; background: #fff; border-right: 1px solid #e8ecf1;
+      display: flex; flex-direction: column; flex-shrink: 0;
+      transition: width 0.2s;
+    }
+    .sidebar-logo {
+      padding: 18px 16px 14px; display: flex; align-items: center; gap: 9;
+    }
+    .sidebar-logo-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 17px; font-weight: 800;
+    }
+    .sidebar-logo-text { font-size: 17px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+
+    .sidebar-nav { padding: 4px 10px; flex: 1; overflow-y: auto; }
+    .nav-section { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 10px; margin-bottom: 1px;
+      color: #475569; font-weight: 500; font-size: 13.5px;
+      cursor: pointer; transition: all 0.12s; position: relative;
+    }
+    .nav-item:hover { background: #f8fafc; }
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.06));
+      color: #6366f1; font-weight: 600;
+    }
+    .nav-item.active svg { stroke: #6366f1; }
+    .nav-item svg { width: 17px; height: 17px; stroke: #94a3b8; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: #ef4444; color: #fff;
+      font-size: 10px; font-weight: 700; padding: 1px 6px;
+      border-radius: 10px; min-width: 18px; text-align: center;
+    }
+
+    .sidebar-plan {
+      margin: 0 10px 10px; padding: 14px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px; color: #fff;
+    }
+    .sidebar-plan-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .sidebar-plan-desc { font-size: 10.5px; opacity: 0.85; margin-bottom: 10px; line-height: 1.4; }
+    .sidebar-plan-bar { height: 3px; background: rgba(255,255,255,0.25); border-radius: 3px; margin-bottom: 10px; }
+    .sidebar-plan-fill { height: 3px; background: #fff; border-radius: 3px; }
+    .sidebar-plan-btn {
+      width: 100%; padding: 7px 0; background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 7px;
+      color: #fff; font-size: 11.5px; font-weight: 600;
+    }
+    .sidebar-plan-btn:hover { background: rgba(255,255,255,0.3); }
+
+    .sidebar-user {
+      padding: 12px 14px; border-top: 1px solid #e8ecf1;
+      display: flex; align-items: center; gap: 9;
+    }
+    .sidebar-user-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .sidebar-user-name { font-size: 12.5px; font-weight: 600; color: #0f172a; }
+    .sidebar-user-email { font-size: 10.5px; color: #94a3b8; }
+
+    /* ===== MAIN CONTENT ===== */
+    .main { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+    /* ===== PAGE HEADER ===== */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; }
+    .page-subtitle { font-size: 13px; color: #64748b; margin-top: 3px; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 22px; border: none; border-radius: 10px;
+      font-size: 13.5px; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; box-shadow: 0 2px 12px rgba(99,102,241,0.3);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 18px rgba(99,102,241,0.4); transform: translateY(-1px); }
+    .btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+    .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+    .btn svg { width: 16px; height: 16px; stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ===== STAT CARDS ===== */
+    .stats-row { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card {
+      background: #fff; border-radius: 14px; padding: 20px 18px;
+      flex: 1 1 180px; min-width: 170; border: 1px solid #e8ecf1;
+      position: relative; overflow: hidden;
+    }
+    .stat-card-accent {
+      position: absolute; top: -30px; right: -30px;
+      width: 80px; height: 80px; border-radius: 50%;
+    }
+    .stat-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .stat-icon svg { width: 18px; height: 18px; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #0f172a; line-height: 1.1; }
+    .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .stat-trend { font-size: 11px; font-weight: 600; margin-top: 4px; }
+    .stat-trend.up { color: #16a34a; }
+    .stat-trend.down { color: #ef4444; }
+
+    /* ===== ALERT BANNER ===== */
+    .alert-banner {
+      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+      border-radius: 12px; margin-bottom: 20px;
+    }
+    .alert-banner.danger {
+      background: linear-gradient(135deg, #fef2f2, #fff1f2);
+      border: 1px solid #fecaca;
+    }
+    .alert-banner-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .alert-banner.danger .alert-banner-icon { background: #fee2e2; }
+    .alert-banner-title { font-size: 13px; font-weight: 600; }
+    .alert-banner.danger .alert-banner-title { color: #991b1b; }
+    .alert-banner-desc { font-size: 12px; }
+    .alert-banner.danger .alert-banner-desc { color: #b91c1c; }
+
+    /* ===== QUICK ACTIONS ===== */
+    .quick-actions { display: flex; gap: 10px; margin-bottom: 24px; }
+    .quick-action {
+      flex: 1 1 0; padding: 16px 14px; background: #fff;
+      border-radius: 12px; border: 1px solid #e8ecf1;
+      cursor: pointer; display: flex; align-items: center; gap: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .quick-action:hover { border-color: var(--action-color, #6366f1); box-shadow: 0 0 0 1px var(--action-color-light, rgba(99,102,241,0.15)); }
+    .quick-action-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .quick-action-icon svg { width: 18px; height: 18px; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .quick-action-label { font-size: 13px; font-weight: 600; color: #0f172a; }
+    .quick-action-desc { font-size: 11px; color: #94a3b8; }
+
+    /* ===== TABLE CARD ===== */
+    .table-card {
+      background: #fff; border-radius: 14px; border: 1px solid #e8ecf1; overflow: hidden;
+    }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid #f1f5f9;
+    }
+    .table-title { font-size: 15px; font-weight: 600; color: #0f172a; }
+    .table-filters { display: flex; gap: 6px; align-items: center; }
+    .table-filter {
+      padding: 5px 10px; border: 1px solid #e2e8f0; border-radius: 7px;
+      font-size: 12px; color: #475569; background: #fff; cursor: pointer;
+      outline: none;
+    }
+    .table-filter:focus { border-color: #6366f1; }
+    .table-search {
+      padding: 5px 10px; border: 1px solid #e2e8f0; border-radius: 7px;
+      font-size: 12px; width: 200px; outline: none; color: #0f172a;
+    }
+    .table-search:focus { border-color: #6366f1; }
+    .table-search::placeholder { color: #94a3b8; }
+
+    /* Column headers */
+    .table-columns {
+      display: flex; align-items: center; padding: 8px 18px; gap: 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .col-header {
+      font-size: 11px; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      cursor: pointer; user-select: none; display: flex; align-items: center; gap: 3px;
+    }
+    .col-header:hover { color: #6366f1; }
+    .col-header.active { color: #6366f1; }
+    .col-sort { font-size: 9px; }
+
+    /* Table rows */
+    .table-row {
+      display: flex; align-items: center; padding: 12px 18px; gap: 16px;
+      border-bottom: 1px solid #f8fafc; transition: background 0.1s; cursor: pointer;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: #fafbff; }
+    .table-row-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+    .table-row-name { font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .table-row-sub { font-size: 11px; color: #94a3b8; }
+    .table-row-link { font-size: 12px; color: #6366f1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .table-row-link:hover { text-decoration: underline; }
+    .table-row-amount { font-size: 13px; font-weight: 600; color: #0f172a; }
+    .table-row-amount.muted { color: #cbd5e1; font-weight: 400; }
+    .table-row-date { font-size: 12px; color: #64748b; }
+    .table-row-actions { cursor: pointer; padding: 4px; border-radius: 6px; }
+    .table-row-actions:hover { background: #f1f5f9; }
+
+    .table-empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+    /* ===== BADGE ===== */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-draft { background: #f1f5f9; color: #64748b; }
+    .badge-draft .badge-dot { background: #94a3b8; }
+    .badge-awaiting { background: #fffbeb; color: #d97706; }
+    .badge-awaiting .badge-dot { background: #f59e0b; }
+    .badge-signed { background: #eff6ff; color: #2563eb; }
+    .badge-signed .badge-dot { background: #3b82f6; }
+    .badge-paid { background: #f0fdf4; color: #16a34a; }
+    .badge-paid .badge-dot { background: #22c55e; }
+    .badge-overdue { background: #fef2f2; color: #dc2626; }
+    .badge-overdue .badge-dot { background: #ef4444; }
+    .badge-refunded { background: #faf5ff; color: #7c3aed; }
+    .badge-refunded .badge-dot { background: #a78bfa; }
+
+    /* ===== CONTACT CARDS ===== */
+    .contacts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .contact-card {
+      background: #fff; border-radius: 14px; border: 1px solid #e8ecf1;
+      padding: 20px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .contact-card:hover { border-color: #6366f1; box-shadow: 0 0 0 1px rgba(99,102,241,0.15); }
+    .contact-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .contact-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .contact-name { font-size: 15px; font-weight: 600; color: #0f172a; }
+    .contact-company { font-size: 12px; color: #64748b; }
+    .contact-stats { display: flex; gap: 12px; }
+    .contact-stat {
+      flex: 1; background: #f8fafc; border-radius: 8px;
+      padding: 10px 12px; text-align: center;
+    }
+    .contact-stat-value { font-size: 18px; font-weight: 700; color: #0f172a; }
+    .contact-stat-label { font-size: 11px; color: #94a3b8; }
+    .contact-stat.paid { background: #f0fdf4; }
+    .contact-stat.paid .contact-stat-value { color: #16a34a; }
+    .contact-meta { font-size: 11px; color: #94a3b8; margin-top: 10px; }
+
+    /* ===== CONTACT DETAIL ===== */
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: none; color: #6366f1;
+      font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 20px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .back-link svg { width: 16px; height: 16px; stroke: #6366f1; }
+    .contact-detail-header {
+      background: #fff; border-radius: 14px; border: 1px solid #e8ecf1;
+      padding: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px;
+    }
+    .contact-detail-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 22px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ===== PAYMENT PROGRESS ===== */
+    .progress-card {
+      background: #fff; border-radius: 14px; border: 1px solid #e8ecf1;
+      padding: 20px; margin-bottom: 20px;
+    }
+    .progress-header {
+      display: flex; justify-content: space-between; margin-bottom: 10px;
+    }
+    .progress-label { font-size: 13px; font-weight: 600; color: #0f172a; }
+    .progress-value { font-size: 13px; font-weight: 600; color: #6366f1; }
+    .progress-bar {
+      height: 10px; background: #f1f5f9; border-radius: 10px;
+      overflow: hidden; display: flex; margin-bottom: 10px;
+    }
+    .progress-fill-collected { background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 10px 0 0 10px; }
+    .progress-fill-pending { background: #fbbf24; }
+    .progress-fill-overdue { background: #ef4444; }
+    .progress-legend { display: flex; gap: 16px; }
+    .progress-legend-item { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+    .progress-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ===== TAB BUTTONS ===== */
+    .tab-btn {
+      padding: 5px 12px; border-radius: 7px; border: none;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: background 0.12s;
+    }
+    .tab-btn.active { background: #6366f1; color: #fff; }
+    .tab-btn:not(.active) { background: transparent; color: #64748b; }
+    .tab-btn:not(.active):hover { background: #f1f5f9; }
+
+    /* ===== PLACEHOLDER PAGE ===== */
+    .placeholder-page {
+      display: flex; align-items: center; justify-content: center;
+      height: 60%; color: #94a3b8; font-size: 15px; text-align: center;
+    }
+    .placeholder-icon { font-size: 48px; margin-bottom: 12px; }
+    .placeholder-title { font-weight: 600; color: #475569; margin-bottom: 4px; }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 10px; color: #fff;
+      font-size: 13px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease;
+    }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .toast.info { background: #6366f1; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.2s;
+    }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 28px;
+      max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      animation: scaleIn 0.2s;
+    }
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* ===== SEARCH RESULTS HIGHLIGHT ===== */
+    .search-input-wrap { position: relative; }
+    .search-input-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+    .search-input-wrap input { padding-left: 30px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">D</div>
+        <span class="sidebar-logo-text">DocuFlow</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">Main</div>
+        <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-page="documents" onclick="navigateTo('documents')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Documents
+        </div>
+        <div class="nav-item" data-page="sign" onclick="navigateTo('sign')">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Sign & Collect
+        </div>
+
+        <div class="nav-section">Manage</div>
+        <div class="nav-item" data-page="contacts" onclick="navigateTo('contacts')">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Contacts
+        </div>
+        <div class="nav-item" data-page="payments" onclick="navigateTo('payments')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Payments
+          <span class="nav-badge" id="overdue-badge" style="display:none;">0</span>
+        </div>
+        <div class="nav-item" data-page="templates" onclick="navigateTo('templates')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          Templates
+        </div>
+
+        <div class="nav-section">Account</div>
+        <div class="nav-item" data-page="settings" onclick="navigateTo('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </div>
+
+        <div class="nav-section">Tools</div>
+        <div class="nav-item" onclick="window.location.href='index.html'" style="color:#6366f1;">
+          <svg viewBox="0 0 24 24" stroke="#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          PDF Editor
+        </div>
+      </nav>
+
+      <div class="sidebar-plan">
+        <div class="sidebar-plan-title">Free Plan</div>
+        <div class="sidebar-plan-desc">3 of 5 documents used</div>
+        <div class="sidebar-plan-bar"><div class="sidebar-plan-fill" style="width:60%"></div></div>
+        <button class="sidebar-plan-btn">Upgrade to Pro</button>
+      </div>
+
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="user-avatar">VK</div>
+        <div style="flex:1;min-width:0;">
+          <div class="sidebar-user-name" id="user-name">Vagish Kapila</div>
+          <div class="sidebar-user-email" id="user-email">vaakapila@gmail.com</div>
+        </div>
+        <div style="cursor:pointer;padding:2px;" title="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main" id="main-content">
+      <!-- Pages rendered by JavaScript -->
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ===== JAVASCRIPT ===== -->
+  <script>
+    // ===== STATE =====
+    let currentPage = 'dashboard';
+    let currentContactId = null;
+    let searchQuery = '';
+    let sortField = 'sentAt';
+    let sortDir = 'desc';
+    let filterStatus = 'all';
+    let filterTime = 'all';
+    let paymentTab = 'all';
+
+    // ===== DATA (loaded from API, falls back to empty) =====
+    let contacts = [];
+    let documents = [];
+    let payments = [];
+    let dashboardStats = null;
+    let isLoading = true;
+    let loadError = null;
+
+    // ===== API DATA LOADING =====
+    async function loadDashboardData() {
+      isLoading = true;
+      loadError = null;
+      renderPage();
+
+      // Check if API client is available and user is logged in
+      if (typeof DPStudioAPI === 'undefined' || !DPStudioAPI.auth.isLoggedIn()) {
+        isLoading = false;
+        loadError = 'not_logged_in';
+        renderPage();
+        return;
+      }
+
+      try {
+        const [statsRes, docsRes, paymentsRes, contactsRes] = await Promise.allSettled([
+          DPStudioAPI.dashboard.getStats(),
+          DPStudioAPI.dashboard.getDocuments({ limit: '50' }),
+          DPStudioAPI.dashboard.getPayments({ limit: '50' }),
+          DPStudioAPI.dashboard.getContacts(),
+        ]);
+
+        if (statsRes.status === 'fulfilled') dashboardStats = statsRes.value;
+        if (docsRes.status === 'fulfilled') {
+          documents = (docsRes.value.documents || []).map(d => ({
+            id: d.id, name: d.fileName || d.originalFileName || 'Untitled',
+            status: d.status || 'draft', amount: 0,
+            recipient: '', sentAt: d.createdAt, signedAt: null,
+            paidAt: null, dueDate: null, category: d.mimeType === 'application/pdf' ? 'PDF' : 'Document',
+          }));
+        }
+        if (paymentsRes.status === 'fulfilled') {
+          payments = (paymentsRes.value.payments || []).map(p => ({
+            id: p.id, docId: p.documentId, contact: p.payerEmail || 'Unknown',
+            amount: (p.amount || 0) / 100, date: p.paidAt || p.createdAt,
+            method: p.description || 'Stripe', status: p.status || 'pending',
+          }));
+        }
+        if (contactsRes.status === 'fulfilled') {
+          contacts = (contactsRes.value.contacts || []).map((c, i) => ({
+            id: 'c' + i, name: c.name || c.email.split('@')[0],
+            company: '', email: c.email,
+            avatar: (c.name || c.email).substring(0, 2).toUpperCase(),
+            totalPaid: 0, totalDocs: c.totalRequests || 0,
+            lastActive: c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
+          }));
+        }
+
+        isLoading = false;
+        renderPage();
+      } catch (err) {
+        console.error('Dashboard data load error:', err);
+        isLoading = false;
+        loadError = err.message || 'Failed to load data';
+        renderPage();
+      }
+    }
+
+    function renderLoadingState() {
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;">
+          <div style="width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <p style="color:#64748b;font-size:14px;">Loading your dashboard...</p>
+        </div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+      `;
+    }
+
+    function renderEmptyState(icon, title, subtitle, actionLabel, actionHref) {
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;gap:12px;text-align:center;padding:40px;">
+          <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.06));display:flex;align-items:center;justify-content:center;font-size:28px;">${icon}</div>
+          <h3 style="font-size:18px;font-weight:600;color:#0f172a;">${title}</h3>
+          <p style="color:#64748b;font-size:14px;max-width:400px;">${subtitle}</p>
+          ${actionLabel ? `<a href="${actionHref || '#'}" style="margin-top:8px;padding:10px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:10px;font-weight:600;font-size:13px;text-decoration:none;">${actionLabel}</a>` : ''}
+        </div>
+      `;
+    }
+
+    function renderNotLoggedIn() {
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;text-align:center;padding:40px;">
+          <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3 style="font-size:20px;font-weight:600;color:#0f172a;">Sign in to view your dashboard</h3>
+          <p style="color:#64748b;font-size:14px;max-width:420px;">Log in or create an account to manage your documents, track payments, and send signature requests.</p>
+          <a href="index.html" style="margin-top:8px;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">Sign In</a>
+        </div>
+      `;
+    }
+
+    const avatarColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+    // ===== HELPERS =====
+    function getContactColor(idx) {
+      return `linear-gradient(135deg, ${avatarColors[idx % avatarColors.length]}, ${avatarColors[(idx + 2) % avatarColors.length]})`;
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function formatCurrency(n) {
+      if (!n || n === 0) return '—';
+      return '$' + n.toLocaleString();
+    }
+
+    function badgeHTML(status) {
+      const map = {
+        draft: 'draft', awaiting_signature: 'awaiting', signed: 'signed',
+        signed_paid: 'paid', overdue: 'overdue', refunded: 'refunded',
+        completed: 'paid', pending: 'awaiting',
+      };
+      const labels = {
+        draft: 'Draft', awaiting_signature: 'Awaiting', signed: 'Signed',
+        signed_paid: 'Paid', overdue: 'Overdue', refunded: 'Refunded',
+        completed: 'Paid', pending: 'Pending',
+      };
+      const cls = map[status] || 'draft';
+      return `<span class="badge badge-${cls}"><span class="badge-dot"></span>${labels[status] || status}</span>`;
+    }
+
+    function showToast(msg, type) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + (type || 'info');
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // ===== NAVIGATION =====
+    function navigateTo(page, contactId) {
+      currentPage = page;
+      if (contactId) currentContactId = contactId;
+      // Reset filters on page change
+      searchQuery = '';
+      filterStatus = 'all';
+      filterTime = 'all';
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === page || (page === 'contact-detail' && el.dataset.page === 'contacts'));
+      });
+      renderPage();
+    }
+
+    // ===== SORT =====
+    function setSort(field) {
+      if (sortField === field) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+      else { sortField = field; sortDir = 'desc'; }
+      renderPage();
+    }
+
+    // ===== RENDER =====
+    function renderPage() {
+      const main = document.getElementById('main-content');
+
+      // Handle loading state
+      if (isLoading) {
+        main.innerHTML = renderLoadingState();
+        return;
+      }
+
+      // Handle not logged in
+      if (loadError === 'not_logged_in') {
+        main.innerHTML = renderNotLoggedIn();
+        return;
+      }
+
+      // Update overdue badge
+      const overdueCount = documents.filter(d => d.status === 'overdue').length;
+      const badge = document.getElementById('overdue-badge');
+      if (overdueCount > 0) { badge.style.display = ''; badge.textContent = overdueCount; }
+      else { badge.style.display = 'none'; }
+
+      switch (currentPage) {
+        case 'dashboard': renderDashboard(main); break;
+        case 'documents': renderDocuments(main); break;
+        case 'contacts': renderContacts(main); break;
+        case 'contact-detail': renderContactDetail(main); break;
+        case 'payments': renderPayments(main); break;
+        default: renderPlaceholder(main, currentPage); break;
+      }
+    }
+
+    // ===== DASHBOARD PAGE =====
+    function renderDashboard(el) {
+      const overdueCount = documents.filter(d => d.status === 'overdue').length;
+      const awaitingCount = documents.filter(d => d.status === 'awaiting_signature').length;
+      const paidThisMonth = payments.filter(p => p.status === 'completed' && p.date && p.date.startsWith('2026-03')).reduce((s, p) => s + p.amount, 0);
+      const pendingAmount = payments.filter(p => p.status === 'pending' || p.status === 'overdue').reduce((s, p) => s + p.amount, 0);
+      const overdueAmount = payments.filter(p => p.status === 'overdue').reduce((s, p) => s + p.amount, 0);
+
+      let html = `
+        <div class="page-header">
+          <div>
+            <div class="page-title">Good morning, Vagish</div>
+            <div class="page-subtitle">Here's your document activity overview.</div>
+          </div>
+          <button class="btn btn-primary" onclick="navigateTo('sign')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Document
+          </button>
+        </div>`;
+
+      // Overdue alert
+      if (overdueCount > 0) {
+        html += `
+        <div class="alert-banner danger">
+          <div class="alert-banner-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="alert-banner-title">${overdueCount} overdue payment${overdueCount > 1 ? 's' : ''} — ${formatCurrency(overdueAmount)} outstanding</div>
+            <div class="alert-banner-desc">Consider sending a reminder to collect faster.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="showToast('Reminder emails sent!', 'success')">Send Reminders</button>
+        </div>`;
+      }
+
+      // Stats
+      html += `
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-accent" style="background:rgba(99,102,241,0.04)"></div>
+            <div class="stat-icon" style="background:rgba(99,102,241,0.08)">
+              <svg viewBox="0 0 24 24" stroke="#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="stat-value">${documents.length}</div>
+            <div class="stat-label">Documents Sent</div>
+            <div class="stat-trend up">3 this week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-accent" style="background:rgba(245,158,11,0.04)"></div>
+            <div class="stat-icon" style="background:rgba(245,158,11,0.08)">
+              <svg viewBox="0 0 24 24" stroke="#d97706"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-value">${awaitingCount}</div>
+            <div class="stat-label">Awaiting Signature</div>
+            <div class="stat-trend down">${overdueCount} overdue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-accent" style="background:rgba(34,197,94,0.04)"></div>
+            <div class="stat-icon" style="background:rgba(34,197,94,0.08)">
+              <svg viewBox="0 0 24 24" stroke="#16a34a"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <div class="stat-value">${formatCurrency(paidThisMonth)}</div>
+            <div class="stat-label">Collected (March)</div>
+            <div class="stat-trend up">+34% vs Feb</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-accent" style="background:rgba(239,68,68,0.04)"></div>
+            <div class="stat-icon" style="background:rgba(239,68,68,0.08)">
+              <svg viewBox="0 0 24 24" stroke="#ef4444"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="stat-value">${formatCurrency(pendingAmount)}</div>
+            <div class="stat-label">Outstanding</div>
+            <div class="stat-trend down">${overdueCount} overdue</div>
+          </div>
+        </div>`;
+
+      // Quick actions
+      html += `
+        <div class="quick-actions">
+          <div class="quick-action" style="--action-color:#6366f1;--action-color-light:rgba(99,102,241,0.15)" onclick="window.location.href='index.html?action=sign'">
+            <div class="quick-action-icon" style="background:rgba(99,102,241,0.08)"><svg viewBox="0 0 24 24" stroke="#6366f1"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+            <div><div class="quick-action-label">Send for Signing</div><div class="quick-action-desc">Upload & send a document</div></div>
+          </div>
+          <div class="quick-action" style="--action-color:#22c55e;--action-color-light:rgba(34,197,94,0.15)" onclick="window.location.href='index.html?action=sign&payment=true'">
+            <div class="quick-action-icon" style="background:rgba(34,197,94,0.08)"><svg viewBox="0 0 24 24" stroke="#22c55e"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div><div class="quick-action-label">Collect Payment</div><div class="quick-action-desc">Invoice with signing</div></div>
+          </div>
+          <div class="quick-action" style="--action-color:#f59e0b;--action-color-light:rgba(245,158,11,0.15)" onclick="navigateTo('templates')">
+            <div class="quick-action-icon" style="background:rgba(245,158,11,0.08)"><svg viewBox="0 0 24 24" stroke="#f59e0b"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+            <div><div class="quick-action-label">Use Template</div><div class="quick-action-desc">Start from a saved template</div></div>
+          </div>
+          <div class="quick-action" style="--action-color:#ef4444;--action-color-light:rgba(239,68,68,0.15)" onclick="showToast('Reminder emails sent to 3 recipients!', 'success')">
+            <div class="quick-action-icon" style="background:rgba(239,68,68,0.08)"><svg viewBox="0 0 24 24" stroke="#ef4444"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div><div class="quick-action-label">Send Reminders</div><div class="quick-action-desc">Nudge pending signers</div></div>
+          </div>
+        </div>`;
+
+      // Recent documents table
+      html += renderDocumentsTable(documents, 'Recent Documents');
+      el.innerHTML = html;
+    }
+
+    // ===== DOCUMENTS TABLE (reusable) =====
+    function renderDocumentsTable(docs, title, showFilters) {
+      if (showFilters === undefined) showFilters = true;
+      let filtered = docs.filter(d => {
+        if (filterStatus !== 'all' && d.status !== filterStatus) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const contact = contacts.find(c => c.id === d.contactId);
+          if (!d.name.toLowerCase().includes(q) && !d.recipient.toLowerCase().includes(q) && !(contact && contact.name.toLowerCase().includes(q))) return false;
+        }
+        return true;
+      });
+      filtered.sort((a, b) => {
+        const av = a[sortField] || '';
+        const bv = b[sortField] || '';
+        return sortDir === 'desc' ? (bv > av ? 1 : -1) : (av > bv ? 1 : -1);
+      });
+
+      function sortIcon(field) {
+        if (sortField !== field) return '';
+        return `<span class="col-sort">${sortDir === 'desc' ? '▼' : '▲'}</span>`;
+      }
+
+      let html = `<div class="table-card">
+        <div class="table-header">
+          <div class="table-title">${title || 'Documents'}</div>
+          <div class="table-filters">
+            ${showFilters ? `
+              <select class="table-filter" onchange="filterTime=this.value;renderPage()">
+                <option value="all"${filterTime==='all'?' selected':''}>All time</option>
+                <option value="today"${filterTime==='today'?' selected':''}>Today</option>
+                <option value="week"${filterTime==='week'?' selected':''}>This week</option>
+                <option value="month"${filterTime==='month'?' selected':''}>This month</option>
+              </select>
+              <select class="table-filter" onchange="filterStatus=this.value;renderPage()">
+                <option value="all"${filterStatus==='all'?' selected':''}>All statuses</option>
+                <option value="draft"${filterStatus==='draft'?' selected':''}>Drafts</option>
+                <option value="awaiting_signature"${filterStatus==='awaiting_signature'?' selected':''}>Awaiting</option>
+                <option value="signed"${filterStatus==='signed'?' selected':''}>Signed</option>
+                <option value="signed_paid"${filterStatus==='signed_paid'?' selected':''}>Paid</option>
+                <option value="overdue"${filterStatus==='overdue'?' selected':''}>Overdue</option>
+              </select>
+              <input class="table-search" placeholder="Search name or email..." value="${searchQuery}" oninput="searchQuery=this.value;renderPage()">
+            ` : ''}
+          </div>
+        </div>
+        <div class="table-columns">
+          <div style="width:36px"></div>
+          <div style="flex:2"><div class="col-header${sortField==='name'?' active':''}" onclick="setSort('name')">Document ${sortIcon('name')}</div></div>
+          <div style="flex:1"><div class="col-header${sortField==='recipient'?' active':''}" onclick="setSort('recipient')">Recipient ${sortIcon('recipient')}</div></div>
+          <div style="width:90px"><div class="col-header${sortField==='amount'?' active':''}" onclick="setSort('amount')">Amount ${sortIcon('amount')}</div></div>
+          <div style="width:90px"><div class="col-header${sortField==='sentAt'?' active':''}" onclick="setSort('sentAt')">Sent ${sortIcon('sentAt')}</div></div>
+          <div style="width:90px"><div class="col-header${sortField==='status'?' active':''}" onclick="setSort('status')">Status ${sortIcon('status')}</div></div>
+          <div style="width:32px"></div>
+        </div>`;
+
+      if (filtered.length === 0) {
+        html += '<div class="table-empty">No documents match your filters.</div>';
+      } else {
+        filtered.forEach(doc => {
+          const contact = contacts.find(c => c.id === doc.contactId);
+          const ci = contacts.indexOf(contact);
+          const iconBg = doc.status === 'overdue' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)';
+          html += `
+          <div class="table-row" onclick="alert('Document detail: ${doc.name.replace(/'/g, '')}')">
+            <div class="table-row-icon" style="background:${iconBg}">${doc.name.charAt(0)}</div>
+            <div style="flex:2;min-width:0">
+              <div class="table-row-name">${doc.name}</div>
+              <div class="table-row-sub">${doc.category}</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div class="table-row-link" onclick="event.stopPropagation();${contact ? `navigateTo('contact-detail','${contact.id}')` : ''}">${contact ? contact.name : doc.recipient || '—'}</div>
+            </div>
+            <div style="width:90px" class="table-row-amount${doc.amount > 0 ? '' : ' muted'}">${doc.amount > 0 ? formatCurrency(doc.amount) : '—'}</div>
+            <div style="width:90px" class="table-row-date">${formatDate(doc.sentAt)}</div>
+            <div style="width:90px">${badgeHTML(doc.status)}</div>
+            <div style="width:32px" class="table-row-actions" onclick="event.stopPropagation()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+          </div>`;
+        });
+      }
+      html += '</div>';
+      return html;
+    }
+
+    // ===== DOCUMENTS PAGE =====
+    function renderDocuments(el) {
+      if (documents.length === 0) {
+        el.innerHTML = renderEmptyState(
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+          'No documents yet',
+          'Upload a PDF to get started with document signing and payments.',
+          'Upload Document', 'index.html'
+        );
+        return;
+      }
+      el.innerHTML = `
+        <div class="page-header">
+          <div><div class="page-title">Documents</div><div class="page-subtitle">All your sent and draft documents.</div></div>
+          <button class="btn btn-primary" onclick="navigateTo('sign')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Document
+          </button>
+        </div>
+        ${renderDocumentsTable(documents, 'All Documents')}`;
+    }
+
+    // ===== CONTACTS PAGE =====
+    function renderContacts(el) {
+      if (contacts.length === 0) {
+        el.innerHTML = renderEmptyState(
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+          'No contacts yet',
+          'Contacts are automatically created when you send signature requests. Send your first document to get started.',
+          'New Document', 'index.html'
+        );
+        return;
+      }
+      let html = `
+        <div class="page-header">
+          <div><div class="page-title">Contacts</div><div class="page-subtitle">All your clients and their documents in one place.</div></div>
+          <button class="btn btn-primary" onclick="showToast('Add Contact — coming soon!', 'info')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Contact
+          </button>
+        </div>
+        <div style="margin-bottom:20px">
+          <input class="table-search" style="width:100%;max-width:400px;padding:10px 14px;" placeholder="Search contacts by name or company..." oninput="searchQuery=this.value;renderPage()">
+        </div>
+        <div class="contacts-grid">`;
+
+      const filtered = contacts.filter(c => !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.company.toLowerCase().includes(searchQuery.toLowerCase()));
+      filtered.forEach((c, i) => {
+        html += `
+        <div class="contact-card" onclick="navigateTo('contact-detail','${c.id}')">
+          <div class="contact-header">
+            <div class="contact-avatar" style="background:${getContactColor(i)}">${c.avatar}</div>
+            <div><div class="contact-name">${c.name}</div><div class="contact-company">${c.company}</div></div>
+          </div>
+          <div class="contact-stats">
+            <div class="contact-stat"><div class="contact-stat-value">${c.totalDocs}</div><div class="contact-stat-label">Documents</div></div>
+            <div class="contact-stat paid"><div class="contact-stat-value">${formatCurrency(c.totalPaid)}</div><div class="contact-stat-label">Total Paid</div></div>
+          </div>
+          <div class="contact-meta">Last active: ${c.lastActive}</div>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    // ===== CONTACT DETAIL =====
+    function renderContactDetail(el) {
+      const c = contacts.find(x => x.id === currentContactId);
+      if (!c) { el.innerHTML = '<p>Contact not found.</p>'; return; }
+      const ci = contacts.indexOf(c);
+      const cDocs = documents.filter(d => d.contactId === c.id);
+      const cPayments = payments.filter(p => cDocs.some(d => d.id === p.docId));
+      const totalPaid = cPayments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0);
+      const totalPending = cPayments.filter(p => p.status !== 'completed').reduce((s, p) => s + p.amount, 0);
+
+      let html = `
+        <button class="back-link" onclick="navigateTo('contacts')">
+          <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Contacts
+        </button>
+        <div class="contact-detail-header">
+          <div class="contact-detail-avatar" style="background:${getContactColor(ci)}">${c.avatar}</div>
+          <div style="flex:1">
+            <h2 style="font-size:22px;font-weight:700">${c.name}</h2>
+            <div style="font-size:13px;color:#64748b;margin-top:2px">${c.company} · ${c.email}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="showToast('Email client — coming soon!', 'info')">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="navigateTo('sign')">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send Document
+          </button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(99,102,241,0.08)"><svg viewBox="0 0 24 24" stroke="#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="stat-value">${cDocs.length}</div><div class="stat-label">Documents</div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,0.08)"><svg viewBox="0 0 24 24" stroke="#16a34a"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-value">${cDocs.filter(d => d.signedAt).length}</div><div class="stat-label">Signed</div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,0.08)"><svg viewBox="0 0 24 24" stroke="#16a34a"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-value">${formatCurrency(totalPaid)}</div><div class="stat-label">Total Paid</div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:${totalPending > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)'}"><svg viewBox="0 0 24 24" stroke="${totalPending > 0 ? '#ef4444' : '#6366f1'}"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-value">${formatCurrency(totalPending)}</div><div class="stat-label">Pending</div></div>
+        </div>`;
+
+      // Payment history
+      if (cPayments.length > 0) {
+        html += `<div class="table-card" style="margin-bottom:20px">
+          <div class="table-header"><div class="table-title">Payment History</div></div>`;
+        cPayments.forEach((p, i) => {
+          const doc = documents.find(d => d.id === p.docId);
+          const iconColor = p.status === 'completed' ? '#16a34a' : p.status === 'overdue' ? '#dc2626' : '#d97706';
+          const iconBg = p.status === 'completed' ? '#f0fdf4' : p.status === 'overdue' ? '#fef2f2' : '#fffbeb';
+          html += `
+          <div class="table-row">
+            <div style="width:32px;height:32px;border-radius:8px;background:${iconBg};display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round">
+                ${p.status === 'completed' ? '<polyline points="20 6 9 17 4 12"/>' : p.status === 'overdue' ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' : '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}
+              </svg>
+            </div>
+            <div style="flex:1"><div style="font-size:13px;font-weight:500">${doc ? doc.name : 'Document'}</div><div style="font-size:11px;color:#94a3b8">${p.method || (p.status === 'overdue' ? 'Payment overdue' : 'Awaiting payment')}</div></div>
+            <div style="font-size:14px;font-weight:600;color:${iconColor}">${p.status === 'completed' ? '+' : ''}${formatCurrency(p.amount)}</div>
+            <div style="font-size:12px;color:#64748b;width:80px;text-align:right">${p.date ? formatDate(p.date) : 'Pending'}</div>
+            ${p.status === 'completed' ? '<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="event.stopPropagation();showToast(\'Refund initiated for ' + formatCurrency(p.amount) + '\',\'info\')">Refund</button>' : ''}
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      // Documents for this contact
+      html += renderDocumentsTable(cDocs, 'Documents for ' + c.name, false);
+      el.innerHTML = html;
+    }
+
+    // ===== PAYMENTS PAGE =====
+    function renderPayments(el) {
+      if (payments.length === 0) {
+        el.innerHTML = renderEmptyState(
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+          'No payments yet',
+          'Payments will appear here once clients pay through your document signing flow. Set up a document with payment to get started.',
+          'Create Document', 'index.html'
+        );
+        return;
+      }
+      const completed = payments.filter(p => p.status === 'completed');
+      const pending = payments.filter(p => p.status === 'pending');
+      const overdue = payments.filter(p => p.status === 'overdue');
+      const totalCollected = completed.reduce((s, p) => s + p.amount, 0);
+      const totalPending = pending.reduce((s, p) => s + p.amount, 0);
+      const totalOverdue = overdue.reduce((s, p) => s + p.amount, 0);
+      const total = totalCollected + totalPending + totalOverdue;
+
+      const filtered = paymentTab === 'all' ? payments : payments.filter(p => p.status === paymentTab);
+
+      let html = `
+        <div class="page-header">
+          <div><div class="page-title">Payments</div><div class="page-subtitle">Track all collected and outstanding payments.</div></div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,0.08)"><svg viewBox="0 0 24 24" stroke="#16a34a"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-value">${formatCurrency(totalCollected)}</div><div class="stat-label">Collected (March)</div><div class="stat-trend up">+34% vs Feb</div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,0.08)"><svg viewBox="0 0 24 24" stroke="#d97706"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-value">${formatCurrency(totalPending)}</div><div class="stat-label">Pending</div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,0.08)"><svg viewBox="0 0 24 24" stroke="#ef4444"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-value">${formatCurrency(totalOverdue)}</div><div class="stat-label">Overdue</div></div>
+        </div>
+
+        <div class="progress-card">
+          <div class="progress-header">
+            <span class="progress-label">March Collection Progress</span>
+            <span class="progress-value">${formatCurrency(totalCollected)} / ${formatCurrency(total)}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill-collected" style="width:${total ? (totalCollected/total*100) : 0}%"></div>
+            <div class="progress-fill-pending" style="width:${total ? (totalPending/total*100) : 0}%"></div>
+            <div class="progress-fill-overdue" style="width:${total ? (totalOverdue/total*100) : 0}%"></div>
+          </div>
+          <div class="progress-legend">
+            <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#22c55e"></div>Collected</div>
+            <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#fbbf24"></div>Pending</div>
+            <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#ef4444"></div>Overdue</div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div style="display:flex;gap:6px">
+              <button class="tab-btn${paymentTab==='all'?' active':''}" onclick="paymentTab='all';renderPage()">All</button>
+              <button class="tab-btn${paymentTab==='completed'?' active':''}" onclick="paymentTab='completed';renderPage()">Collected</button>
+              <button class="tab-btn${paymentTab==='pending'?' active':''}" onclick="paymentTab='pending';renderPage()">Pending</button>
+              <button class="tab-btn${paymentTab==='overdue'?' active':''}" onclick="paymentTab='overdue';renderPage()">Overdue</button>
+            </div>
+          </div>`;
+
+      filtered.forEach(p => {
+        const doc = documents.find(d => d.id === p.docId);
+        const iconColor = p.status === 'completed' ? '#16a34a' : p.status === 'overdue' ? '#dc2626' : '#d97706';
+        const iconBg = p.status === 'completed' ? '#f0fdf4' : p.status === 'overdue' ? '#fef2f2' : '#fffbeb';
+        html += `
+        <div class="table-row">
+          <div style="width:36px;height:36px;border-radius:9px;background:${iconBg};display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round">
+              ${p.status === 'completed' ? '<polyline points="20 6 9 17 4 12"/>' : p.status === 'overdue' ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' : '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}
+            </svg>
+          </div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">${doc ? doc.name : 'Document'}</div><div style="font-size:11px;color:#94a3b8">${p.contact} · ${p.method || 'Awaiting payment'}</div></div>
+          <div style="font-size:15px;font-weight:700;color:${iconColor}">${formatCurrency(p.amount)}</div>
+          ${badgeHTML(p.status)}
+          <div style="width:80px;font-size:12px;color:#64748b;text-align:right">${p.date ? formatDate(p.date) : '—'}</div>
+          ${p.status === 'completed' ? '<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="event.stopPropagation();showToast(\'Refund initiated for ' + formatCurrency(p.amount) + '\',\'info\')">Refund</button>' : ''}
+          ${p.status === 'overdue' ? '<button class="btn btn-sm btn-danger" style="font-size:11px;padding:4px 10px;" onclick="event.stopPropagation();showToast(\'Reminder sent to ' + p.contact + '\',\'success\')">Remind</button>' : ''}
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    // ===== PLACEHOLDER PAGES =====
+    function renderPlaceholder(el, page) {
+      const icons = { sign: '✍️', templates: '📋', settings: '⚙️' };
+      const titles = { sign: 'Sign & Collect', templates: 'Templates', settings: 'Settings' };
+      el.innerHTML = `
+        <div class="placeholder-page">
+          <div>
+            <div class="placeholder-icon">${icons[page] || '🔧'}</div>
+            <div class="placeholder-title">${titles[page] || page}</div>
+            <div>Coming soon — this section is under development.</div>
+          </div>
+        </div>`;
+    }
+
+    // ===== AUTH CHECK & INIT =====
+    (function init() {
+      // Check if user is logged in (uses same tokens as index.html)
+      const token = localStorage.getItem('dpstudio_access_token');
+      const userStr = localStorage.getItem('dpstudio_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          document.getElementById('user-name').textContent = user.name || 'User';
+          document.getElementById('user-email').textContent = user.email || '';
+          const initials = (user.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+          document.getElementById('user-avatar').textContent = initials;
+        } catch (e) {}
+      }
+
+      // Handle deep-link from hash (e.g. dashboard.html#documents)
+      const hash = window.location.hash.replace('#', '');
+      if (hash && ['dashboard','documents','contacts','payments','templates','settings','sign'].includes(hash)) {
+        currentPage = hash;
+      }
+
+      // Handle URL params (e.g. dashboard.html?page=payments&toast=Payment+received)
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page');
+      if (pageParam) currentPage = pageParam;
+      const toastMsg = params.get('toast');
+      if (toastMsg) setTimeout(() => showToast(decodeURIComponent(toastMsg), params.get('toast_type') || 'success'), 300);
+
+      // Update nav active state
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === currentPage);
+      });
+
+      // Render initial page then load data from API
+      renderPage();
+      loadDashboardData();
+
+      // Update user info in sidebar from stored user
+      if (typeof DPStudioAPI !== 'undefined' && DPStudioAPI.auth.isLoggedIn()) {
+        const user = DPStudioAPI.auth.getUser();
+        if (user) {
+          const nameEl = document.getElementById('user-name');
+          const emailEl = document.getElementById('user-email');
+          const avatarEl = document.getElementById('user-avatar');
+          if (nameEl && user.name) nameEl.textContent = user.name;
+          if (emailEl && user.email) emailEl.textContent = user.email;
+          if (avatarEl && user.name) avatarEl.textContent = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        }
+      }
+    })();
+  </script>
+  <script src="api-client.js"></script>
+</body>
+</html>
