@@ -48,8 +48,8 @@
       }
     ],
     "category": "Productivity",
-    "shortDescription": "Free PDF & Image Editor",
-    "longDescription": "OpenPDF Studio is a free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, OCR scanned documents, and manipulate images — all 100% local, no cloud required."
+    "shortDescription": "PDF & Image Editor",
+    "longDescription": "OpenPDF Studio is an alternative to Adobe Acrobat Pro. Edit PDFs, OCR scanned documents, and manipulate images — all 100% local, no cloud required. Free core features with premium tools available."
   },
   "plugins": {
     "fs": {

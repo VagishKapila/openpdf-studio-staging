@@ -10,7 +10,7 @@ This document provides a complete overview of the Tauri 2.0 desktop packaging co
 **Repository**: https://github.com/VagishKapila/openpdf-studio
 **License**: MIT OR Apache-2.0
 
-A free, open-source PDF and image editor with cross-platform desktop packaging for Windows, macOS, and Linux.
+A PDF and image editor with free and premium features, with cross-platform desktop packaging for Windows, macOS, and Linux.
 
 ## Generated Files Summary
 

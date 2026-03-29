@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToS3, getFromS3, getDownloadUrl, generateS3Key } from '../../shared/utils/s3';
 import crypto from 'crypto';
+import { autoProtectAfterSigning } from '../protection/protection.service';
 
 // ===== TYPES =====
 export interface DetectedField {
@@ -345,8 +346,35 @@ export async function saveSignedDocument(
     .set({ status: 'signed', updatedAt: new Date() })
     .where(eq(documents.id, request.documentId));
 
+  // Auto-protect the signed document (if enabled)
+  let protectionResult = null;
+  try {
+    const autoProtect = await autoProtectAfterSigning(
+      request.documentId,
+      userId,
+      pdfBuffer,
+      undefined, // orgId — will be fetched from document if needed
+    );
+
+    if (autoProtect.protected) {
+      protectionResult = {
+        protectionId: autoProtect.protection?.id,
+        ownerPassword: autoProtect.passwords?.ownerPassword,
+        userPassword: autoProtect.passwords?.userPassword,
+        protectedDownloadUrl: autoProtect.protection?.protectedS3Key
+          ? await getDownloadUrl(autoProtect.protection.protectedS3Key)
+          : null,
+      };
+      console.log(`[Esign] Auto-protection applied to document ${request.documentId}`);
+    }
+  } catch (error) {
+    // Auto-protection is non-blocking — signing succeeds even if protection fails
+    console.error(`[Esign] Auto-protection failed for document ${request.documentId}:`, error);
+  }
+
   return {
     signedKey,
     downloadUrl: await getDownloadUrl(signedKey),
+    protection: protectionResult,
   };
 }

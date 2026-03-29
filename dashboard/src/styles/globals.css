@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* White-label CSS variables — loaded dynamically per org */
+:root {
+  --brand-primary: #6366F1;
+  --brand-secondary: #8B5CF6;
+  --brand-bg: #EEF2FF;
+  --brand-text: #1E293B;
+  --brand-font: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--brand-font);
+  color: var(--brand-text);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Settings form inputs */
+@layer components {
+  .settings-input {
+    @apply w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors;
+  }
+}
+
+/* Slide-in animation for drawers */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}

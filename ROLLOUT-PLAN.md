@@ -2,9 +2,9 @@
 
 ## Vision
 
-A free, open-source, AI-powered PDF & image editor that replaces Adobe Acrobat Pro and basic Photoshop features. Runs on Windows, Mac, Linux, iOS, Android, and the web. All AI runs locally — no cloud costs, full privacy.
+An AI-powered PDF & image editor that replaces Adobe Acrobat Pro and basic Photoshop features. Runs on Windows, Mac, Linux, iOS, Android, and the web. All AI runs locally — no cloud costs, full privacy. Free core features with premium paid tiers (freemium model).
 
-**Tagline:** "The PDF editor Adobe should have made — free, forever."
+**Tagline:** "The PDF editor Adobe should have made."
 
 ---
 

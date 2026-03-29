@@ -186,7 +186,7 @@ function createWindow() {
               type: 'info',
               title: 'About DocPix Studio',
               message: 'DocPix Studio v0.1.0',
-              detail: 'Free, open-source, AI-powered PDF & Image Editor.\n\nLicense: MIT\nhttps://github.com/your-username/docpix-studio',
+              detail: 'AI-powered PDF & Image Editor. Free core features, premium tools available.\n\nLicense: MIT\nhttps://github.com/VagishKapila/openpdf-studio',
             });
           },
         },

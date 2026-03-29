@@ -2,7 +2,7 @@
 
 ## Overview
 
-Complete Tauri 2.0 desktop application packaging for OpenPDF Studio - a free, open-source PDF and image editor.
+Complete Tauri 2.0 desktop application packaging for OpenPDF Studio - a PDF and image editor with free and premium features.
 
 **Location**: `/sessions/amazing-practical-newton/mnt/outputs/openpdf-studio/`
 **Version**: 1.0.0

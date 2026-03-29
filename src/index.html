@@ -1165,31 +1165,6 @@
       color: var(--text);
       transition: border-color 0.15s;
     }
-    .auth-field.password-field {
-      position: relative;
-    }
-    .auth-field.password-field input {
-      padding-right: 42px;
-    }
-    .password-toggle {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(2px);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-dim);
-      padding: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-    }
-    .password-toggle:hover {
-      color: var(--primary);
-    }
     .auth-field input:focus {
       outline: none;
       border-color: var(--primary);
@@ -1213,6 +1188,25 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
+    .auth-forgot-link {
+      display: block;
+      text-align: center;
+      color: var(--primary);
+      font-size: 13px;
+      text-decoration: none;
+      margin-top: 10px;
+    }
+    .auth-forgot-link:hover { text-decoration: underline; }
+    .auth-success {
+      display: none;
+      background: #F0FDF4;
+      color: #16A34A;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .auth-success.visible { display: block; }
     .auth-error {
       display: none;
       background: #FEF2F2;
@@ -1372,179 +1366,338 @@
       margin: 4px 8px;
     }
 
-    /* ===== SIGNING FLOW STYLES ===== */
+    /* ===== SIGNING FLOW OVERLAY ===== */
     .signing-overlay {
-      display: none;
       position: fixed;
       inset: 0;
-      background: var(--bg);
-      z-index: 9000;
-      flex-direction: column;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+      backdrop-filter: blur(4px);
     }
     .signing-overlay.visible { display: flex; }
+    .signing-container {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: signingSlideIn 0.3s ease-out;
+    }
+    @keyframes signingSlideIn {
+      from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
     .signing-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 20px;
-      background: var(--bg-secondary);
+      padding: 24px 28px;
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
-    .signing-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .signing-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      flex: 1;
+    }
+    .signing-header button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--text-secondary);
+      padding: 0;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .signing-header button:hover { color: var(--text); }
     .signing-steps {
       display: flex;
-      gap: 4px;
       align-items: center;
+      gap: 16px;
+      margin: 0 16px;
+      flex: 1;
+      justify-content: center;
     }
-    .signing-step {
+    .step-indicator {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
       color: var(--text-secondary);
-      background: transparent;
+      transition: all 0.2s;
+      position: relative;
     }
-    .signing-step.active {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    .step-indicator.active {
+      background: var(--primary);
+      border-color: var(--primary);
       color: white;
     }
-    .signing-step.completed {
-      color: #22c55e;
+    .step-indicator.completed {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
     }
-    .signing-step .step-num {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
+    .step-indicator:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 100%;
+      width: 16px;
+      height: 2px;
+      background: var(--border);
+      margin-left: 8px;
+    }
+    .step-indicator.completed:not(:last-child)::after {
+      background: var(--success);
+    }
+    .signing-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      position: relative;
+      min-height: 400px;
+    }
+    .signing-step {
+      display: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .signing-step.active { display: flex; flex-direction: column; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .signing-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .signing-footer button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    #signing-prev {
+      background: var(--bg-tertiary);
+      color: var(--text);
+      display: none;
+    }
+    #signing-prev:hover { background: var(--border); }
+    #signing-next {
+      background: var(--primary);
+      color: white;
+      margin-left: auto;
+    }
+    #signing-next:hover { background: var(--primary-hover); }
+    #signing-next:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Step 1: Upload */
+    .signing-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+    .signing-dropzone:hover, .signing-dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(107, 92, 231, 0.03);
+    }
+    .signing-dropzone svg { width: 48px; height: 48px; color: var(--text-secondary); margin-bottom: 12px; }
+    .signing-dropzone p { color: var(--text-secondary); margin: 8px 0; font-size: 14px; }
+    .signing-dropzone .upload-btn {
+      display: inline-block;
+      padding: 10px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .signing-dropzone .upload-btn:hover { background: var(--primary-hover); }
+    .signing-file-info {
+      display: none;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .signing-file-info.visible { display: flex; }
+    .signing-file-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-light);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      border: 1.5px solid currentColor;
+      flex-shrink: 0;
     }
-    .signing-step.active .step-num { border-color: transparent; background: rgba(255,255,255,0.2); }
-    .signing-step.completed .step-num { border-color: #22c55e; background: #22c55e; color: white; }
-    .signing-body {
-      flex: 1;
+    .signing-file-icon svg { width: 24px; height: 24px; color: var(--primary); }
+    .signing-file-details h4 { font-size: 14px; font-weight: 600; margin: 0; }
+    .signing-file-details p { font-size: 12px; color: var(--text-secondary); margin: 4px 0 0 0; }
+
+    /* Step 2: Setup & Signature Pad */
+    .signing-step-2 {
       display: flex;
-      overflow: hidden;
+      gap: 24px;
+      align-items: flex-start;
     }
-    .signing-pdf-area {
+    .signing-document-preview {
       flex: 1;
-      overflow: auto;
-      background: #525659;
-      display: flex;
-      justify-content: center;
-      padding: 20px;
-    }
-    .signing-pdf-canvas-wrap {
-      position: relative;
-      background: white;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-    }
-    .signing-sidebar {
-      width: 320px;
-      background: var(--bg-secondary);
-      border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
+      gap: 12px;
     }
-    .signing-sidebar-content { padding: 16px; flex: 1; }
-    .signing-sidebar h3 { font-size: 14px; margin: 0 0 12px; }
-    .signing-sidebar p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; }
-    .signing-actions {
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .field-card {
+    .signing-document-preview h4 { font-size: 14px; font-weight: 600; margin: 0; }
+    .signing-preview-canvas {
+      width: 100%;
+      height: 300px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .field-card:hover { border-color: #6366f1; }
-    .field-card.active { border-color: #6366f1; background: rgba(99,102,241,0.05); }
-    .field-card .field-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      color: var(--text-secondary);
+      font-size: 13px;
     }
-    .field-card .field-icon.sig { background: #ede9fe; color: #7c3aed; }
-    .field-card .field-icon.init { background: #fce7f3; color: #db2777; }
-    .field-card .field-icon.date { background: #dbeafe; color: #2563eb; }
-    .field-card .field-icon.name { background: #d1fae5; color: #059669; }
-    .field-card .field-info { flex: 1; }
-    .field-card .field-label { font-size: 13px; font-weight: 500; }
-    .field-card .field-page { font-size: 11px; color: var(--text-secondary); }
-    .field-card .field-status {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
+    .signing-sig-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .field-card .field-status.filled { border-color: #22c55e; background: #22c55e; }
-    .sig-setup-area {
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      text-align: center;
-      margin-bottom: 16px;
+    .signing-sig-section h4 { font-size: 14px; font-weight: 600; margin: 0; }
+    .signing-sig-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
     }
-    .sig-setup-area canvas {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: crosshair;
-      width: 100%;
-      max-width: 280px;
-      height: 100px;
-    }
-    .sig-preview {
-      display: inline-block;
+    .signing-sig-tab {
       padding: 8px 16px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: white;
-    }
-    .sig-preview img { max-height: 50px; }
-    .payment-setup {
-      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-      border: 1px solid #bbf7d0;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .payment-setup h4 { margin: 0 0 8px; font-size: 14px; color: #166534; }
-    .payment-amount-input {
-      font-size: 24px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
       font-weight: 600;
-      width: 120px;
-      border: 2px solid #86efac;
-      border-radius: 8px;
-      padding: 8px 12px;
-      text-align: center;
-      outline: none;
+      transition: all 0.15s;
+      font-family: inherit;
     }
-    .payment-amount-input:focus { border-color: #22c55e; }
-    .field-overlay {
-      position: absolute;
-      border: 2px dashed #6366f1;
-      background: rgba(99, 102, 241, 0.08);
+    .signing-sig-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .signing-sig-canvas {
+      width: 100%;
+      height: 200px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: crosshair;
+      background: white;
+      display: block;
+    }
+    .signing-sig-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Brush Script MT', cursive;
+      font-size: 32px;
+      color: var(--text);
+      display: none;
+    }
+    .signing-sig-input.active { display: block; }
+    .signing-sig-canvas.hidden { display: none; }
+    .signing-sig-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .signing-sig-buttons button {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .signing-sig-buttons button:hover { background: var(--bg-tertiary); }
+    .signing-sig-buttons button.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .signing-sig-buttons button.primary:hover { background: var(--primary-hover); }
+
+    /* Step 3: Review */
+    .signing-fields-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .signing-field-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .signing-field-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+    .signing-field-label-type {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--primary-light);
+      color: var(--primary);
       border-radius: 4px;
       cursor: move;
       transition: background 0.15s, border-color 0.15s;
@@ -1573,8 +1726,21 @@
       height: 100%;
       display: flex;
       align-items: center;
-      padding: 2px 4px;
-      font-size: 12px;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .signing-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    .signing-option label {
+      flex: 1;
+      font-size: 13px;
       font-weight: 500;
       pointer-events: none;
     }
@@ -1639,10 +1805,28 @@
       font-size: 12px;
       opacity: 0.8;
     }
-    @media (max-width: 768px) {
-      .signing-sidebar { width: 260px; }
-      .signing-steps { display: none; }
+    .signing-option input[type="text"],
+    .signing-option input[type="number"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg-secondary);
     }
+    .signing-option input[type="text"]:focus,
+    .signing-option input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .signing-option-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
   </style>
 </head>
 <body>
@@ -1650,9 +1834,7 @@
   <!-- ===== TOP NAV ===== -->
   <nav class="top-nav">
     <a href="https://varshyl.com/dpstudio" class="logo" style="text-decoration:none;color:inherit;">
-      <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
-      </div>
+      <img src="../app-icon.png" alt="DocPix Studio" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'">
       <span>DocPix Studio</span>
     </a>
     <div class="user-nav-area" id="user-nav-area">
@@ -1906,13 +2088,10 @@
       <!-- Welcome Screen -->
       <div class="welcome-screen" id="welcome-screen">
         <div style="margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); background: var(--primary-light); padding: 4px 12px; border-radius: 20px;">Free &amp; Open Source</span>
-        </div>
-        <div style="width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); background: var(--primary-light); padding: 4px 12px; border-radius: 20px;">Free to Start</span>
         </div>
         <h1 style="font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px;">DocPix Studio</h1>
-        <p style="font-size: 16px; color: var(--text-secondary); max-width: 500px; margin: 0 auto 32px; line-height: 1.6;">The free alternative to expensive editing tools.<br>Edit PDFs, images, and documents in one place.<br>No subscriptions. No complexity. Just works.</p>
+        <p style="font-size: 16px; color: var(--text-secondary); max-width: 500px; margin: 0 auto 32px; line-height: 1.6;">Edit PDFs, images, and documents in one place.<br>Free core features. Premium tools when you need them.<br>No complexity. Just works.</p>
 
         <div class="drop-zone" id="drop-zone">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1951,10 +2130,10 @@
             <h4>Protect</h4>
             <p>Encrypt &amp; password-protect PDFs</p>
           </div>
-          <div class="feature-card" onclick="openSigningFlow()" style="cursor:pointer;border:2px solid #6366f1;background:linear-gradient(135deg,rgba(99,102,241,0.05),rgba(139,92,246,0.05));">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/><rect x="1" y="21" width="6" height="2" rx="1" fill="#6366f1" opacity="0.3"/></svg>
-            <h4 style="color:#6366f1;">Sign &amp; Pay</h4>
-            <p>Auto-detect fields, sign &amp; collect payment</p>
+          <div class="feature-card" onclick="openSigningFlow()" style="cursor: pointer; transition: all 0.2s; border-color: var(--primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1z"/><path d="M8 11.25h8M8 12.75h8"/><path d="M13 7v10M17 9c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4v1.9h4c2.76 0 5-2.24 5-5s-2.24-5-5-5h-4v1.9z"/></svg>
+            <h4>Sign &amp; Pay</h4>
+            <p>E-sign documents with payment</p>
           </div>
         </div>
 
@@ -2025,53 +2204,6 @@
     <div class="annotation-action-bar" id="annotation-action-bar">
       <span class="ann-label">Selected</span>
       <div class="ann-separator"></div>
-      <!-- Font family controls (visible when text object is selected) — placed at TOP -->
-      <div id="font-family-section" style="display:none; padding: 0 0 8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Font Family</div>
-        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text);">
-          <option value="Arial, sans-serif">Arial</option>
-          <option value="'Times New Roman', serif">Times New Roman</option>
-          <option value="'Courier New', monospace">Courier New</option>
-          <option value="Georgia, serif">Georgia</option>
-          <option value="Verdana, sans-serif">Verdana</option>
-          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-          <option value="Impact, sans-serif">Impact</option>
-          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
-        </select>
-      </div>
-      <!-- Font size controls (visible when text object is selected) — placed after font family -->
-      <div id="font-size-section" style="display:none;">
-        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Font Size</div>
-        <div class="opacity-row">
-          <button onclick="changeFontSize(-2)" title="Decrease font size">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          </button>
-          <span class="opacity-display" id="font-size-display" style="min-width:36px;">14</span>
-          <button onclick="changeFontSize(2)" title="Increase font size">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          </button>
-        </div>
-        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center;">
-          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">10</button>
-          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">12</button>
-          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">14</button>
-          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">16</button>
-          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">20</button>
-          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">24</button>
-          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">32</button>
-        </div>
-        <div class="ann-separator"></div>
-      </div>
-      <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Color</div>
-      <div class="color-picker-row" id="color-picker-row">
-        <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#2563eb')" style="background: #2563eb;" title="Blue"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#16a34a')" style="background: #16a34a;" title="Green"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#9333ea')" style="background: #9333ea;" title="Purple"></button>
-        <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
-      </div>
-      <div class="ann-separator"></div>
       <div class="opacity-row">
         <button onclick="changeAnnotationOpacity(-10)" title="Decrease opacity">
           <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
@@ -2091,6 +2223,63 @@
         Send Back
       </button>
       <div class="ann-separator"></div>
+      <button onclick="undoAction()" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a4 4 0 014-4h6"/><polyline points="2 8 3 7 4 8"/></svg>
+        Undo
+      </button>
+      <button onclick="redoAction()" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8a4 4 0 01-4 4H3"/><polyline points="14 8 13 9 12 8"/></svg>
+        Redo
+      </button>
+      <div class="ann-separator"></div>
+      <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Color</div>
+      <div class="color-picker-row" id="color-picker-row">
+        <button class="color-btn" onclick="selectAnnotationColor('#000000')" style="background: #000000;" title="Black"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#dc2626')" style="background: #dc2626;" title="Red"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#2563eb')" style="background: #2563eb;" title="Blue"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#16a34a')" style="background: #16a34a;" title="Green"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#9333ea')" style="background: #9333ea;" title="Purple"></button>
+        <button class="color-btn" onclick="selectAnnotationColor('#ea580c')" style="background: #ea580c;" title="Orange"></button>
+      </div>
+      <div class="ann-separator"></div>
+      <!-- Font family controls (visible when text object is selected) -->
+      <div id="font-family-section" style="display:none; padding: 0 0 8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Font Family</div>
+        <select id="font-family-select" onchange="changeFontFamily(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text);">
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+        </select>
+      </div>
+      <div class="ann-separator"></div>
+      <!-- Font size controls (visible when text object is selected) -->
+      <div id="font-size-section" style="display:none;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Font Size</div>
+        <div class="opacity-row">
+          <button onclick="changeFontSize(-2)" title="Decrease font size">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          </button>
+          <span class="opacity-display" id="font-size-display" style="min-width:36px;">16</span>
+          <button onclick="changeFontSize(2)" title="Increase font size">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center;">
+          <button onclick="setFontSize(10)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">10</button>
+          <button onclick="setFontSize(12)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">12</button>
+          <button onclick="setFontSize(14)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">14</button>
+          <button onclick="setFontSize(16)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">16</button>
+          <button onclick="setFontSize(20)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">20</button>
+          <button onclick="setFontSize(24)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">24</button>
+          <button onclick="setFontSize(32)" style="width:auto;flex:0;padding:5px 8px;font-size:12px;">32</button>
+        </div>
+        <div class="ann-separator"></div>
+      </div>
       <!-- Shape type selector (visible when shape tool is active) -->
       <div id="shape-type-section" style="display:none;">
         <div style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px 0;">Shape Type</div>
@@ -2517,7 +2706,7 @@
       imageFilters: { brightness: 100, contrast: 100, saturate: 100, blur: 0, grayscale: 0, sepia: 0, hueRotate: 0 },
       nextObjectColor: '#000000',  // Color for next created object
       shapeType: 'rect',  // Current shape type: rect, circle, line, arrow, triangle, star
-      nextFontSize: 14,    // Font size for next created text object
+      nextFontSize: 24,    // Font size for next created text object
       pageAnnotations: {},  // { pageNum: fabricCanvasJSON }
       bakedEditRegions: {}, // { pageNum: [ {x, y, width, height} ] } — areas with baked-in edits to suppress old text layer spans
       hasUnsavedChanges: false, // Track dirty state for save prompts
@@ -3704,10 +3893,7 @@
     }
 
     async function updateZoom() {
-      const zoomText = Math.round(state.zoom * 100) + '%';
-      document.getElementById('zoom-display').textContent = zoomText;
-      const zoomLevel = document.getElementById('zoom-level');
-      if (zoomLevel) zoomLevel.textContent = zoomText;
+      document.getElementById('zoom-display').textContent = Math.round(state.zoom * 100) + '%';
       if (state.pdfDoc) {
         // Save annotations before re-render (renderPage re-inits fabric canvas)
         saveCurrentPageAnnotations();
@@ -3729,11 +3915,8 @@
     function undoAction() {
       if (state.historyIndex > 0) {
         state.historyIndex--;
-        const barWasVisible = document.getElementById('annotation-action-bar').classList.contains('visible');
         state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
           state.fabricCanvas.renderAll();
-          // Keep annotation bar visible after undo (loadFromJSON clears selection)
-          if (barWasVisible) showAnnotationBar();
         });
       }
     }
@@ -3741,11 +3924,8 @@
     function redoAction() {
       if (state.historyIndex < state.history.length - 1) {
         state.historyIndex++;
-        const barWasVisible = document.getElementById('annotation-action-bar').classList.contains('visible');
         state.fabricCanvas.loadFromJSON(state.history[state.historyIndex], () => {
           state.fabricCanvas.renderAll();
-          // Keep annotation bar visible after redo (loadFromJSON clears selection)
-          if (barWasVisible) showAnnotationBar();
         });
       }
     }
@@ -3793,7 +3973,6 @@
             }
           }
 
-          // Embed multiple standard fonts for better matching
           const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
           const helveticaBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
           const timesRoman = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
@@ -3838,7 +4017,7 @@
               const x = pdfTransform[4];
               const y = pdfTransform[5];
 
-              const font = matchFont(edit.fontName);
+              const font = (edit.fontName && edit.fontName.includes('Bold')) ? helveticaBold : helvetica;
 
               // Calculate width generously to fully cover original text
               const origWidth = font.widthOfTextAtSize(edit.origText, fontSize);
@@ -4106,7 +4285,6 @@
     }
 
     function switchSignatureTab(tab) {
-      // Toggle content panels
       ['draw', 'type', 'upload'].forEach(t => {
         document.getElementById(`sig-${t}-tab`).style.display = t === tab ? 'block' : 'none';
       });
@@ -5822,16 +6000,111 @@
   <!-- ===== API CLIENT ===== -->
   <script src="api-client.js"></script>
 
+  <!-- ===== SIGNING FLOW OVERLAY ===== -->
+  <div class="signing-overlay" id="signing-overlay" onclick="if(event.target===this)closeSigningFlow()">
+    <div class="signing-container">
+      <div class="signing-header">
+        <h2>Sign Document</h2>
+        <div class="signing-steps">
+          <div class="step-indicator" data-step="1">1</div>
+          <div class="step-indicator" data-step="2">2</div>
+          <div class="step-indicator" data-step="3">3</div>
+          <div class="step-indicator" data-step="4">4</div>
+        </div>
+        <button onclick="closeSigningFlow()">&times;</button>
+      </div>
+
+      <div class="signing-body">
+        <!-- Step 1: Upload -->
+        <div class="signing-step" id="signing-step-1">
+          <div class="signing-dropzone" id="signing-dropzone" ondrop="handleSigningDrop(event)" ondragover="event.preventDefault(); event.currentTarget.classList.add('dragover')" ondragleave="event.currentTarget.classList.remove('dragover')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-weight: 600;">Drag &amp; drop your PDF here</p>
+            <p style="font-size: 12px; margin: 0;">or</p>
+            <button type="button" class="upload-btn" onclick="document.getElementById('signing-file-input').click()">Browse Files</button>
+            <input type="file" id="signing-file-input" accept=".pdf" style="display: none;" onchange="if(this.files[0])handleSigningFileUpload(this.files[0])">
+          </div>
+          <div class="signing-file-info" id="signing-file-info">
+            <div class="signing-file-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="signing-file-details">
+              <h4 id="signing-file-name"></h4>
+              <p id="signing-file-size"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Setup Signature -->
+        <div class="signing-step" id="signing-step-2">
+          <div class="signing-step-2">
+            <div class="signing-document-preview">
+              <h4>Document Preview</h4>
+              <canvas id="signing-preview-canvas" class="signing-preview-canvas"></canvas>
+            </div>
+            <div class="signing-sig-section">
+              <h4>Your Signature</h4>
+              <div class="signing-sig-tabs">
+                <button type="button" class="signing-sig-tab active" onclick="switchSigningMode('draw')">Draw</button>
+                <button type="button" class="signing-sig-tab" onclick="switchSigningMode('type')">Type</button>
+              </div>
+              <canvas id="signing-sig-canvas" class="signing-sig-canvas"></canvas>
+              <input type="text" id="signing-sig-input" class="signing-sig-input" placeholder="Type your signature here">
+              <div class="signing-sig-buttons">
+                <button type="button" onclick="clearSignaturePad()">Clear</button>
+                <button type="button" class="primary" onclick="signAllFields()">Sign All Fields</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Review -->
+        <div class="signing-step" id="signing-step-3">
+          <h4 style="margin-bottom: 16px;">Review Fields</h4>
+          <div class="signing-fields-list" id="signing-fields-list">
+            <!-- Fields will be populated here -->
+          </div>
+        </div>
+
+        <!-- Step 4: Finalize -->
+        <div class="signing-step" id="signing-step-4">
+          <div class="signing-finalize-content">
+            <div class="signing-options-section">
+              <h4>Download Options</h4>
+              <div class="signing-option">
+                <input type="checkbox" id="signing-password-protect" onchange="togglePasswordProtect()">
+                <label for="signing-password-protect">Password protect the PDF</label>
+              </div>
+              <div class="signing-option" id="signing-password-input" style="display: none;">
+                <input type="text" placeholder="Enter password" id="signing-password" style="flex: none; width: 200px;">
+              </div>
+            </div>
+            <div class="signing-options-section">
+              <h4>Payment Options</h4>
+              <div class="signing-option">
+                <input type="checkbox" id="signing-require-payment" onchange="togglePaymentOption()">
+                <label for="signing-require-payment">Require payment after signing</label>
+              </div>
+              <div class="signing-option" id="signing-payment-details" style="display: none; flex-direction: column; gap: 8px;">
+                <input type="number" placeholder="Amount (USD)" id="signing-payment-amount" min="0.01" step="0.01" style="width: 100%;">
+                <input type="text" placeholder="Description" id="signing-payment-description" style="width: 100%;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="signing-footer">
+        <button id="signing-prev" onclick="signingPrev()">Previous</button>
+        <button id="signing-next" onclick="signingNext()">Next</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== AUTH MODAL ===== -->
-  <div class="auth-overlay" id="auth-overlay">
+  <div class="auth-overlay" id="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
     <div class="auth-modal">
       <button class="auth-modal-close" onclick="closeAuthModal()">&times;</button>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
-        </div>
-        <span style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">DocPix Studio</span>
-      </div>
       <h2 id="auth-modal-title">Welcome back</h2>
       <p class="auth-subtitle" id="auth-modal-subtitle">Sign in to sync documents, access the marketplace, and more.</p>
 
@@ -5848,46 +6121,36 @@
           <label>Email</label>
           <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
         </div>
-        <div class="auth-field password-field">
+        <div class="auth-field">
           <label>Password</label>
           <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password">
-          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('login-password', this)" aria-label="Show password">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
         </div>
         <button type="submit" class="auth-submit" id="login-submit">Sign In</button>
-        <p style="text-align:center;margin:12px 0 0;"><a href="#" onclick="showForgotPassword(event)" style="color:var(--primary);font-size:13px;text-decoration:none;">Forgot your password?</a></p>
+        <a href="#" class="auth-forgot-link" onclick="switchAuthTab('forgot');return false;">Forgot your password?</a>
       </form>
 
       <!-- Forgot Password Form -->
       <form class="auth-form" id="auth-form-forgot" onsubmit="handleForgotPassword(event)">
-        <p style="color:var(--text-dim);font-size:14px;margin:0 0 16px;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Enter your email and we'll send you a link to reset your password.</p>
         <div class="auth-field">
           <label>Email</label>
           <input type="email" id="forgot-email" placeholder="you@example.com" required autocomplete="email">
         </div>
         <button type="submit" class="auth-submit" id="forgot-submit">Send Reset Link</button>
-        <p style="text-align:center;margin:12px 0 0;"><a href="#" onclick="switchAuthTab('login');event.preventDefault();" style="color:var(--primary);font-size:13px;text-decoration:none;">Back to Sign In</a></p>
+        <a href="#" class="auth-forgot-link" onclick="switchAuthTab('login');return false;">Back to Sign In</a>
       </form>
 
-      <!-- Reset Password Form -->
+      <!-- Reset Password Form (shown via URL param) -->
       <form class="auth-form" id="auth-form-reset" onsubmit="handleResetPassword(event)">
-        <p style="color:var(--text-dim);font-size:14px;margin:0 0 16px;line-height:1.5;">Choose a new password for your account.</p>
-        <div class="auth-field password-field">
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Enter your new password below.</p>
+        <div class="auth-field">
           <label>New Password</label>
-          <input type="password" id="reset-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required minlength="8" autocomplete="new-password">
-          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reset-password', this)" aria-label="Show password">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+          <input type="password" id="reset-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password" minlength="8">
         </div>
-        <div class="auth-field password-field">
+        <div class="auth-field">
           <label>Confirm Password</label>
-          <input type="password" id="reset-password-confirm" placeholder="Re-enter your new password" required minlength="8" autocomplete="new-password">
-          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reset-password-confirm', this)" aria-label="Show password">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+          <input type="password" id="reset-password-confirm" placeholder="Confirm your password" required autocomplete="new-password" minlength="8">
         </div>
-        <input type="hidden" id="reset-token">
         <button type="submit" class="auth-submit" id="reset-submit">Reset Password</button>
       </form>
 
@@ -5901,12 +6164,9 @@
           <label>Email</label>
           <input type="email" id="register-email" placeholder="you@example.com" required autocomplete="email">
         </div>
-        <div class="auth-field password-field">
+        <div class="auth-field">
           <label>Password</label>
           <input type="password" id="register-password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password" minlength="8">
-          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-password', this)" aria-label="Show password">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
         </div>
         <button type="submit" class="auth-submit" id="register-submit">Create Account</button>
       </form>
@@ -5918,6 +6178,503 @@
       </button>
     </div>
   </div>
+
+  <!-- ===== SIGNING FLOW LOGIC ===== -->
+  <script>
+    // ===== SIGNING FLOW STATE =====
+    let signingState = {
+      step: 1,
+      file: null,
+      fileName: '',
+      fileSize: 0,
+      pdf: null,
+      pdfDoc: null,
+      fields: [],
+      signature: null,
+      signatureType: 'draw',
+      typedName: '',
+      allSigned: false,
+      passwordProtect: false,
+      password: '',
+      requirePayment: false,
+      paymentAmount: '',
+      paymentDescription: '',
+      sigCanvas: null,
+      sigCtx: null,
+      isDrawing: false,
+    };
+
+    function openSigningFlow() {
+      signingState = {
+        step: 1,
+        file: null,
+        fileName: '',
+        fileSize: 0,
+        pdf: null,
+        pdfDoc: null,
+        fields: [],
+        signature: null,
+        signatureType: 'draw',
+        typedName: '',
+        allSigned: false,
+        passwordProtect: false,
+        password: '',
+        requirePayment: false,
+        paymentAmount: '',
+        paymentDescription: '',
+        sigCanvas: null,
+        sigCtx: null,
+        isDrawing: false,
+      };
+      document.getElementById('signing-overlay').classList.add('visible');
+      document.getElementById('signing-step-1').classList.add('active');
+      document.querySelector('.step-indicator[data-step="1"]').classList.add('active');
+      updateSigningUI();
+      initSignatureCanvas();
+    }
+
+    function closeSigningFlow() {
+      document.getElementById('signing-overlay').classList.remove('visible');
+      // Clean up
+      if (signingState.sigCanvas) {
+        signingState.sigCtx.clearRect(0, 0, signingState.sigCanvas.width, signingState.sigCanvas.height);
+      }
+    }
+
+    function updateSigningUI() {
+      // Update step visibility
+      document.querySelectorAll('.signing-step').forEach((el, i) => {
+        el.classList.toggle('active', i === signingState.step - 1);
+      });
+
+      // Update step indicators
+      document.querySelectorAll('.step-indicator').forEach((el, i) => {
+        el.classList.toggle('active', i === signingState.step - 1);
+        el.classList.toggle('completed', i < signingState.step - 1);
+      });
+
+      // Update nav buttons
+      const prevBtn = document.getElementById('signing-prev');
+      const nextBtn = document.getElementById('signing-next');
+      prevBtn.style.display = signingState.step === 1 ? 'none' : '';
+      nextBtn.textContent = signingState.step === 4 ? 'Finalize & Download' : 'Next';
+      nextBtn.disabled = (signingState.step === 1 && !signingState.file);
+
+      // Re-init signature pad on step 2
+      if (signingState.step === 2) {
+        setTimeout(() => initSignatureCanvas(), 100);
+      }
+    }
+
+    function signingNext() {
+      if (signingState.step < 4) {
+        signingState.step++;
+        updateSigningUI();
+      } else {
+        finalizeSigning();
+      }
+    }
+
+    function signingPrev() {
+      if (signingState.step > 1) {
+        signingState.step--;
+        updateSigningUI();
+      }
+    }
+
+    // ===== STEP 1: UPLOAD =====
+    function handleSigningDrop(e) {
+      e.preventDefault();
+      document.getElementById('signing-dropzone').classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files[0]) {
+        handleSigningFileUpload(files[0]);
+      }
+    }
+
+    function handleSigningFileUpload(file) {
+      if (!file || file.type !== 'application/pdf') {
+        showToast('Please upload a PDF file.', 'error');
+        return;
+      }
+      signingState.file = file;
+      signingState.fileName = file.name;
+      signingState.fileSize = file.size;
+
+      // Show file info
+      document.getElementById('signing-file-name').textContent = file.name;
+      document.getElementById('signing-file-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+      document.getElementById('signing-file-info').classList.add('visible');
+      document.getElementById('signing-dropzone').style.display = 'none';
+
+      // Load PDF for preview and field detection
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const pdfData = e.target.result;
+          signingState.pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+          signingState.pdf = pdfData;
+
+          // Auto-detect fields
+          await detectSigningFields();
+
+          updateSigningUI();
+          showToast('PDF loaded successfully!', 'success');
+        } catch (err) {
+          showToast('Error loading PDF: ' + err.message, 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ===== FIELD DETECTION =====
+    async function detectSigningFields() {
+      signingState.fields = [];
+
+      if (!signingState.pdfDoc) return;
+
+      const keywords = {
+        signature: ['signature', 'sign here', 'sign', 'signed by', 'sig'],
+        initials: ['initials', 'initial', 'init'],
+        date: ['date', 'dated', 'date signed'],
+        name: ['name', 'print name', 'full name', 'name here'],
+      };
+
+      try {
+        // Extract text from first page to detect fields
+        const page = await signingState.pdfDoc.getPage(1);
+        const textContent = await page.getTextContent();
+
+        // Simple heuristic: look for keywords
+        const foundTypes = new Set();
+        for (const item of textContent.items) {
+          const text = item.str.toLowerCase();
+          for (const [type, keys] of Object.entries(keywords)) {
+            if (keys.some(k => text.includes(k))) {
+              if (!foundTypes.has(type)) {
+                signingState.fields.push({
+                  type: type,
+                  page: 1,
+                  x: item.transform[4] || 50,
+                  y: item.transform[5] || 50,
+                  width: 120,
+                  height: 40,
+                  value: '',
+                  signed: false,
+                });
+                foundTypes.add(type);
+              }
+            }
+          }
+        }
+
+        // If no fields detected, add defaults
+        if (signingState.fields.length === 0) {
+          signingState.fields = [
+            { type: 'signature', page: signingState.pdfDoc.numPages, x: 50, y: 500, width: 150, height: 50, value: '', signed: false },
+            { type: 'initials', page: signingState.pdfDoc.numPages, x: 200, y: 500, width: 60, height: 50, value: '', signed: false },
+            { type: 'date', page: signingState.pdfDoc.numPages, x: 270, y: 500, width: 120, height: 40, value: '', signed: false },
+          ];
+        }
+
+        // Draw preview
+        await drawSigningPreview();
+      } catch (err) {
+        console.error('Field detection error:', err);
+        // Default fields fallback
+        signingState.fields = [
+          { type: 'signature', page: 1, x: 50, y: 500, width: 150, height: 50, value: '', signed: false },
+          { type: 'date', page: 1, x: 200, y: 500, width: 120, height: 40, value: '', signed: false },
+        ];
+      }
+    }
+
+    async function drawSigningPreview() {
+      if (!signingState.pdfDoc) return;
+
+      const canvas = document.getElementById('signing-preview-canvas');
+      const ctx = canvas.getContext('2d');
+      const page = await signingState.pdfDoc.getPage(1);
+
+      const scale = 1.2;
+      const viewport = page.getViewport({ scale });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport,
+      }).promise;
+
+      // Draw field markers
+      ctx.strokeStyle = '#6B5CE7';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      for (const field of signingState.fields) {
+        ctx.strokeRect(field.x, field.y, field.width, field.height);
+        ctx.fillStyle = 'rgba(107, 92, 231, 0.1)';
+        ctx.fillRect(field.x, field.y, field.width, field.height);
+      }
+    }
+
+    // ===== STEP 2: SIGNATURE =====
+    function initSignatureCanvas() {
+      const canvas = document.getElementById('signing-sig-canvas');
+      signingState.sigCanvas = canvas;
+      signingState.sigCtx = canvas.getContext('2d');
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      signingState.sigCtx.fillStyle = 'white';
+      signingState.sigCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Setup drawing
+      canvas.addEventListener('mousedown', (e) => {
+        signingState.isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        signingState.sigCtx.beginPath();
+        signingState.sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!signingState.isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        signingState.sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        signingState.sigCtx.lineWidth = 2;
+        signingState.sigCtx.lineCap = 'round';
+        signingState.lineJoin = 'round';
+        signingState.sigCtx.strokeStyle = '#000';
+        signingState.sigCtx.stroke();
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        signingState.isDrawing = false;
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        signingState.isDrawing = false;
+      });
+    }
+
+    function switchSigningMode(mode) {
+      signingState.signatureType = mode;
+
+      document.querySelectorAll('.signing-sig-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.signing-sig-tab[onclick*="'${mode}'"]`).classList.add('active');
+
+      const canvas = document.getElementById('signing-sig-canvas');
+      const input = document.getElementById('signing-sig-input');
+
+      if (mode === 'draw') {
+        canvas.classList.remove('hidden');
+        input.classList.remove('active');
+      } else {
+        canvas.classList.add('hidden');
+        input.classList.add('active');
+        input.focus();
+      }
+    }
+
+    function clearSignaturePad() {
+      if (signingState.signatureType === 'draw' && signingState.sigCanvas) {
+        signingState.sigCtx.fillStyle = 'white';
+        signingState.sigCtx.fillRect(0, 0, signingState.sigCanvas.width, signingState.sigCanvas.height);
+        signingState.signature = null;
+      } else {
+        document.getElementById('signing-sig-input').value = '';
+      }
+      signingState.allSigned = false;
+      updateSigningUI();
+    }
+
+    function signAllFields() {
+      // Capture signature
+      if (signingState.signatureType === 'draw' && signingState.sigCanvas) {
+        signingState.signature = signingState.sigCanvas.toDataURL('image/png');
+      } else {
+        signingState.typedName = document.getElementById('signing-sig-input').value;
+        if (!signingState.typedName) {
+          showToast('Please enter your name or signature.', 'error');
+          return;
+        }
+      }
+
+      // Mark all fields as signed
+      signingState.fields.forEach(field => {
+        field.signed = true;
+        if (signingState.signatureType === 'draw') {
+          field.value = '[Signature]';
+        } else {
+          field.value = signingState.typedName;
+        }
+      });
+
+      signingState.allSigned = true;
+      showToast('All fields signed!', 'success');
+      updateSigningUI();
+    }
+
+    // ===== STEP 3: REVIEW =====
+    function updateReviewFields() {
+      const list = document.getElementById('signing-fields-list');
+      list.innerHTML = '';
+
+      signingState.fields.forEach((field, idx) => {
+        const item = document.createElement('div');
+        item.className = 'signing-field-item';
+        item.innerHTML = `
+          <div class="signing-field-label">
+            <span class="signing-field-label-type">${field.type}</span>
+            <span class="signing-field-label-name">Field ${idx + 1}</span>
+          </div>
+          <div class="signing-field-value">${field.value || '(not filled)'}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    // ===== STEP 4: OPTIONS =====
+    function togglePasswordProtect() {
+      const checked = document.getElementById('signing-password-protect').checked;
+      document.getElementById('signing-password-input').style.display = checked ? 'flex' : 'none';
+      signingState.passwordProtect = checked;
+    }
+
+    function togglePaymentOption() {
+      const checked = document.getElementById('signing-require-payment').checked;
+      document.getElementById('signing-payment-details').style.display = checked ? 'flex' : 'none';
+      signingState.requirePayment = checked;
+    }
+
+    // ===== FINALIZE =====
+    async function finalizeSigning() {
+      if (!signingState.pdf) {
+        showToast('No PDF loaded.', 'error');
+        return;
+      }
+
+      // Get final values
+      signingState.password = document.getElementById('signing-password').value;
+      signingState.paymentAmount = document.getElementById('signing-payment-amount').value;
+      signingState.paymentDescription = document.getElementById('signing-payment-description').value;
+
+      // Validate
+      if (signingState.requirePayment) {
+        if (!signingState.paymentAmount || parseFloat(signingState.paymentAmount) <= 0) {
+          showToast('Please enter a valid payment amount.', 'error');
+          return;
+        }
+      }
+
+      try {
+        // Load pdf-lib
+        const { PDFDocument } = PDFLib;
+
+        // Load the PDF
+        const pdfBytes = await fetch('data:application/octet-stream;base64,' + btoa(String.fromCharCode(...new Uint8Array(signingState.pdf)))).then(r => r.arrayBuffer());
+        const pdfDoc = await PDFDocument.load(signingState.pdf);
+
+        // Embed signature
+        if (signingState.signatureType === 'draw' && signingState.signature) {
+          const sigImage = await pdfDoc.embedPng(signingState.signature);
+
+          for (const field of signingState.fields) {
+            if (field.type === 'signature' || field.type === 'initials') {
+              const page = pdfDoc.getPage(field.page - 1);
+              const { width, height } = page.getSize();
+              page.drawImage(sigImage, {
+                x: field.x,
+                y: height - field.y - field.height,
+                width: field.width,
+                height: field.height,
+              });
+            }
+          }
+        } else {
+          // Text signature
+          for (const field of signingState.fields) {
+            const page = pdfDoc.getPage(field.page - 1);
+            const { width, height } = page.getSize();
+            page.drawText(signingState.typedName, {
+              x: field.x,
+              y: height - field.y - 20,
+              size: 12,
+              color: [0, 0, 0],
+            });
+          }
+        }
+
+        // Add date fields
+        const now = new Date();
+        const dateStr = (now.getMonth() + 1) + '/' + now.getDate() + '/' + now.getFullYear();
+        for (const field of signingState.fields) {
+          if (field.type === 'date') {
+            const page = pdfDoc.getPage(field.page - 1);
+            const { width, height } = page.getSize();
+            page.drawText(dateStr, {
+              x: field.x,
+              y: height - field.y - 20,
+              size: 11,
+              color: [0, 0, 0],
+            });
+          }
+        }
+
+        // Save PDF
+        const pdfWithSignatures = await pdfDoc.save();
+
+        // Download
+        const blob = new Blob([pdfWithSignatures], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'signed-' + signingState.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Handle payment if required
+        if (signingState.requirePayment) {
+          try {
+            showToast('Creating checkout session...', 'info');
+            const checkoutResponse = await DPStudioAPI.payments.createCheckout(
+              signingState.documentId || 'temp-' + Date.now(),
+              parseFloat(signingState.paymentAmount),
+              signingState.paymentDescription || 'Document Signing',
+              'usd'
+            );
+
+            if (checkoutResponse.data && checkoutResponse.data.url) {
+              // Redirect to Stripe checkout
+              window.location.href = checkoutResponse.data.url;
+            } else {
+              showToast('Failed to create checkout session.', 'error');
+            }
+          } catch (err) {
+            console.error('Payment error:', err);
+            showToast('Payment error: ' + err.message, 'error');
+          }
+        } else {
+          showToast('Document signed and downloaded!', 'success');
+          closeSigningFlow();
+        }
+      } catch (err) {
+        console.error('Finalize error:', err);
+        showToast('Error finalizing document: ' + err.message, 'error');
+      }
+    }
+
+    // Override signingNext to update review fields on step 3 transition
+    const originalSigningNext = signingNext;
+    signingNext = function() {
+      if (signingState.step === 2 && signingState.step + 1 === 3) {
+        updateReviewFields();
+      }
+      originalSigningNext.call(this);
+    };
+  </script>
 
   <!-- ===== AUTH & USER LOGIC ===== -->
   <script>
@@ -5933,39 +6690,26 @@
       // Clear form fields
       document.querySelectorAll('.auth-form input').forEach(i => i.value = '');
       document.getElementById('auth-error').classList.remove('visible');
-      // Reset password visibility toggles
-      document.querySelectorAll('.password-field input[type="text"]').forEach(inp => inp.type = 'password');
-    }
-
-    function togglePasswordVisibility(inputId, btn) {
-      const input = document.getElementById(inputId);
-      const isHidden = input.type === 'password';
-      input.type = isHidden ? 'text' : 'password';
-      // Swap icon: eye-open vs eye-off
-      btn.innerHTML = isHidden
-        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>'
-        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
     }
 
     function switchAuthTab(tab) {
       document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-      document.getElementById(`auth-tab-${tab}`).classList.add('active');
+      // Only highlight login/register tabs (forgot/reset don't have tabs)
+      const tabBtn = document.getElementById(`auth-tab-${tab}`);
+      if (tabBtn) tabBtn.classList.add('active');
       document.getElementById(`auth-form-${tab}`).classList.add('active');
       document.getElementById('auth-error').classList.remove('visible');
-      // Restore tabs/divider/google when switching to login or register
-      document.querySelector('.auth-tabs').style.display = '';
-      document.querySelector('.auth-divider').style.display = '';
-      document.querySelector('.auth-google-btn').style.display = '';
 
-      if (tab === 'login') {
-        document.getElementById('auth-modal-title').textContent = 'Welcome back';
-        document.getElementById('auth-modal-subtitle').textContent = 'Sign in to sync documents, access the marketplace, and more.';
-      } else {
-        document.getElementById('auth-modal-title').textContent = 'Create your account';
-        document.getElementById('auth-modal-subtitle').textContent = 'Join DocPix Studio to save, share, and sell your work.';
-      }
+      const titles = {
+        login: ['Welcome back', 'Sign in to sync documents, access the marketplace, and more.'],
+        register: ['Create your account', 'Join DocPix Studio to save, share, and sell your work.'],
+        forgot: ['Reset your password', 'We\'ll email you a link to create a new password.'],
+        reset: ['Set new password', 'Choose a strong password for your account.'],
+      };
+      const [title, subtitle] = titles[tab] || titles.login;
+      document.getElementById('auth-modal-title').textContent = title;
+      document.getElementById('auth-modal-subtitle').textContent = subtitle;
     }
 
     function showAuthError(msg) {
@@ -6020,21 +6764,7 @@
       }
     }
 
-    // ===== FORGOT PASSWORD =====
-    function showForgotPassword(e) {
-      if (e) e.preventDefault();
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-      document.getElementById('auth-form-forgot').classList.add('active');
-      document.getElementById('auth-modal-title').textContent = 'Reset your password';
-      document.getElementById('auth-modal-subtitle').textContent = 'We\'ll email you a link to reset it.';
-      document.getElementById('auth-error').classList.remove('visible');
-      // Hide tabs and divider/google for this view
-      document.querySelector('.auth-tabs').style.display = 'none';
-      document.querySelector('.auth-divider').style.display = 'none';
-      document.querySelector('.auth-google-btn').style.display = 'none';
-    }
-
+    // ===== FORGOT / RESET PASSWORD =====
     async function handleForgotPassword(e) {
       e.preventDefault();
       const btn = document.getElementById('forgot-submit');
@@ -6046,38 +6776,26 @@
 
       try {
         await DPStudioAPI.auth.forgotPassword(email);
-        btn.textContent = 'Email Sent!';
-        showToast('If an account exists with this email, a reset link has been sent.', 'success');
+        // Always show success (prevents email enumeration)
+        btn.textContent = 'Email Sent';
+        showToast('If an account exists with that email, you\'ll receive a reset link shortly.', 'success');
+      } catch (err) {
+        // Still show success message to prevent enumeration
+        showToast('If an account exists with that email, you\'ll receive a reset link shortly.', 'success');
+      } finally {
         setTimeout(() => {
           btn.disabled = false;
           btn.textContent = 'Send Reset Link';
         }, 3000);
-      } catch (err) {
-        showAuthError(err.message || 'Failed to send reset email.');
-        btn.disabled = false;
-        btn.textContent = 'Send Reset Link';
       }
     }
 
-    function showResetPasswordForm(token) {
-      document.getElementById('reset-token').value = token;
-      openAuthModal();
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-      document.getElementById('auth-form-reset').classList.add('active');
-      document.getElementById('auth-modal-title').textContent = 'Choose a new password';
-      document.getElementById('auth-modal-subtitle').textContent = 'Enter your new password below.';
-      document.querySelector('.auth-tabs').style.display = 'none';
-      document.querySelector('.auth-divider').style.display = 'none';
-      document.querySelector('.auth-google-btn').style.display = 'none';
-    }
-
+    let _resetToken = null; // set from URL param handler
     async function handleResetPassword(e) {
       e.preventDefault();
       const btn = document.getElementById('reset-submit');
       const password = document.getElementById('reset-password').value;
       const confirm = document.getElementById('reset-password-confirm').value;
-      const token = document.getElementById('reset-token').value;
 
       if (password !== confirm) {
         showAuthError('Passwords do not match.');
@@ -6089,13 +6807,13 @@
       document.getElementById('auth-error').classList.remove('visible');
 
       try {
-        await DPStudioAPI.auth.resetPassword(token, password);
-        closeAuthModal();
-        showToast('Password reset successfully! Please sign in with your new password.', 'success');
-        // Clean URL
-        window.history.replaceState({}, '', window.location.pathname);
+        await DPStudioAPI.auth.resetPassword(_resetToken, password);
+        showToast('Password reset successfully! You can now sign in.', 'success');
+        // Clean URL and switch to login
+        history.replaceState(null, '', window.location.pathname);
+        switchAuthTab('login');
       } catch (err) {
-        showAuthError(err.message || 'Password reset failed. The link may have expired.');
+        showAuthError(err.message || 'Reset failed. The link may have expired.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Reset Password';
@@ -6272,34 +6990,41 @@
         });
       }
 
-      // Handle URL params for email verify and password reset
+      // ===== URL PARAMETER HANDLERS =====
       const params = new URLSearchParams(window.location.search);
 
+      // Handle email verification: ?verify=TOKEN
       const verifyToken = params.get('verify');
       if (verifyToken) {
         showToast('Verifying your email...', 'info');
         DPStudioAPI.auth.verifyEmail(verifyToken).then(() => {
-          showToast('Email verified successfully!', 'success');
-          window.history.replaceState({}, '', window.location.pathname);
+          showToast('Email verified successfully! You can now sign in.', 'success');
+          history.replaceState(null, '', window.location.pathname);
+          // Refresh profile if already logged in
+          if (DPStudioAPI.auth.isLoggedIn()) {
+            DPStudioAPI.auth.getProfile().then(u => updateAuthUI(u)).catch(() => {});
+          }
         }).catch((err) => {
-          showToast(err.message || 'Email verification failed.', 'error');
-          window.history.replaceState({}, '', window.location.pathname);
+          showToast(err.message || 'Verification failed. The link may have expired.', 'error');
+          history.replaceState(null, '', window.location.pathname);
         });
       }
 
+      // Handle password reset: ?reset=TOKEN
       const resetToken = params.get('reset');
       if (resetToken) {
-        showResetPasswordForm(resetToken);
+        _resetToken = resetToken;
+        openAuthModal('reset');
       }
 
-      // Handle payment return
+      // Handle Stripe payment return: ?payment=success or ?payment=cancelled
       const paymentStatus = params.get('payment');
       if (paymentStatus === 'success') {
         showToast('Payment completed successfully!', 'success');
-        window.history.replaceState({}, '', window.location.pathname);
+        history.replaceState(null, '', window.location.pathname);
       } else if (paymentStatus === 'cancelled') {
         showToast('Payment was cancelled.', 'info');
-        window.history.replaceState({}, '', window.location.pathname);
+        history.replaceState(null, '', window.location.pathname);
       }
     })();
 

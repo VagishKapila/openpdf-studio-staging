@@ -84,7 +84,7 @@ jobs:
           releaseBody: |
             ## OpenPDF Studio ${{ github.event.inputs.version || github.ref_name }}
 
-            **Free, open-source PDF & image editor — replaces Adobe Acrobat Pro.**
+            **PDF & image editor — the smarter alternative to Adobe Acrobat Pro. Free core features, premium tools available.**
 
             ### Download for your platform:
             | Platform | File | Notes |
