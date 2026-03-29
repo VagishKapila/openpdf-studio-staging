@@ -24,6 +24,7 @@ interface UserResponse {
   avatarUrl: string | null;
   companyName: string | null;
   emailVerified: boolean;
+  isSuperAdmin: boolean;
 }
 
 // Generate JWT access + refresh tokens
@@ -45,6 +46,7 @@ function formatUser(user: typeof users.$inferSelect): UserResponse {
     avatarUrl: user.avatarUrl,
     companyName: user.companyName,
     emailVerified: user.emailVerified,
+    isSuperAdmin: user.isSuperAdmin,
   };
 }
 

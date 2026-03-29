@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
+import { eq } from 'drizzle-orm';
 import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema } from './auth.validators';
 import * as authService from './auth.service';
 import { requireAuth, getUser } from '../../shared/middleware/auth';
+import { db } from '../../shared/db';
+import { users } from '../../shared/db/schema';
 
 export const authRoutes = new Hono();
 
@@ -148,5 +151,36 @@ authRoutes.patch('/me', requireAuth, async (c) => {
       return c.json({ error: 'Validation failed', details: error.issues }, 400);
     }
     return c.json({ error: 'Failed to update profile' }, 500);
+  }
+});
+
+// POST /auth/setup-admin — One-time bootstrap: promote a logged-in user to super admin
+// Only works when NO super admins exist yet (first-time setup)
+authRoutes.post('/setup-admin', requireAuth, async (c) => {
+  try {
+    const user = getUser(c);
+
+    // Check if any super admin already exists
+    const existingAdmins = await db.select({ id: users.id })
+      .from(users)
+      .where(eq(users.isSuperAdmin, true))
+      .limit(1);
+
+    if (existingAdmins.length > 0) {
+      return c.json({ error: 'Setup already completed. A super admin already exists.' }, 403);
+    }
+
+    // Promote the current user
+    await db.update(users)
+      .set({ isSuperAdmin: true })
+      .where(eq(users.id, user.id));
+
+    return c.json({
+      message: 'You are now a super admin!',
+      user: { id: user.id, email: user.email, isSuperAdmin: true }
+    });
+  } catch (error: any) {
+    console.error('Setup admin error:', error);
+    return c.json({ error: 'Failed to setup admin' }, 500);
   }
 });
