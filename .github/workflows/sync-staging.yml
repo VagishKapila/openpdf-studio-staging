@@ -1,0 +1,21 @@
+name: Sync Staging to Preview Repo
+
+on:
+  push:
+    branches: ["staging"]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to staging preview repo
+        run: |
+          git remote add staging-preview https://x-access-token:${{ secrets.STAGING_SYNC_PAT }}@github.com/VagishKapila/openpdf-studio-staging.git
+          git push staging-preview staging:main --force

@@ -9,6 +9,7 @@ import { authRoutes } from './modules/auth';
 import { convertRoutes } from './modules/convert';
 import { esignRoutes } from './modules/esign';
 import { paymentRoutes } from './modules/payments';
+import { dashboardRoutes } from './modules/dashboard';
 import { adminRoutes } from './modules/admin';
 import { orgRoutes } from './modules/org';
 import { notificationRoutes } from './modules/notifications';
@@ -37,7 +38,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert', 'esign', 'payments', 'admin', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
+    modules: ['auth', 'convert', 'esign', 'payments', 'dashboard', 'admin', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
   });
 });
 
@@ -52,6 +53,7 @@ app.route('/auth', authRoutes);
 app.route('/convert', convertRoutes);
 app.route('/esign', esignRoutes);
 app.route('/payments', paymentRoutes);
+app.route('/dashboard', dashboardRoutes);
 app.route('/admin', adminRoutes);
 app.route('/org', orgRoutes);
 app.route('/notifications', notificationRoutes);
