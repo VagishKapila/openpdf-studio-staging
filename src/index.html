@@ -1375,15 +1375,16 @@
       align-items: center;
       justify-content: center;
       z-index: 9998;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
+      padding: 20px;
     }
     .signing-overlay.visible { display: flex; }
     .signing-container {
-      background: var(--bg-secondary);
+      background: var(--bg-secondary, #fff);
       border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
       width: 100%;
-      max-width: 900px;
+      max-width: 960px;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
@@ -1391,40 +1392,33 @@
       animation: signingSlideIn 0.3s ease-out;
     }
     @keyframes signingSlideIn {
-      from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+      from { opacity: 0; transform: scale(0.96) translateY(-16px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
     .signing-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 24px 28px;
-      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border, #e5e7eb);
       flex-shrink: 0;
+      background: var(--bg-secondary, #fff);
+      gap: 16px;
     }
     .signing-header h2 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--text, #1f2937);
       margin: 0;
-      flex: 1;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .signing-header button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 24px;
-      color: var(--text-secondary);
-      padding: 0;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-    .signing-header button:hover { color: var(--text); }
     .signing-steps {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin: 0 16px;
+      gap: 6px;
       flex: 1;
       justify-content: center;
     }
@@ -1432,45 +1426,68 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: var(--bg);
-      border: 2px solid var(--border);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      transition: all 0.2s;
-      position: relative;
+      background: var(--bg, #f3f4f6);
+      border: 2px solid var(--border, #e5e7eb);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary, #9ca3af);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
     }
     .step-indicator.active {
-      background: var(--primary);
-      border-color: var(--primary);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-color: #6366f1;
       color: white;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.35);
     }
     .step-indicator.completed {
-      background: var(--success);
-      border-color: var(--success);
+      background: var(--success, #22c55e);
+      border-color: var(--success, #22c55e);
       color: white;
     }
-    .step-indicator:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      left: 100%;
-      width: 16px;
-      height: 2px;
-      background: var(--border);
-      margin-left: 8px;
+    .step-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary, #9ca3af);
+      margin-right: 8px;
+      transition: color 0.2s;
     }
-    .step-indicator.completed:not(:last-child)::after {
-      background: var(--success);
+    .step-label.active {
+      color: var(--text, #1f2937);
+    }
+    .step-label.completed {
+      color: var(--success, #22c55e);
     }
     .signing-body {
       flex: 1;
       overflow-y: auto;
-      padding: 28px;
+      padding: 0;
       position: relative;
       min-height: 400px;
+      background: var(--bg, #f9fafb);
+    }
+    .signing-pdf-area {
+      width: 100%;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+    .signing-pdf-canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      overflow: auto;
+      padding: 20px;
+      background: #e8e8e8;
+      position: relative;
+    }
+    .signing-pdf-canvas-wrap canvas {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      background: white;
     }
     .signing-step {
       display: none;
@@ -1486,9 +1503,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 16px 28px;
-      border-top: 1px solid var(--border);
-      background: var(--bg);
+      padding: 16px 24px;
+      border-top: 1px solid var(--border, #e5e7eb);
+      background: var(--bg-secondary, #fff);
       flex-shrink: 0;
     }
     .signing-footer button {
@@ -1760,27 +1777,28 @@
       align-items: center;
       justify-content: center;
       gap: 12px;
-      padding: 8px 16px;
-      background: rgba(0,0,0,0.6);
-      border-radius: 8px;
-      position: sticky;
-      bottom: 10px;
-      margin: 10px auto 0;
-      width: fit-content;
+      padding: 10px 20px;
+      background: var(--bg-secondary, #fff);
+      border-top: 1px solid var(--border, #e5e7eb);
+      width: 100%;
       z-index: 50;
+      flex-shrink: 0;
     }
     .signing-page-nav button {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: white;
-      padding: 4px 12px;
-      border-radius: 4px;
+      background: var(--bg, #f3f4f6);
+      border: 1px solid var(--border, #e5e7eb);
+      color: var(--text, #1f2937);
+      padding: 6px 16px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: all 0.15s;
     }
-    .signing-page-nav button:hover { background: rgba(255,255,255,0.25); }
+    .signing-page-nav button:hover { background: var(--border, #e5e7eb); }
     .signing-page-nav button:disabled { opacity: 0.3; cursor: default; }
-    .signing-page-nav span { color: white; font-size: 13px; }
+    .signing-page-nav span { color: var(--text, #1f2937); font-size: 13px; font-weight: 600; }
     .field-banner {
       background: linear-gradient(135deg,#6366f1,#8b5cf6);
       color: white;
@@ -2612,69 +2630,74 @@
 
   <!-- ===== SIGNING FLOW OVERLAY ===== -->
   <div class="signing-overlay" id="signing-overlay">
-    <div class="signing-header">
-      <h2>
-        <div style="width:24px;height:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <div class="signing-container">
+      <div class="signing-header">
+        <h2>
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;vertical-align:middle;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          Sign &amp; Pay
+        </h2>
+        <div class="signing-steps" id="signing-steps">
+          <div class="step-indicator active" data-step="1">1</div>
+          <div class="step-label active">Upload</div>
+          <div class="step-indicator" data-step="2">2</div>
+          <div class="step-label">Setup</div>
+          <div class="step-indicator" data-step="3">3</div>
+          <div class="step-label">Review</div>
+          <div class="step-indicator" data-step="4">4</div>
+          <div class="step-label">Finalize</div>
         </div>
-        Sign &amp; Pay
-      </h2>
-      <div class="signing-steps" id="signing-steps">
-        <div class="signing-step active" data-step="1"><span class="step-num">1</span> Upload</div>
-        <div class="signing-step" data-step="2"><span class="step-num">2</span> Setup</div>
-        <div class="signing-step" data-step="3"><span class="step-num">3</span> Review</div>
-        <div class="signing-step" data-step="4"><span class="step-num">4</span> Finalize</div>
+        <button onclick="closeSigningFlow()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;font-family:inherit;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--text)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">✕ Close</button>
       </div>
-      <button class="btn btn-secondary" onclick="closeSigningFlow()" style="font-size:12px;">✕ Close</button>
-    </div>
-    <div class="signing-body">
-      <div class="signing-pdf-area" id="signing-pdf-area">
-        <!-- Step 1: Upload -->
-        <div id="signing-upload-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;">
-          <!-- Upload prompt (visible by default) -->
-          <div id="signing-upload-prompt">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-              <div style="width:80px;height:80px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;display:flex;align-items:center;justify-content:center;">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-              </div>
-              <h3 style="color:white;margin:0;">Upload a document to sign</h3>
-              <p style="color:rgba(255,255,255,0.7);margin:0;font-size:14px;">PDF or Word document. We'll auto-detect signature fields.</p>
-              <div style="display:flex;gap:10px;">
-                <button class="btn btn-primary" id="signing-choose-file-btn" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:10px 24px;font-size:14px;">
+      <div class="signing-body">
+        <div class="signing-pdf-area" id="signing-pdf-area">
+          <!-- Step 1: Upload -->
+          <div id="signing-upload-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;width:100%;padding:40px 20px;">
+            <!-- Upload prompt (visible by default) -->
+            <div id="signing-upload-prompt">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;">
+                <div style="width:88px;height:88px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(99,102,241,0.3);">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                </div>
+                <h3 style="color:var(--text);margin:0;font-size:20px;font-weight:700;">Upload a document to sign</h3>
+                <p style="color:var(--text-secondary);margin:0;font-size:14px;max-width:360px;">PDF or Word document. We'll auto-detect signature fields.</p>
+                <button class="btn btn-primary" id="signing-choose-file-btn" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:12px 32px;font-size:14px;font-weight:600;border-radius:10px;color:white;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.3);transition:all 0.2s;font-family:inherit;">
                   Choose File
                 </button>
+                <p style="color:var(--text-secondary);margin:0;font-size:12px;opacity:0.6;">or drag & drop your file here</p>
               </div>
             </div>
+            <!-- Loading spinner (hidden by default) -->
+            <div id="signing-upload-loading" style="display:none;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+                <div style="width:60px;height:60px;border:4px solid var(--border);border-top:4px solid #8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                <h3 style="color:var(--text);margin:0;" id="signing-loading-text">Loading document...</h3>
+                <p style="color:var(--text-secondary);margin:0;font-size:13px;" id="signing-loading-detail">Detecting signature fields</p>
+              </div>
+            </div>
+            <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
           </div>
-          <!-- Loading spinner (hidden by default) -->
-          <div id="signing-upload-loading" style="display:none;">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-              <div style="width:60px;height:60px;border:4px solid rgba(255,255,255,0.2);border-top:4px solid #8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
-              <h3 style="color:white;margin:0;" id="signing-loading-text">Loading document...</h3>
-              <p style="color:rgba(255,255,255,0.7);margin:0;font-size:13px;" id="signing-loading-detail">Detecting signature fields</p>
+          <!-- Steps 2-4: PDF preview with field overlays -->
+          <div id="signing-pdf-preview" style="display:none;">
+            <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
+              <canvas id="signing-pdf-canvas"></canvas>
+              <div id="signing-field-overlays"></div>
+            </div>
+            <div class="signing-page-nav" id="signing-page-nav">
+              <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
+              <span id="signing-page-info">Page 1 of 1</span>
+              <button onclick="signingNextPage()" id="signing-next-page-btn">Next →</button>
             </div>
           </div>
-          <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
         </div>
-        <!-- Steps 2-4: PDF preview with field overlays -->
-        <div id="signing-pdf-preview" style="display:none;">
-          <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
-            <canvas id="signing-pdf-canvas"></canvas>
-            <div id="signing-field-overlays"></div>
+        <div class="signing-sidebar" id="signing-sidebar" style="display:none;">
+          <div class="signing-sidebar-content" id="signing-sidebar-content">
+            <!-- Dynamic content per step -->
           </div>
-          <div class="signing-page-nav" id="signing-page-nav">
-            <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
-            <span id="signing-page-info">Page 1 of 1</span>
-            <button onclick="signingNextPage()" id="signing-next-page-btn">Next →</button>
+          <div class="signing-actions" id="signing-actions">
+            <!-- Dynamic buttons per step -->
           </div>
-        </div>
-      </div>
-      <div class="signing-sidebar" id="signing-sidebar" style="display:none;">
-        <div class="signing-sidebar-content" id="signing-sidebar-content">
-          <!-- Dynamic content per step -->
-        </div>
-        <div class="signing-actions" id="signing-actions">
-          <!-- Dynamic buttons per step -->
         </div>
       </div>
     </div>
@@ -6496,11 +6519,21 @@
     // ===== STEP MANAGEMENT =====
     function setSigningStep(step) {
       signingState.step = step;
-      document.querySelectorAll('.signing-step').forEach(el => {
+      // Update step indicator circles
+      document.querySelectorAll('#signing-steps .step-indicator').forEach(el => {
         const s = parseInt(el.dataset.step);
         el.classList.remove('active', 'completed');
         if (s === step) el.classList.add('active');
         if (s < step) el.classList.add('completed');
+      });
+      // Update step labels
+      const labels = document.querySelectorAll('#signing-steps .step-label');
+      const indicators = document.querySelectorAll('#signing-steps .step-indicator');
+      labels.forEach((label, i) => {
+        const s = indicators[i] ? parseInt(indicators[i].dataset.step) : i + 1;
+        label.classList.remove('active', 'completed');
+        if (s === step) label.classList.add('active');
+        if (s < step) label.classList.add('completed');
       });
       renderSigningSidebar();
     }
