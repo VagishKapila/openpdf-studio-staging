@@ -1515,12 +1515,67 @@
       background: #e8e8e8;
       position: relative;
       min-height: 0;
+      touch-action: pan-x pan-y;
     }
     .signing-pdf-canvas-wrap canvas {
       box-shadow: 0 2px 12px rgba(0,0,0,0.15);
       background: white;
       max-width: 100%;
       height: auto;
+    }
+    /* Zoom controls bar */
+    .signing-zoom-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 10px;
+      padding: 4px 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      z-index: 50;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .signing-pdf-canvas-wrap:hover .signing-zoom-controls,
+    .signing-zoom-controls:hover {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .signing-zoom-controls button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+      transition: background 0.15s;
+    }
+    .signing-zoom-controls button:hover {
+      background: #f3f4f6;
+    }
+    .signing-zoom-controls .zoom-level-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      min-width: 40px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .signing-zoom-controls .zoom-level-label:hover {
+      color: #6366f1;
     }
     .signing-step {
       display: none;
@@ -2843,9 +2898,14 @@
           <!-- Steps 2-4: PDF preview with field overlays -->
           <div id="signing-pdf-preview" style="display:none;">
             <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
-              <div id="signing-pdf-canvas-container" style="position:relative;display:inline-block;">
+              <div id="signing-pdf-canvas-container" style="position:relative;display:inline-block;transition:transform 0.1s ease-out;">
                 <canvas id="signing-pdf-canvas"></canvas>
                 <div id="signing-field-overlays"></div>
+              </div>
+              <div class="signing-zoom-controls" id="signing-zoom-controls">
+                <button onclick="signingZoomOut()" title="Zoom out">−</button>
+                <span class="zoom-level-label" id="signing-zoom-label" onclick="signingZoomReset()" title="Reset zoom">100%</span>
+                <button onclick="signingZoomIn()" title="Zoom in">+</button>
               </div>
             </div>
             <div class="signing-page-nav" id="signing-page-nav">
@@ -6639,7 +6699,82 @@
       paymentAmount: 0,
       paymentDescription: '',
       pageScale: 1,
+      zoomLevel: 1,       // Pinch-to-zoom level (1 = 100%)
     };
+
+    // ===== PINCH-TO-ZOOM ON SIGNING PDF =====
+    (function initSigningPinchZoom() {
+      let lastDist = 0;
+      let isPinching = false;
+
+      function getTouchDist(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      function applyZoom() {
+        const container = document.getElementById('signing-pdf-canvas-container');
+        if (!container) return;
+        container.style.transform = 'scale(' + signingState.zoomLevel + ')';
+        container.style.transformOrigin = 'center top';
+        const label = document.getElementById('signing-zoom-label');
+        if (label) label.textContent = Math.round(signingState.zoomLevel * 100) + '%';
+      }
+
+      // Attach listeners on the wrap (the scrollable area)
+      document.addEventListener('touchstart', function(e) {
+        const wrap = document.getElementById('signing-canvas-wrap');
+        if (!wrap || !wrap.contains(e.target)) return;
+        if (e.touches.length === 2) {
+          isPinching = true;
+          lastDist = getTouchDist(e.touches);
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchmove', function(e) {
+        if (!isPinching || e.touches.length !== 2) return;
+        e.preventDefault();
+        const dist = getTouchDist(e.touches);
+        const delta = dist / lastDist;
+        lastDist = dist;
+        signingState.zoomLevel = Math.min(3, Math.max(0.5, signingState.zoomLevel * delta));
+        applyZoom();
+      }, { passive: false });
+
+      document.addEventListener('touchend', function(e) {
+        if (isPinching) {
+          isPinching = false;
+          lastDist = 0;
+        }
+      });
+
+      // Also support Ctrl/Cmd + scroll wheel for desktop zoom
+      document.addEventListener('wheel', function(e) {
+        const wrap = document.getElementById('signing-canvas-wrap');
+        if (!wrap || !wrap.contains(e.target)) return;
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.95 : 1.05;
+        signingState.zoomLevel = Math.min(3, Math.max(0.5, signingState.zoomLevel * delta));
+        applyZoom();
+      }, { passive: false });
+
+      // Expose for use in zoom buttons
+      window.signingZoomIn = function() {
+        signingState.zoomLevel = Math.min(3, signingState.zoomLevel * 1.15);
+        applyZoom();
+      };
+      window.signingZoomOut = function() {
+        signingState.zoomLevel = Math.max(0.5, signingState.zoomLevel * 0.85);
+        applyZoom();
+      };
+      window.signingZoomReset = function() {
+        signingState.zoomLevel = 1;
+        applyZoom();
+      };
+    })();
 
     // ===== OPEN / CLOSE SIGNING FLOW =====
     function openSigningFlow() {
@@ -6667,6 +6802,10 @@
       signingState.paymentDescription = '';
       signingState.signerName = '';
       signingState.signerEmail = '';
+      signingState.zoomLevel = 1;
+      // Reset zoom transform
+      var zoomContainer = document.getElementById('signing-pdf-canvas-container');
+      if (zoomContainer) zoomContainer.style.transform = '';
       signingCurrentPage = 1;
       // Reset upload view
       document.getElementById('signing-upload-view').style.display = 'flex';
@@ -7101,6 +7240,7 @@
     function startFieldDrag(e, idx) {
       const field = signingState.fields[idx];
       const scale = signingState.pageScale;
+      const zoom = signingState.zoomLevel || 1;
       const wrap = document.getElementById('signing-canvas-wrap');
       const rect = wrap.getBoundingClientRect();
       const startX = e.clientX;
@@ -7109,8 +7249,8 @@
       const origY = field.y;
 
       function onMove(ev) {
-        const dx = (ev.clientX - startX) / scale;
-        const dy = (ev.clientY - startY) / scale;
+        const dx = (ev.clientX - startX) / (scale * zoom);
+        const dy = (ev.clientY - startY) / (scale * zoom);
         field.x = Math.max(0, origX + dx);
         field.y = Math.max(0, origY + dy);
         renderFieldOverlays(field.pageNumber);
@@ -7127,14 +7267,15 @@
     function startFieldResize(e, idx) {
       const field = signingState.fields[idx];
       const scale = signingState.pageScale;
+      const zoom = signingState.zoomLevel || 1;
       const startX = e.clientX;
       const startY = e.clientY;
       const origW = field.width;
       const origH = field.height;
 
       function onMove(ev) {
-        const dw = (ev.clientX - startX) / scale;
-        const dh = (ev.clientY - startY) / scale;
+        const dw = (ev.clientX - startX) / (scale * zoom);
+        const dh = (ev.clientY - startY) / (scale * zoom);
         field.width = Math.max(40, origW + dw);
         field.height = Math.max(20, origH + dh);
         renderFieldOverlays(field.pageNumber);
@@ -7194,26 +7335,27 @@
       if (signingState.step !== 2 && signingState.step !== 3) return;
       var oldFloat = document.getElementById('signing-add-field-float');
       if (oldFloat) oldFloat.remove();
-      // Place the floating button inside the PDF canvas container, top-right corner of the page
-      var canvasContainer = document.getElementById('signing-pdf-canvas-container');
-      if (!canvasContainer) return;
+      // Place floating button in the canvas WRAP (not container) so it stays fixed while scrolling/zooming
+      var wrap = document.getElementById('signing-canvas-wrap');
+      if (!wrap) return;
       var floatWrap = document.createElement('div');
       floatWrap.id = 'signing-add-field-float';
-      floatWrap.style.cssText = 'position:absolute;top:12px;right:12px;z-index:45;pointer-events:none;';
+      floatWrap.style.cssText = 'position:absolute;top:16px;right:16px;z-index:50;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
+      // Floating "+" button — clean, round, always visible
       var addBtn = document.createElement('div');
       addBtn.className = 'add-field-page-btn';
-      addBtn.innerHTML = '<span style="font-size:18px;line-height:1;">+</span>';
-      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:44px;height:44px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.4);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
+      addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
+      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:48px;height:48px;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.35);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
       addBtn.title = 'Add Field';
-      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.1)'; this.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)'; };
-      addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.4)'; };
+      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.08)'; this.style.boxShadow = '0 6px 24px rgba(99,102,241,0.5)'; };
+      addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; };
       addBtn.onclick = function(e) {
         e.stopPropagation();
         var existing = document.querySelector('.add-field-float-picker');
         if (existing) { existing.remove(); return; }
         var picker = document.createElement('div');
         picker.className = 'add-field-float-picker';
-        picker.style.cssText = 'position:absolute;top:52px;right:0;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:10px;display:flex;flex-direction:column;gap:6px;z-index:55;pointer-events:auto;min-width:140px;';
+        picker.style.cssText = 'pointer-events:auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;animation:fadeIn 0.15s ease-out;';
         var types = [
           { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
           { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
@@ -7223,10 +7365,10 @@
         ];
         types.forEach(function(t) {
           var btn = document.createElement('button');
-          btn.style.cssText = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;width:100%;text-align:left;transition:background 0.15s;';
-          btn.innerHTML = '<span style="font-size:18px;">' + t.icon + '</span>' + t.label;
-          btn.onmouseenter = function() { this.style.background = '#ede9fe'; };
-          btn.onmouseleave = function() { this.style.background = '#f8f9fa'; };
+          btn.style.cssText = 'background:transparent;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;width:100%;text-align:left;transition:background 0.12s;color:#1f2937;';
+          btn.innerHTML = '<span style="font-size:18px;width:24px;text-align:center;">' + t.icon + '</span>' + t.label;
+          btn.onmouseenter = function() { this.style.background = '#f3f0ff'; };
+          btn.onmouseleave = function() { this.style.background = 'transparent'; };
           btn.onclick = function(ev) {
             ev.stopPropagation();
             picker.remove();
@@ -7237,7 +7379,7 @@
         floatWrap.appendChild(picker);
       };
       floatWrap.appendChild(addBtn);
-      canvasContainer.appendChild(floatWrap);
+      wrap.appendChild(floatWrap);
     }
 
     function addFieldToCenter(fieldType, label, width, height) {
@@ -7245,11 +7387,12 @@
       const canvasContainer = document.getElementById('signing-pdf-canvas-container');
       if (!wrap || !canvasContainer) return;
       const scale = signingState.pageScale;
+      const zoom = signingState.zoomLevel || 1;
       const wrapRect = wrap.getBoundingClientRect();
       const containerRect = canvasContainer.getBoundingClientRect();
-      // Calculate the visible center relative to the PDF canvas, accounting for scroll
-      const visibleCenterX = ((wrapRect.width / 2) + wrap.scrollLeft - (containerRect.left - wrapRect.left)) / scale;
-      const visibleCenterY = ((wrapRect.height / 2) + wrap.scrollTop - (containerRect.top - wrapRect.top)) / scale;
+      // Calculate the visible center relative to the PDF canvas, accounting for scroll and zoom
+      const visibleCenterX = ((wrapRect.width / 2) + wrap.scrollLeft - (containerRect.left - wrapRect.left)) / (scale * zoom);
+      const visibleCenterY = ((wrapRect.height / 2) + wrap.scrollTop - (containerRect.top - wrapRect.top)) / (scale * zoom);
       const x = visibleCenterX - (width / 2);
       const y = visibleCenterY - (height / 2);
       addNewSigningField(fieldType, label, Math.max(10, x), Math.max(10, y), width, height);
