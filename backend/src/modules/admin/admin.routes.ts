@@ -7,7 +7,7 @@ import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
 import { env } from '../../config/env';
 import Stripe from 'stripe';
 import { getUser } from '../../shared/middleware/auth';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const admin = new Hono();
 
