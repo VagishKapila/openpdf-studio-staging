@@ -1754,6 +1754,22 @@
       user-select: none;
       z-index: 10;
     }
+    #signing-field-overlays {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+    .field-overlay {
+      position: absolute;
+      border: 2px dashed #6366f1;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.08);
+      cursor: move;
+      pointer-events: all;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
     .field-overlay:hover { background: rgba(99, 102, 241, 0.15); }
     .field-overlay.active-field {
       border: 2px solid #6366f1;
@@ -2714,8 +2730,10 @@
           <!-- Steps 2-4: PDF preview with field overlays -->
           <div id="signing-pdf-preview" style="display:none;">
             <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
-              <canvas id="signing-pdf-canvas"></canvas>
-              <div id="signing-field-overlays"></div>
+              <div id="signing-pdf-canvas-container" style="position:relative;display:inline-block;">
+                <canvas id="signing-pdf-canvas"></canvas>
+                <div id="signing-field-overlays"></div>
+              </div>
             </div>
             <div class="signing-page-nav" id="signing-page-nav">
               <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
@@ -6654,9 +6672,12 @@
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      const wrap = document.getElementById('signing-canvas-wrap');
-      // Don't set explicit width/height on wrap — let flex layout handle it
-      // The canvas itself has the correct dimensions
+      // Size the field overlays container to match the canvas exactly
+      const overlaysDiv = document.getElementById('signing-field-overlays');
+      if (overlaysDiv) {
+        overlaysDiv.style.width = viewport.width + 'px';
+        overlaysDiv.style.height = viewport.height + 'px';
+      }
 
       await page.render({ canvasContext: ctx, viewport }).promise;
       renderFieldOverlays(pageNum);
