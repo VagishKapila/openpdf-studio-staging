@@ -6518,6 +6518,8 @@
 
     function closeSigningFlow() {
       document.getElementById('signing-overlay').classList.remove('visible');
+      // Reset signature mode toggle
+      signingModeIsType = false;
       // Reset state
       signingState.step = 1;
       signingState.pdfDoc = null;
@@ -7048,11 +7050,18 @@
         </div>
 
         <label style="font-size:12px;font-weight:500;display:block;margin-bottom:8px;">Your Signature</label>
-        <div class="sig-setup-area">
-          <canvas id="signing-sig-pad" width="280" height="100"></canvas>
+        <div class="sig-setup-area" style="border:2px solid #94a3b8;border-radius:10px;padding:10px;background:#fff;">
+          <div id="signing-sig-draw-mode">
+            <canvas id="signing-sig-pad" width="260" height="90" style="display:block;width:100%;border:1.5px dashed #cbd5e1;border-radius:6px;cursor:crosshair;background:#fafbfc;"></canvas>
+            <div style="text-align:center;margin-top:4px;font-size:10px;color:#94a3b8;">Draw your signature above</div>
+          </div>
+          <div id="signing-sig-type-mode" style="display:none;">
+            <input type="text" id="signing-sig-type-input" placeholder="Type your signature here..." oninput="updateTypedSignature()" style="width:100%;padding:12px 14px;border:1.5px dashed #cbd5e1;border-radius:6px;font-family:'Brush Script MT','Segoe Script','Dancing Script',cursive;font-size:28px;font-style:italic;color:#1e293b;background:#fafbfc;text-align:center;outline:none;" />
+            <div style="text-align:center;margin-top:4px;font-size:10px;color:#94a3b8;">Type your signature above</div>
+          </div>
           <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;">
-            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="clearSigningSigPad()">Clear</button>
-            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="typeSignature()">Type Instead</button>
+            <button class="btn btn-secondary" id="signing-clear-btn" style="font-size:11px;padding:4px 10px;" onclick="clearSigningSigPad()">Clear</button>
+            <button class="btn btn-secondary" id="signing-mode-toggle-btn" style="font-size:11px;padding:4px 10px;" onclick="toggleSignatureMode()">Type Instead</button>
           </div>
         </div>
 
@@ -7223,6 +7232,8 @@
       if (canvas && signingSigPadCtx) {
         signingSigPadCtx.clearRect(0, 0, canvas.width, canvas.height);
       }
+      const typeInput = document.getElementById('signing-sig-type-input');
+      if (typeInput) typeInput.value = '';
       signingState.signatureDataUrl = null;
       signingState.initialsDataUrl = null;
     }
@@ -7235,20 +7246,58 @@
       generateInitials();
     }
 
-    function typeSignature() {
-      const name = document.getElementById('signing-name')?.value || 'Signature';
+    let signingModeIsType = false;
+
+    function toggleSignatureMode() {
+      signingModeIsType = !signingModeIsType;
+      const drawMode = document.getElementById('signing-sig-draw-mode');
+      const typeMode = document.getElementById('signing-sig-type-mode');
+      const toggleBtn = document.getElementById('signing-mode-toggle-btn');
+
+      if (signingModeIsType) {
+        if (drawMode) drawMode.style.display = 'none';
+        if (typeMode) typeMode.style.display = 'block';
+        if (toggleBtn) toggleBtn.textContent = 'Draw Instead';
+        // Pre-fill with name if available
+        const nameVal = document.getElementById('signing-name')?.value || '';
+        const typeInput = document.getElementById('signing-sig-type-input');
+        if (typeInput && !typeInput.value && nameVal) typeInput.value = nameVal;
+        updateTypedSignature();
+      } else {
+        if (drawMode) drawMode.style.display = 'block';
+        if (typeMode) typeMode.style.display = 'none';
+        if (toggleBtn) toggleBtn.textContent = 'Type Instead';
+        // Clear typed signature and reset
+        signingState.signatureDataUrl = null;
+        signingState.signatureType = null;
+        setTimeout(initSigningSigPad, 50);
+      }
+    }
+
+    function updateTypedSignature() {
+      const typeInput = document.getElementById('signing-sig-type-input');
+      const text = typeInput?.value || '';
+      if (!text.trim()) {
+        signingState.signatureDataUrl = null;
+        return;
+      }
       const canvas = document.createElement('canvas');
       canvas.width = 280;
       canvas.height = 100;
       const ctx = canvas.getContext('2d');
-      ctx.font = "italic 32px 'Brush Script MT', cursive";
-      ctx.fillStyle = '#000';
-      ctx.fillText(name, 10, 60);
+      ctx.font = "italic 32px 'Brush Script MT', 'Segoe Script', cursive";
+      ctx.fillStyle = '#1e293b';
+      // Center the text
+      const measured = ctx.measureText(text);
+      const x = Math.max(10, (280 - measured.width) / 2);
+      ctx.fillText(text, x, 60);
       signingState.signatureDataUrl = canvas.toDataURL('image/png');
       signingState.signatureType = 'type';
       generateInitials();
-      renderSigningSidebar();
     }
+
+    // Keep old name for backward compat (called nowhere else now, but just in case)
+    function typeSignature() { toggleSignatureMode(); }
 
     function generateInitials() {
       const name = document.getElementById('signing-name')?.value || signingState.signerName || '';
