@@ -8138,23 +8138,21 @@
               color: rgb(0, 0, 0),
             });
           } else if (field.fieldType === 'checkmark') {
+            // Draw checkmark using lines (pdf-lib default font can't encode ✓)
             const { rgb } = PDFLib;
-            const fontSize = Math.min(pdfW, pdfH) * 0.85;
-            page.drawText('✓', {
-              x: pdfX + (pdfW - fontSize * 0.6) / 2,
-              y: pdfY + (pdfH - fontSize) / 2,
-              size: fontSize,
-              color: rgb(0, 0.4, 0),
-            });
+            const cx = pdfX + pdfW / 2;
+            const cy = pdfY + pdfH / 2;
+            const s = Math.min(pdfW, pdfH) * 0.35;
+            page.drawLine({ start: { x: cx - s, y: cy }, end: { x: cx - s * 0.2, y: cy - s * 0.7 }, thickness: Math.max(1.5, s * 0.25), color: rgb(0, 0.5, 0) });
+            page.drawLine({ start: { x: cx - s * 0.2, y: cy - s * 0.7 }, end: { x: cx + s, y: cy + s * 0.7 }, thickness: Math.max(1.5, s * 0.25), color: rgb(0, 0.5, 0) });
           } else if (field.fieldType === 'xmark') {
+            // Draw X mark using lines (pdf-lib default font can't encode ✕)
             const { rgb } = PDFLib;
-            const fontSize = Math.min(pdfW, pdfH) * 0.85;
-            page.drawText('✕', {
-              x: pdfX + (pdfW - fontSize * 0.6) / 2,
-              y: pdfY + (pdfH - fontSize) / 2,
-              size: fontSize,
-              color: rgb(0.7, 0, 0),
-            });
+            const cx = pdfX + pdfW / 2;
+            const cy = pdfY + pdfH / 2;
+            const s = Math.min(pdfW, pdfH) * 0.35;
+            page.drawLine({ start: { x: cx - s, y: cy - s }, end: { x: cx + s, y: cy + s }, thickness: Math.max(1.5, s * 0.25), color: rgb(0.7, 0, 0) });
+            page.drawLine({ start: { x: cx - s, y: cy + s }, end: { x: cx + s, y: cy - s }, thickness: Math.max(1.5, s * 0.25), color: rgb(0.7, 0, 0) });
           }
         }
 
