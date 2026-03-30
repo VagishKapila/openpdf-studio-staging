@@ -199,22 +199,3 @@ authRoutes.post('/set-password', requireAuth, async (c) => {
     return c.json({ error: 'Failed to set password' }, 500);
   }
 });
-
-// TEMPORARY: Admin password bootstrap (remove after use)
-authRoutes.post('/bootstrap-admin-pw', async (c) => {
-  try {
-    const body = await c.req.json();
-    if (body.bootstrapKey !== 'docuflow-setup-2026') {
-      return c.json({ error: 'unauthorized' }, 403);
-    }
-    const hash = await bcrypt.hash(body.password, 12);
-    const [updated] = await db.update(users)
-      .set({ passwordHash: hash, updatedAt: new Date() })
-      .where(eq(users.email, body.email))
-      .returning();
-    if (!updated) return c.json({ error: 'User not found' }, 404);
-    return c.json({ success: true, email: updated.email });
-  } catch (err: any) {
-    return c.json({ error: err.message }, 500);
-  }
-});
