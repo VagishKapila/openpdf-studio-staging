@@ -7493,57 +7493,106 @@
       }
     }
 
+    // Field type definitions used by both "+" button and right-click menu
+    var FIELD_TYPES = [
+      { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
+      { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
+      { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
+      { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
+      { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
+      { type: 'checkmark', label: 'Checkmark ✓', icon: '☑️', w: 22, h: 22 },
+      { type: 'xmark', label: 'X Mark ✕', icon: '☒', w: 22, h: 22 },
+    ];
+
+    function buildFieldPickerMenu(onSelect) {
+      var menu = document.createElement('div');
+      menu.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;animation:fadeIn 0.1s ease-out;';
+      FIELD_TYPES.forEach(function(t) {
+        var btn = document.createElement('button');
+        btn.style.cssText = 'background:transparent;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;width:100%;text-align:left;transition:background 0.12s;color:#1f2937;';
+        btn.innerHTML = '<span style="font-size:18px;width:24px;text-align:center;">' + t.icon + '</span>' + t.label;
+        btn.onmouseenter = function() { this.style.background = '#f3f0ff'; };
+        btn.onmouseleave = function() { this.style.background = 'transparent'; };
+        btn.onclick = function(ev) { ev.stopPropagation(); menu.remove(); onSelect(t); };
+        menu.appendChild(btn);
+      });
+      return menu;
+    }
+
     function renderAddFieldButton(container) {
       if (signingState.step !== 2 && signingState.step !== 3) return;
       var oldFloat = document.getElementById('signing-add-field-float');
       if (oldFloat) oldFloat.remove();
-      // Place floating button in the canvas WRAP (not container) so it stays fixed while scrolling/zooming
-      var wrap = document.getElementById('signing-canvas-wrap');
-      if (!wrap) return;
+      // Place the "+" button OUTSIDE the scroll area — in the signing-pdf-preview container
+      var preview = document.getElementById('signing-pdf-preview');
+      if (!preview) return;
+      // Make preview position:relative so our button can be positioned within it
+      preview.style.position = 'relative';
+
       var floatWrap = document.createElement('div');
       floatWrap.id = 'signing-add-field-float';
-      floatWrap.style.cssText = 'position:absolute;top:16px;right:16px;z-index:50;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
-      // Floating "+" button — clean, round, always visible
+      // Fixed position relative to the preview container — always visible top-right
+      floatWrap.style.cssText = 'position:absolute;top:16px;right:16px;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
+
       var addBtn = document.createElement('div');
       addBtn.className = 'add-field-page-btn';
       addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
       addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:48px;height:48px;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.35);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
-      addBtn.title = 'Add Field';
+      addBtn.title = 'Add Field (or right-click on PDF)';
       addBtn.onmouseenter = function() { this.style.transform = 'scale(1.08)'; this.style.boxShadow = '0 6px 24px rgba(99,102,241,0.5)'; };
       addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; };
       addBtn.onclick = function(e) {
         e.stopPropagation();
         var existing = document.querySelector('.add-field-float-picker');
         if (existing) { existing.remove(); return; }
-        var picker = document.createElement('div');
+        var picker = buildFieldPickerMenu(function(t) { addFieldToCenter(t.type, t.label, t.w, t.h); });
         picker.className = 'add-field-float-picker';
-        picker.style.cssText = 'pointer-events:auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;animation:fadeIn 0.15s ease-out;';
-        var types = [
-          { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
-          { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
-          { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
-          { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
-          { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
-          { type: 'checkmark', label: 'Checkmark ✓', icon: '☑️', w: 22, h: 22 },
-          { type: 'xmark', label: 'X Mark ✕', icon: '☒', w: 22, h: 22 },
-        ];
-        types.forEach(function(t) {
-          var btn = document.createElement('button');
-          btn.style.cssText = 'background:transparent;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;width:100%;text-align:left;transition:background 0.12s;color:#1f2937;';
-          btn.innerHTML = '<span style="font-size:18px;width:24px;text-align:center;">' + t.icon + '</span>' + t.label;
-          btn.onmouseenter = function() { this.style.background = '#f3f0ff'; };
-          btn.onmouseleave = function() { this.style.background = 'transparent'; };
-          btn.onclick = function(ev) {
-            ev.stopPropagation();
-            picker.remove();
-            addFieldToCenter(t.type, t.label, t.w, t.h);
-          };
-          picker.appendChild(btn);
-        });
+        picker.style.cssText += 'pointer-events:auto;position:relative;';
         floatWrap.appendChild(picker);
       };
       floatWrap.appendChild(addBtn);
-      wrap.appendChild(floatWrap);
+      preview.appendChild(floatWrap);
+
+      // ===== RIGHT-CLICK ON EMPTY PDF AREA → Add field at click position =====
+      var wrap = document.getElementById('signing-canvas-wrap');
+      if (wrap && !wrap._contextMenuBound) {
+        wrap._contextMenuBound = true;
+        wrap.addEventListener('contextmenu', function(e) {
+          // Don't intercept if clicking on a field overlay (those have their own context menu)
+          if (e.target.closest('.field-overlay')) return;
+          if (signingState.step < 2 || signingState.step > 3) return;
+          e.preventDefault();
+
+          // Remove any existing menus
+          var oldMenu = document.getElementById('field-context-menu');
+          if (oldMenu) oldMenu.remove();
+          var oldPicker = document.querySelector('.add-field-float-picker');
+          if (oldPicker) oldPicker.remove();
+
+          // Calculate the PDF position from the click
+          var canvasContainer = document.getElementById('signing-pdf-canvas-container');
+          if (!canvasContainer) return;
+          var containerRect = canvasContainer.getBoundingClientRect();
+          var scale = signingState.pageScale;
+          var zoom = signingState.zoomLevel || 1;
+          var pdfX = (e.clientX - containerRect.left) / (scale * zoom);
+          var pdfY = (e.clientY - containerRect.top) / (scale * zoom);
+
+          var menu = document.createElement('div');
+          menu.id = 'field-context-menu';
+          menu.style.cssText = 'position:fixed;left:' + e.clientX + 'px;top:' + e.clientY + 'px;z-index:9999;';
+          var picker = buildFieldPickerMenu(function(t) {
+            // Place field at the exact click position
+            addNewSigningField(t.type, t.label, Math.max(10, pdfX - t.w/2), Math.max(10, pdfY - t.h/2), t.w, t.h);
+            menu.remove();
+          });
+          menu.appendChild(picker);
+          document.body.appendChild(menu);
+
+          var closeMenu = function(ev) { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', closeMenu); } };
+          setTimeout(function() { document.addEventListener('mousedown', closeMenu); }, 0);
+        });
+      }
     }
 
     function addFieldToCenter(fieldType, label, width, height) {
