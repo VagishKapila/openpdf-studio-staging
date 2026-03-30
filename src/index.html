@@ -1765,11 +1765,12 @@
       border: 2px dashed #6366f1;
       border-radius: 4px;
       background: rgba(99, 102, 241, 0.08);
-      cursor: move;
+      cursor: grab;
       pointer-events: all;
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: visible;
     }
+    .field-overlay:active { cursor: grabbing; }
     .field-overlay:hover { background: rgba(99, 102, 241, 0.15); }
     .field-overlay.active-field {
       border: 2px solid #6366f1;
@@ -1786,7 +1787,7 @@
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
     }
-    .field-overlay img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .field-overlay img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
     .field-overlay .field-text {
       width: 100%;
       height: 100%;
@@ -1848,8 +1849,10 @@
       border: 2px solid #6366f1;
       background: rgba(99, 102, 241, 0.08);
       box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
-      cursor: move;
+      cursor: grab;
     }
+    .field-overlay.filled.active-field:active,
+    .field-overlay.field-confirmed.active-field:active { cursor: grabbing; }
     /* Confirm button */
     .field-overlay .field-confirm-btn {
       position: absolute;
@@ -7244,11 +7247,12 @@
       if (signingState.step !== 2 && signingState.step !== 3) return;
       var oldFloat = document.getElementById('signing-add-field-float');
       if (oldFloat) oldFloat.remove();
-      var overlayContainer = document.getElementById('signing-field-overlays');
-      if (!overlayContainer) return;
+      // Place the floating button in the scrollable canvas wrap so it stays visible
+      var scrollWrap = document.getElementById('signing-canvas-wrap');
+      if (!scrollWrap) return;
       var floatWrap = document.createElement('div');
       floatWrap.id = 'signing-add-field-float';
-      floatWrap.style.cssText = 'position:absolute;top:12px;right:12px;z-index:45;pointer-events:none;';
+      floatWrap.style.cssText = 'position:sticky;top:12px;float:right;margin-right:12px;z-index:45;pointer-events:none;width:0;height:0;overflow:visible;';
       var addBtn = document.createElement('div');
       addBtn.className = 'add-field-page-btn';
       addBtn.innerHTML = '<span style="font-size:18px;line-height:1;">+</span>';
@@ -7286,16 +7290,19 @@
         floatWrap.appendChild(picker);
       };
       floatWrap.appendChild(addBtn);
-      overlayContainer.appendChild(floatWrap);
+      scrollWrap.appendChild(floatWrap);
     }
 
     function addFieldToCenter(fieldType, label, width, height) {
       const wrap = document.getElementById('signing-canvas-wrap');
-      if (!wrap) return;
+      const canvasContainer = document.getElementById('signing-pdf-canvas-container');
+      if (!wrap || !canvasContainer) return;
       const scale = signingState.pageScale;
       const wrapRect = wrap.getBoundingClientRect();
-      const visibleCenterX = (wrapRect.width / 2) / scale;
-      const visibleCenterY = (wrapRect.height / 2) / scale;
+      const containerRect = canvasContainer.getBoundingClientRect();
+      // Calculate the visible center relative to the PDF canvas, accounting for scroll
+      const visibleCenterX = ((wrapRect.width / 2) + wrap.scrollLeft - (containerRect.left - wrapRect.left)) / scale;
+      const visibleCenterY = ((wrapRect.height / 2) + wrap.scrollTop - (containerRect.top - wrapRect.top)) / scale;
       const x = visibleCenterX - (width / 2);
       const y = visibleCenterY - (height / 2);
       addNewSigningField(fieldType, label, Math.max(10, x), Math.max(10, y), width, height);
@@ -7306,6 +7313,11 @@
         x = x !== undefined ? x : 200;
         y = y !== undefined ? y : 300;
       }
+      // Pre-fill textValue for name and date fields
+      let prefillValue = '';
+      if (fieldType === 'name') prefillValue = signingState.signerName || '';
+      else if (fieldType === 'date') prefillValue = new Date().toLocaleDateString();
+
       const newField = {
         id: 'field-' + signingState.fields.length,
         fieldType: fieldType,
@@ -7318,7 +7330,7 @@
         filled: true,
         confirmed: false,
         aiDetected: false,
-        textValue: ''
+        textValue: prefillValue
       };
       signingState.fields.push(newField);
       signingState.currentFieldIndex = signingState.fields.length - 1;
@@ -7459,6 +7471,17 @@
       signingState.signerEmail = email || '';
       generateInitials();
 
+      // Pre-fill name and date fields with actual values so they're never empty
+      signingState.fields.forEach(function(f) {
+        if (f.fieldType === 'name' && !f.textValue) {
+          f.textValue = name;
+          f.filled = true;
+        } else if (f.fieldType === 'date' && !f.textValue) {
+          f.textValue = new Date().toLocaleDateString();
+          f.filled = true;
+        }
+      });
+
       // Start at first field
       signingState.currentFieldIndex = 0;
       setSigningStep(3);
@@ -7573,16 +7596,29 @@
     function initSigningSigPad() {
       const canvas = document.getElementById('signing-sig-pad');
       if (!canvas) return;
+
+      // Match canvas buffer resolution to actual CSS display size to prevent coordinate mismatch
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
       signingSigPadCtx = canvas.getContext('2d');
+      signingSigPadCtx.scale(dpr, dpr);
       signingSigPadCtx.strokeStyle = '#000';
       signingSigPadCtx.lineWidth = 2;
       signingSigPadCtx.lineCap = 'round';
       signingSigPadCtx.lineJoin = 'round';
 
-      canvas.onmousedown = (e) => { signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(e.offsetX, e.offsetY); };
-      canvas.onmousemove = (e) => { if (signingSigPadDrawing) { signingSigPadCtx.lineTo(e.offsetX, e.offsetY); signingSigPadCtx.stroke(); } };
+      function getCanvasXY(e) {
+        const r = canvas.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      }
+
+      canvas.onmousedown = (e) => { const p = getCanvasXY(e); signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(p.x, p.y); };
+      canvas.onmousemove = (e) => { if (signingSigPadDrawing) { const p = getCanvasXY(e); signingSigPadCtx.lineTo(p.x, p.y); signingSigPadCtx.stroke(); } };
       canvas.onmouseup = () => { signingSigPadDrawing = false; captureSigningSig(); };
-      canvas.onmouseleave = () => { signingSigPadDrawing = false; };
+      canvas.onmouseleave = () => { if (signingSigPadDrawing) { signingSigPadDrawing = false; captureSigningSig(); } };
 
       canvas.ontouchstart = (e) => { e.preventDefault(); const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
       canvas.ontouchmove = (e) => { e.preventDefault(); if (signingSigPadDrawing) { const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadCtx.lineTo(t.clientX - r.left, t.clientY - r.top); signingSigPadCtx.stroke(); } };
@@ -7592,7 +7628,10 @@
     function clearSigningSigPad() {
       const canvas = document.getElementById('signing-sig-pad');
       if (canvas && signingSigPadCtx) {
+        signingSigPadCtx.save();
+        signingSigPadCtx.setTransform(1, 0, 0, 1, 0, 0);
         signingSigPadCtx.clearRect(0, 0, canvas.width, canvas.height);
+        signingSigPadCtx.restore();
       }
       const typeInput = document.getElementById('signing-sig-type-input');
       if (typeInput) typeInput.value = '';
