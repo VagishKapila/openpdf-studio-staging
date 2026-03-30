@@ -7,6 +7,7 @@ import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
 import { env } from '../../config/env';
 import Stripe from 'stripe';
 import { getUser } from '../../shared/middleware/auth';
+import bcrypt from 'bcrypt';
 
 const admin = new Hono();
 
@@ -119,14 +120,21 @@ admin.patch('/users/:id', async (c) => {
   const userId = c.req.param('id');
   const body = await c.req.json();
   try {
+    const updateData: Record<string, any> = {
+      isActive: body.isActive ?? undefined,
+      plan: body.plan ?? undefined,
+      isSuperAdmin: body.isSuperAdmin ?? undefined,
+      updatedAt: new Date(),
+    };
+
+    // Support admin password reset
+    if (body.password) {
+      updateData.passwordHash = await bcrypt.hash(body.password, 12);
+    }
+
     const [updated] = await db
       .update(users)
-      .set({
-        isActive: body.isActive ?? undefined,
-        plan: body.plan ?? undefined,
-        isSuperAdmin: body.isSuperAdmin ?? undefined,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
     return c.json({ data: updated });
