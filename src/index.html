@@ -7002,9 +7002,8 @@
             if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
             else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
             else if (/\bdate\b/i.test(labelPart) && !/birth|expir|filed|discharge|dismiss/i.test(labelPart)) { fieldType = 'date'; label = 'Date'; }
-            else if (/^(printed?\s*)?name\s*$/i.test(labelPart) || /print\s*name/i.test(labelPart)) { fieldType = 'name'; label = 'Name'; }
 
-            // Only add if it's a signing-essential field
+            // Only add signature, initials, date — everything else added manually
             if (fieldType) {
               const underscoreItem = line.items.find(it => /_{3,}/.test(it.str));
               const fieldX = underscoreItem ? underscoreItem._x : x + 100;
@@ -7031,7 +7030,6 @@
             if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
             else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
             else if (/^\s*date\s*$/i.test(labelText)) { fieldType = 'date'; label = 'Date'; }
-            else if (/^(printed?\s*)?name$|full\s*name|legal\s*name/i.test(labelText)) { fieldType = 'name'; label = 'Name'; }
 
             if (fieldType) {
               const lastItem = line.items[line.items.length - 1];
@@ -7055,8 +7053,6 @@
             addField({ fieldType: 'signature', pageNumber: i, x, y: y - 50, width: 200, height: 50, label: 'Signature', aiDetected: true });
           } else if (/^Date\s*$/i.test(trimmed) && trimmed.length < 10) {
             addField({ fieldType: 'date', pageNumber: i, x, y: y - 25, width: 150, height: 25, label: 'Date', aiDetected: true });
-          } else if (/^(Printed?\s*Name|Print\s*Name)\s*$/i.test(trimmed)) {
-            addField({ fieldType: 'name', pageNumber: i, x, y: y - 25, width: 200, height: 25, label: 'Name', aiDetected: true });
           } else if (/^Initials?\s*$/i.test(trimmed) && trimmed.length < 12) {
             addField({ fieldType: 'initials', pageNumber: i, x, y: y - 35, width: 80, height: 35, label: 'Initials', aiDetected: true });
           }
@@ -7069,8 +7065,8 @@
         const vp = lastPage.getViewport({ scale: 1 });
         fields.push(
           { fieldType: 'signature', pageNumber: totalPages, x: 72, y: vp.height - 150, width: 200, height: 50, label: 'Signature', aiDetected: false },
-          { fieldType: 'name', pageNumber: totalPages, x: 72, y: vp.height - 90, width: 200, height: 25, label: 'Name', aiDetected: false },
-          { fieldType: 'date', pageNumber: totalPages, x: 350, y: vp.height - 90, width: 120, height: 25, label: 'Date', aiDetected: false },
+          { fieldType: 'date', pageNumber: totalPages, x: 72, y: vp.height - 90, width: 120, height: 25, label: 'Date', aiDetected: false },
+          { fieldType: 'initials', pageNumber: totalPages, x: 250, y: vp.height - 90, width: 80, height: 35, label: 'Initials', aiDetected: false },
         );
       }
 
