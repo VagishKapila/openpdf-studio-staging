@@ -6899,8 +6899,8 @@
           const colonMatch = lowerText.match(/^(.*?):\s*$/);
           if (colonMatch && colonMatch[1].trim().length < 25) {
             const labelText = colonMatch[1].trim();
-            // Skip if label contains boilerplate or long phrases
-            if (/\b(section|article|note|warning|important|subject|re|cc|from|to)\b/i.test(labelText)) continue;
+            // Skip section headers, block labels, and boilerplate phrases
+            if (/\b(section|article|note|warning|important|subject|re|cc|from|to|authorized|accepted|agreed|approved|witnessed|acknowledged|certified|attested|countersigned)\b/i.test(labelText)) continue;
 
             let fieldType = 'text';
             let label = labelText.charAt(0).toUpperCase() + labelText.slice(1);
