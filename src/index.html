@@ -1523,29 +1523,15 @@
       max-width: 100%;
       height: auto;
     }
-    /* Zoom controls bar */
+    /* Zoom controls — inline in page nav bar */
     .signing-zoom-controls {
-      position: absolute;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 4px;
-      background: rgba(255,255,255,0.95);
-      border-radius: 10px;
-      padding: 4px 8px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      z-index: 50;
-      backdrop-filter: blur(8px);
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-    }
-    .signing-pdf-canvas-wrap:hover .signing-zoom-controls,
-    .signing-zoom-controls:hover {
-      opacity: 1;
-      pointer-events: auto;
+      gap: 2px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 2px 4px;
+      margin: 0 8px;
     }
     .signing-zoom-controls button {
       background: none;
@@ -2902,15 +2888,15 @@
                 <canvas id="signing-pdf-canvas"></canvas>
                 <div id="signing-field-overlays"></div>
               </div>
+            </div>
+            <div class="signing-page-nav" id="signing-page-nav">
+              <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
+              <span id="signing-page-info">Page 1 of 1</span>
               <div class="signing-zoom-controls" id="signing-zoom-controls">
                 <button onclick="signingZoomOut()" title="Zoom out">−</button>
                 <span class="zoom-level-label" id="signing-zoom-label" onclick="signingZoomReset()" title="Reset zoom">100%</span>
                 <button onclick="signingZoomIn()" title="Zoom in">+</button>
               </div>
-            </div>
-            <div class="signing-page-nav" id="signing-page-nav">
-              <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
-              <span id="signing-page-info">Page 1 of 1</span>
               <button onclick="signingNextPage()" id="signing-next-page-btn">Next →</button>
             </div>
           </div>
@@ -6841,6 +6827,10 @@
         if (s < step) label.classList.add('completed');
       });
       renderSigningSidebar();
+      // Initialize marquee selection when entering setup/review steps
+      if (step === 2 || step === 3) {
+        setTimeout(initMarqueeSelection, 100);
+      }
     }
 
     // ===== FILE UPLOAD =====
@@ -7001,114 +6991,61 @@
           // Skip lines that are just boilerplate content
           if (/\b(acknowledge|agree|hereby|whereas|pursuant|therefore|notwithstanding)\b/i.test(lowerText)) continue;
 
-          // ===== 1. UNDERSCORE LINES — the strongest signal for fill-in fields =====
-          // Handle MULTIPLE fields per line (e.g. "City:____ State:____ Zip:____")
-          const underscoreSegments = text.split(/(_{3,})/);
-          if (underscoreSegments.length > 1) {
-            let curX = x;
-            for (let seg = 0; seg < underscoreSegments.length; seg++) {
-              const part = underscoreSegments[seg];
-              if (/^_{3,}$/.test(part)) {
-                // This is an underscore run — the label is the text segment before it
-                const labelPart = (seg > 0 ? underscoreSegments[seg - 1] : '').trim().toLowerCase();
-                let fieldType = 'text';
-                let label = 'Text';
-                if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
-                else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
-                else if (/date\s*(of\s*birth)?|d\.?o\.?b/i.test(labelPart)) { fieldType = 'date'; label = labelPart.match(/birth|d\.?o\.?b/i) ? 'Date of Birth' : 'Date'; }
-                else if (/expir/i.test(labelPart)) { fieldType = 'date'; label = 'Expiration Date'; }
-                else if (/name|print/i.test(labelPart)) { fieldType = 'name'; label = 'Name'; }
-                else if (/title|position/i.test(labelPart)) { fieldType = 'text'; label = 'Title'; }
-                else if (/email|e-?mail/i.test(labelPart)) { fieldType = 'text'; label = 'Email'; }
-                else if (/mailing\s*address|address/i.test(labelPart)) { fieldType = 'text'; label = 'Address'; }
-                else if (/city/i.test(labelPart)) { fieldType = 'text'; label = 'City'; }
-                else if (/state/i.test(labelPart)) { fieldType = 'text'; label = 'State'; }
-                else if (/zip|postal/i.test(labelPart)) { fieldType = 'text'; label = 'Zip'; }
-                else if (/county/i.test(labelPart)) { fieldType = 'text'; label = 'County'; }
-                else if (/country/i.test(labelPart)) { fieldType = 'text'; label = 'Country'; }
-                else if (/phone|tel|cell|home|work|fax|mobile/i.test(labelPart)) { fieldType = 'text'; label = labelPart.match(/cell/i) ? 'Cell' : labelPart.match(/home/i) ? 'Home Phone' : labelPart.match(/work/i) ? 'Work Phone' : 'Phone'; }
-                else if (/company|org|employer/i.test(labelPart)) { fieldType = 'text'; label = 'Company'; }
-                else if (/driver|license|dl/i.test(labelPart)) { fieldType = 'text'; label = "Driver's License"; }
-                else if (/ssn|social\s*security/i.test(labelPart)) { fieldType = 'text'; label = 'SSN'; }
-                else {
-                  // Use the label text itself if short enough
-                  const cleanLabel = labelPart.replace(/[^a-z\s]/gi, '').trim();
-                  if (cleanLabel.length > 0 && cleanLabel.length < 30) {
-                    label = cleanLabel.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                  }
-                }
+          // ===== 1. UNDERSCORE LINES — only detect SIGNING-ESSENTIAL fields =====
+          // Auto-detect ONLY: signature, initials, name, date. All other fields
+          // (address, city, state, zip, text, etc.) are added manually via "+" button.
+          const underscoreMatch = text.match(/_{3,}/);
+          if (underscoreMatch) {
+            const labelPart = text.split(/_{3,}/)[0].trim().toLowerCase();
+            let fieldType = null;
+            let label = '';
+            if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
+            else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
+            else if (/\bdate\b/i.test(labelPart) && !/birth|expir|filed|discharge|dismiss/i.test(labelPart)) { fieldType = 'date'; label = 'Date'; }
+            else if (/^(printed?\s*)?name\s*$/i.test(labelPart) || /print\s*name/i.test(labelPart)) { fieldType = 'name'; label = 'Name'; }
 
-                // Find the matching underscore item to get precise X position
-                const underscoreItem = line.items.find(it => /_{3,}/.test(it.str) && it._x >= curX - 5);
-                const fieldX = underscoreItem ? underscoreItem._x : curX;
-                const fieldWidth = fieldType === 'signature' ? 200 : Math.min(250, Math.max(100, part.length * 6));
-                const fieldHeight = fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25);
+            // Only add if it's a signing-essential field
+            if (fieldType) {
+              const underscoreItem = line.items.find(it => /_{3,}/.test(it.str));
+              const fieldX = underscoreItem ? underscoreItem._x : x + 100;
+              const fieldWidth = fieldType === 'signature' ? 200 : (fieldType === 'initials' ? 80 : 160);
+              const fieldHeight = fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25);
 
-                addField({
-                  fieldType, pageNumber: i,
-                  x: fieldX, y: y + 5,
-                  width: fieldWidth, height: fieldHeight,
-                  label, aiDetected: true,
-                });
-                curX = fieldX + fieldWidth;
-              } else {
-                // Text segment — advance curX by estimated width
-                curX += part.length * 5;
-              }
+              addField({
+                fieldType, pageNumber: i,
+                x: fieldX, y: y + 5,
+                width: fieldWidth, height: fieldHeight,
+                label, aiDetected: true,
+              });
             }
             continue;
           }
 
-          // ===== 2. "Label:" pattern — colon-terminated labels indicating fill-in fields =====
-          // Match labels ending with colon (end of line) OR multiple "Label:" patterns on one line
-          const colonPattern = /\b([A-Za-z][A-Za-z\s\.]{1,24}):\s*/g;
-          let colonMatches = [];
-          let cm;
-          while ((cm = colonPattern.exec(text)) !== null) {
-            colonMatches.push({ label: cm[1].trim(), index: cm.index, fullMatch: cm[0] });
-          }
-          if (colonMatches.length > 0 && !underscoreSegments.some(s => /^_{3,}$/.test(s))) {
-            // Only use colon detection if line has NO underscores (those are handled above)
-            let addedFromColon = false;
-            for (const match of colonMatches) {
-              const labelText = match.label;
-              // Skip section headers, block labels, and boilerplate phrases
-              if (/\b(section|article|note|warning|important|subject|re|cc|from|to|authorized|accepted|agreed|approved|witnessed|acknowledged|certified|attested|countersigned|part|if you|have you|please|instructions?)\b/i.test(labelText)) continue;
-              // Skip very short or generic words
-              if (labelText.length < 2) continue;
+          // ===== 2. "Label:" pattern — only detect signing-essential fields =====
+          const colonMatch = lowerText.match(/^(.*?):\s*$/);
+          if (colonMatch && colonMatch[1].trim().length < 25) {
+            const labelText = colonMatch[1].trim();
+            let fieldType = null;
+            let label = '';
 
-              let fieldType = 'text';
-              let label = labelText.charAt(0).toUpperCase() + labelText.slice(1);
+            if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
+            else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
+            else if (/^\s*date\s*$/i.test(labelText)) { fieldType = 'date'; label = 'Date'; }
+            else if (/^(printed?\s*)?name$|full\s*name|legal\s*name/i.test(labelText)) { fieldType = 'name'; label = 'Name'; }
 
-              if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
-              else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
-              else if (/date\s*(of\s*birth)?|d\.?o\.?b/i.test(labelText)) { fieldType = 'date'; label = labelText.match(/birth|d\.?o\.?b/i) ? 'Date of Birth' : 'Date'; }
-              else if (/expir/i.test(labelText)) { fieldType = 'date'; label = 'Expiration Date'; }
-              else if (/^(printed?\s*)?name$|full\s*name|legal\s*name/i.test(labelText)) { fieldType = 'name'; label = 'Name'; }
-              else if (/email|e-?mail/i.test(labelText)) { fieldType = 'text'; label = 'Email'; }
-              else if (/city/i.test(labelText)) { fieldType = 'text'; label = 'City'; }
-              else if (/state/i.test(labelText)) { fieldType = 'text'; label = 'State'; }
-              else if (/zip|postal/i.test(labelText)) { fieldType = 'text'; label = 'Zip'; }
-              else if (/county/i.test(labelText)) { fieldType = 'text'; label = 'County'; }
-              else if (/phone|tel|cell|home|work|fax/i.test(labelText)) { fieldType = 'text'; label = 'Phone'; }
-              else if (/address/i.test(labelText)) { fieldType = 'text'; label = 'Address'; }
-              else if (/company|org|employer/i.test(labelText)) { fieldType = 'text'; label = 'Company'; }
-              else if (/driver|license/i.test(labelText)) { fieldType = 'text'; label = "Driver's License"; }
-
-              // Estimate X position from the match position in the text
-              const matchItem = line.items.find(it => it.str.includes(labelText.substring(0, Math.min(5, labelText.length))));
-              const fieldX = matchItem ? matchItem._x + matchItem.str.length * matchItem._fontSize * 0.5 + 10 : x + match.index * 5;
+            if (fieldType) {
+              const lastItem = line.items[line.items.length - 1];
+              const fieldX = lastItem._x + (lastItem.str.length * lastItem._fontSize * 0.5) + 10;
 
               addField({
                 fieldType, pageNumber: i,
                 x: Math.min(fieldX, pageWidth - 160), y: y,
-                width: fieldType === 'signature' ? 200 : 140,
+                width: fieldType === 'signature' ? 200 : 160,
                 height: fieldType === 'signature' ? 50 : 25,
                 label, aiDetected: true,
               });
-              addedFromColon = true;
             }
-            if (addedFromColon) continue;
+            continue;
           }
 
           // ===== 3. SIGNATURE BLOCK labels — standalone label words below a line =====
@@ -7196,6 +7133,40 @@
             renderSigningSidebar();
             showToast('Field unlocked for editing', 'info');
           }
+        };
+
+        // Right-click context menu: Duplicate, Delete
+        div.oncontextmenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Remove any existing context menu
+          const oldMenu = document.getElementById('field-context-menu');
+          if (oldMenu) oldMenu.remove();
+
+          const menu = document.createElement('div');
+          menu.id = 'field-context-menu';
+          menu.style.cssText = 'position:fixed;left:' + e.clientX + 'px;top:' + e.clientY + 'px;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:4px;z-index:9999;min-width:160px;animation:fadeIn 0.1s ease-out;';
+
+          const items = [
+            { label: 'Duplicate', icon: '📋', action: () => duplicateField(idx) },
+            { label: 'Duplicate as ✓', icon: '☑️', action: () => duplicateFieldAs(idx, 'checkmark') },
+            { label: 'Duplicate as ✕', icon: '☒', action: () => duplicateFieldAs(idx, 'xmark') },
+            { label: 'Delete', icon: '🗑️', action: () => { signingState.fields.splice(idx, 1); if (signingState.currentFieldIndex >= signingState.fields.length) signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1); renderFieldOverlays(signingCurrentPage); renderSigningSidebar(); } },
+          ];
+          items.forEach(item => {
+            const btn = document.createElement('button');
+            btn.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1f2937;text-align:left;transition:background 0.12s;';
+            btn.innerHTML = '<span style="font-size:16px;width:22px;text-align:center;">' + item.icon + '</span>' + item.label;
+            btn.onmouseenter = () => { btn.style.background = '#f3f0ff'; };
+            btn.onmouseleave = () => { btn.style.background = 'transparent'; };
+            btn.onclick = (ev) => { ev.stopPropagation(); menu.remove(); item.action(); };
+            menu.appendChild(btn);
+          });
+
+          document.body.appendChild(menu);
+          // Close on click outside
+          const closeMenu = (ev) => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', closeMenu); } };
+          setTimeout(() => document.addEventListener('mousedown', closeMenu), 0);
         };
 
         // Click to select this field and start drag
@@ -7352,6 +7323,139 @@
       renderFieldOverlays(signingCurrentPage);
       renderSigningSidebar();
       showToast('Field deleted', 'info');
+    }
+
+    function duplicateField(idx) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      addNewSigningField(field.fieldType, field.label, field.x + 20, field.y + 20, field.width, field.height);
+    }
+
+    function duplicateFieldAs(idx, newType) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      const label = newType === 'checkmark' ? 'Checkmark ✓' : 'X Mark ✕';
+      addNewSigningField(newType, label, field.x + 20, field.y + 20, 22, 22);
+    }
+
+    // ===== MARQUEE SELECTION FOR BULK DELETE =====
+    function initMarqueeSelection() {
+      const wrap = document.getElementById('signing-canvas-wrap');
+      if (!wrap) return;
+
+      let marqueeDiv = null;
+      let startX = 0, startY = 0;
+      let isMarquee = false;
+
+      wrap.addEventListener('mousedown', function(e) {
+        // Only start marquee on direct click on the wrap background or canvas (not on fields)
+        if (e.target.closest('.field-overlay') || e.target.closest('#signing-add-field-float') || e.target.closest('.signing-zoom-controls')) return;
+        if (e.button !== 0) return; // Left click only
+        if (signingState.step < 2 || signingState.step > 3) return;
+
+        const container = document.getElementById('signing-pdf-canvas-container');
+        if (!container) return;
+        const containerRect = container.getBoundingClientRect();
+
+        startX = e.clientX;
+        startY = e.clientY;
+        isMarquee = false;
+
+        function onMove(ev) {
+          const dx = Math.abs(ev.clientX - startX);
+          const dy = Math.abs(ev.clientY - startY);
+          if (!isMarquee && (dx > 8 || dy > 8)) {
+            isMarquee = true;
+            marqueeDiv = document.createElement('div');
+            marqueeDiv.id = 'signing-marquee';
+            marqueeDiv.style.cssText = 'position:fixed;border:2px dashed #6366f1;background:rgba(99,102,241,0.08);border-radius:3px;z-index:100;pointer-events:none;';
+            document.body.appendChild(marqueeDiv);
+          }
+          if (isMarquee && marqueeDiv) {
+            const left = Math.min(startX, ev.clientX);
+            const top = Math.min(startY, ev.clientY);
+            const w = Math.abs(ev.clientX - startX);
+            const h = Math.abs(ev.clientY - startY);
+            marqueeDiv.style.left = left + 'px';
+            marqueeDiv.style.top = top + 'px';
+            marqueeDiv.style.width = w + 'px';
+            marqueeDiv.style.height = h + 'px';
+
+            // Highlight fields inside marquee
+            const scale = signingState.pageScale * (signingState.zoomLevel || 1);
+            document.querySelectorAll('.field-overlay').forEach(el => {
+              const r = el.getBoundingClientRect();
+              const overlap = !(r.right < left || r.left > left + w || r.bottom < top || r.top > top + h);
+              el.style.outline = overlap ? '3px solid #ef4444' : '';
+            });
+          }
+        }
+
+        function onUp(ev) {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          if (isMarquee && marqueeDiv) {
+            const left = Math.min(startX, ev.clientX);
+            const top = Math.min(startY, ev.clientY);
+            const w = Math.abs(ev.clientX - startX);
+            const h = Math.abs(ev.clientY - startY);
+
+            // Find fields inside the marquee
+            const selectedIndices = [];
+            const scale = signingState.pageScale * (signingState.zoomLevel || 1);
+            document.querySelectorAll('.field-overlay').forEach(el => {
+              const r = el.getBoundingClientRect();
+              const overlap = !(r.right < left || r.left > left + w || r.bottom < top || r.top > top + h);
+              if (overlap) {
+                const idx = parseInt(el.dataset.fieldIdx);
+                if (!isNaN(idx)) selectedIndices.push(idx);
+              }
+              el.style.outline = '';
+            });
+
+            marqueeDiv.remove();
+            marqueeDiv = null;
+            isMarquee = false;
+
+            if (selectedIndices.length > 0) {
+              showBulkDeletePrompt(selectedIndices);
+            }
+          }
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    function showBulkDeletePrompt(indices) {
+      // Remove any existing prompt
+      const old = document.getElementById('signing-bulk-delete');
+      if (old) old.remove();
+
+      const prompt = document.createElement('div');
+      prompt.id = 'signing-bulk-delete';
+      prompt.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;box-shadow:0 12px 48px rgba(0,0,0,0.25);padding:24px;z-index:9999;text-align:center;min-width:280px;animation:fadeIn 0.15s ease-out;';
+      prompt.innerHTML = '<div style="font-size:15px;font-weight:600;color:#1f2937;margin-bottom:6px;">Delete ' + indices.length + ' selected field' + (indices.length > 1 ? 's' : '') + '?</div>' +
+        '<div style="font-size:13px;color:#6b7280;margin-bottom:16px;">This cannot be undone.</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center;">' +
+        '<button id="bulk-delete-cancel" style="padding:8px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;">Cancel</button>' +
+        '<button id="bulk-delete-confirm" style="padding:8px 20px;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Delete All</button>' +
+        '</div>';
+      document.body.appendChild(prompt);
+
+      document.getElementById('bulk-delete-cancel').onclick = () => prompt.remove();
+      document.getElementById('bulk-delete-confirm').onclick = () => {
+        // Delete from highest index to lowest to avoid shifting issues
+        indices.sort((a, b) => b - a).forEach(idx => {
+          signingState.fields.splice(idx, 1);
+        });
+        signingState.currentFieldIndex = Math.min(signingState.currentFieldIndex, Math.max(0, signingState.fields.length - 1));
+        renderFieldOverlays(signingCurrentPage);
+        renderSigningSidebar();
+        showToast(indices.length + ' field' + (indices.length > 1 ? 's' : '') + ' deleted', 'success');
+        prompt.remove();
+      };
     }
 
     function confirmSigningField(idx) {
