@@ -7002,64 +7002,113 @@
           if (/\b(acknowledge|agree|hereby|whereas|pursuant|therefore|notwithstanding)\b/i.test(lowerText)) continue;
 
           // ===== 1. UNDERSCORE LINES — the strongest signal for fill-in fields =====
-          const underscoreMatch = text.match(/_{3,}/);
-          if (underscoreMatch) {
-            let fieldType = 'text';
-            let label = 'Text';
+          // Handle MULTIPLE fields per line (e.g. "City:____ State:____ Zip:____")
+          const underscoreSegments = text.split(/(_{3,})/);
+          if (underscoreSegments.length > 1) {
+            let curX = x;
+            for (let seg = 0; seg < underscoreSegments.length; seg++) {
+              const part = underscoreSegments[seg];
+              if (/^_{3,}$/.test(part)) {
+                // This is an underscore run — the label is the text segment before it
+                const labelPart = (seg > 0 ? underscoreSegments[seg - 1] : '').trim().toLowerCase();
+                let fieldType = 'text';
+                let label = 'Text';
+                if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
+                else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
+                else if (/date\s*(of\s*birth)?|d\.?o\.?b/i.test(labelPart)) { fieldType = 'date'; label = labelPart.match(/birth|d\.?o\.?b/i) ? 'Date of Birth' : 'Date'; }
+                else if (/expir/i.test(labelPart)) { fieldType = 'date'; label = 'Expiration Date'; }
+                else if (/name|print/i.test(labelPart)) { fieldType = 'name'; label = 'Name'; }
+                else if (/title|position/i.test(labelPart)) { fieldType = 'text'; label = 'Title'; }
+                else if (/email|e-?mail/i.test(labelPart)) { fieldType = 'text'; label = 'Email'; }
+                else if (/mailing\s*address|address/i.test(labelPart)) { fieldType = 'text'; label = 'Address'; }
+                else if (/city/i.test(labelPart)) { fieldType = 'text'; label = 'City'; }
+                else if (/state/i.test(labelPart)) { fieldType = 'text'; label = 'State'; }
+                else if (/zip|postal/i.test(labelPart)) { fieldType = 'text'; label = 'Zip'; }
+                else if (/county/i.test(labelPart)) { fieldType = 'text'; label = 'County'; }
+                else if (/country/i.test(labelPart)) { fieldType = 'text'; label = 'Country'; }
+                else if (/phone|tel|cell|home|work|fax|mobile/i.test(labelPart)) { fieldType = 'text'; label = labelPart.match(/cell/i) ? 'Cell' : labelPart.match(/home/i) ? 'Home Phone' : labelPart.match(/work/i) ? 'Work Phone' : 'Phone'; }
+                else if (/company|org|employer/i.test(labelPart)) { fieldType = 'text'; label = 'Company'; }
+                else if (/driver|license|dl/i.test(labelPart)) { fieldType = 'text'; label = "Driver's License"; }
+                else if (/ssn|social\s*security/i.test(labelPart)) { fieldType = 'text'; label = 'SSN'; }
+                else {
+                  // Use the label text itself if short enough
+                  const cleanLabel = labelPart.replace(/[^a-z\s]/gi, '').trim();
+                  if (cleanLabel.length > 0 && cleanLabel.length < 30) {
+                    label = cleanLabel.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                  }
+                }
 
-            // Check the label text BEFORE the underscores to determine field type
-            const labelPart = text.split(/_{3,}/)[0].trim().toLowerCase();
-            if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
-            else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
-            else if (/date/i.test(labelPart)) { fieldType = 'date'; label = 'Date'; }
-            else if (/name|print/i.test(labelPart)) { fieldType = 'name'; label = 'Name'; }
-            else if (/title|position/i.test(labelPart)) { fieldType = 'text'; label = 'Title'; }
-            else if (/email|e-mail/i.test(labelPart)) { fieldType = 'text'; label = 'Email'; }
-            else if (/address/i.test(labelPart)) { fieldType = 'text'; label = 'Address'; }
-            else if (/phone|tel/i.test(labelPart)) { fieldType = 'text'; label = 'Phone'; }
-            else if (/company|org/i.test(labelPart)) { fieldType = 'text'; label = 'Company'; }
+                // Find the matching underscore item to get precise X position
+                const underscoreItem = line.items.find(it => /_{3,}/.test(it.str) && it._x >= curX - 5);
+                const fieldX = underscoreItem ? underscoreItem._x : curX;
+                const fieldWidth = fieldType === 'signature' ? 200 : Math.min(250, Math.max(100, part.length * 6));
+                const fieldHeight = fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25);
 
-            const underscoreItem = line.items.find(it => /_{3,}/.test(it.str));
-            const fieldX = underscoreItem ? underscoreItem._x : x + 100;
-            const fieldWidth = fieldType === 'signature' ? 200 : Math.min(250, Math.max(120, underscoreMatch[0].length * 6));
-            const fieldHeight = fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25);
-
-            addField({
-              fieldType, pageNumber: i,
-              x: fieldX, y: y + 5,
-              width: fieldWidth, height: fieldHeight,
-              label, aiDetected: true,
-            });
+                addField({
+                  fieldType, pageNumber: i,
+                  x: fieldX, y: y + 5,
+                  width: fieldWidth, height: fieldHeight,
+                  label, aiDetected: true,
+                });
+                curX = fieldX + fieldWidth;
+              } else {
+                // Text segment — advance curX by estimated width
+                curX += part.length * 5;
+              }
+            }
             continue;
           }
 
-          // ===== 2. "Label:" pattern — only if followed by empty space on the same line =====
-          // e.g., "Signature:" with nothing after the colon, or "Date:" followed by blank
-          const colonMatch = lowerText.match(/^(.*?):\s*$/);
-          if (colonMatch && colonMatch[1].trim().length < 25) {
-            const labelText = colonMatch[1].trim();
-            // Skip section headers, block labels, and boilerplate phrases
-            if (/\b(section|article|note|warning|important|subject|re|cc|from|to|authorized|accepted|agreed|approved|witnessed|acknowledged|certified|attested|countersigned)\b/i.test(labelText)) continue;
+          // ===== 2. "Label:" pattern — colon-terminated labels indicating fill-in fields =====
+          // Match labels ending with colon (end of line) OR multiple "Label:" patterns on one line
+          const colonPattern = /\b([A-Za-z][A-Za-z\s\.]{1,24}):\s*/g;
+          let colonMatches = [];
+          let cm;
+          while ((cm = colonPattern.exec(text)) !== null) {
+            colonMatches.push({ label: cm[1].trim(), index: cm.index, fullMatch: cm[0] });
+          }
+          if (colonMatches.length > 0 && !underscoreSegments.some(s => /^_{3,}$/.test(s))) {
+            // Only use colon detection if line has NO underscores (those are handled above)
+            let addedFromColon = false;
+            for (const match of colonMatches) {
+              const labelText = match.label;
+              // Skip section headers, block labels, and boilerplate phrases
+              if (/\b(section|article|note|warning|important|subject|re|cc|from|to|authorized|accepted|agreed|approved|witnessed|acknowledged|certified|attested|countersigned|part|if you|have you|please|instructions?)\b/i.test(labelText)) continue;
+              // Skip very short or generic words
+              if (labelText.length < 2) continue;
 
-            let fieldType = 'text';
-            let label = labelText.charAt(0).toUpperCase() + labelText.slice(1);
+              let fieldType = 'text';
+              let label = labelText.charAt(0).toUpperCase() + labelText.slice(1);
 
-            if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
-            else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
-            else if (/date/i.test(labelText)) { fieldType = 'date'; label = 'Date'; }
-            else if (/^(printed?\s*)?name$|full\s*name|legal\s*name/i.test(labelText)) { fieldType = 'name'; label = 'Name'; }
+              if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
+              else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
+              else if (/date\s*(of\s*birth)?|d\.?o\.?b/i.test(labelText)) { fieldType = 'date'; label = labelText.match(/birth|d\.?o\.?b/i) ? 'Date of Birth' : 'Date'; }
+              else if (/expir/i.test(labelText)) { fieldType = 'date'; label = 'Expiration Date'; }
+              else if (/^(printed?\s*)?name$|full\s*name|legal\s*name/i.test(labelText)) { fieldType = 'name'; label = 'Name'; }
+              else if (/email|e-?mail/i.test(labelText)) { fieldType = 'text'; label = 'Email'; }
+              else if (/city/i.test(labelText)) { fieldType = 'text'; label = 'City'; }
+              else if (/state/i.test(labelText)) { fieldType = 'text'; label = 'State'; }
+              else if (/zip|postal/i.test(labelText)) { fieldType = 'text'; label = 'Zip'; }
+              else if (/county/i.test(labelText)) { fieldType = 'text'; label = 'County'; }
+              else if (/phone|tel|cell|home|work|fax/i.test(labelText)) { fieldType = 'text'; label = 'Phone'; }
+              else if (/address/i.test(labelText)) { fieldType = 'text'; label = 'Address'; }
+              else if (/company|org|employer/i.test(labelText)) { fieldType = 'text'; label = 'Company'; }
+              else if (/driver|license/i.test(labelText)) { fieldType = 'text'; label = "Driver's License"; }
 
-            const lastItem = line.items[line.items.length - 1];
-            const fieldX = lastItem._x + (lastItem.str.length * lastItem._fontSize * 0.5) + 10;
+              // Estimate X position from the match position in the text
+              const matchItem = line.items.find(it => it.str.includes(labelText.substring(0, Math.min(5, labelText.length))));
+              const fieldX = matchItem ? matchItem._x + matchItem.str.length * matchItem._fontSize * 0.5 + 10 : x + match.index * 5;
 
-            addField({
-              fieldType, pageNumber: i,
-              x: Math.min(fieldX, pageWidth - 160), y: y,
-              width: fieldType === 'signature' ? 200 : 160,
-              height: fieldType === 'signature' ? 50 : 25,
-              label, aiDetected: true,
-            });
-            continue;
+              addField({
+                fieldType, pageNumber: i,
+                x: Math.min(fieldX, pageWidth - 160), y: y,
+                width: fieldType === 'signature' ? 200 : 140,
+                height: fieldType === 'signature' ? 50 : 25,
+                label, aiDetected: true,
+              });
+              addedFromColon = true;
+            }
+            if (addedFromColon) continue;
           }
 
           // ===== 3. SIGNATURE BLOCK labels — standalone label words below a line =====
@@ -7166,7 +7215,11 @@
         };
 
         if (field.filled) {
-          if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
+          if (field.fieldType === 'checkmark') {
+            div.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:' + Math.min(field.width, field.height) * scale * 0.8 + 'px;color:#16a34a;font-weight:bold;line-height:1;">✓</div>';
+          } else if (field.fieldType === 'xmark') {
+            div.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:' + Math.min(field.width, field.height) * scale * 0.8 + 'px;color:#dc2626;font-weight:bold;line-height:1;">✕</div>';
+          } else if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
             div.innerHTML = '<img src="' + signingState.signatureDataUrl + '" alt="Signature">';
           } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
             div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" alt="Initials">';
@@ -7200,7 +7253,7 @@
             }
           }
         } else {
-          const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
+          const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝', checkmark: '☑️', xmark: '☒' };
           div.innerHTML = '<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">' + (icons[field.fieldType] || '📝') + ' ' + field.label + '</div>';
         }
 
@@ -7323,12 +7376,17 @@
       if (!field) return;
       field.textValue = value;
       field.filled = true;
-      signingState.fields.forEach(function(f, i) {
-        if (i !== idx && f.fieldType === field.fieldType && f.fieldType !== 'signature' && f.fieldType !== 'initials') {
-          f.textValue = value;
-          f.filled = true;
-        }
-      });
+      // Only sync values for name fields (your name is the same everywhere).
+      // Text, date, and other fields are independent — each has its own unique value.
+      const syncTypes = ['name'];
+      if (syncTypes.includes(field.fieldType)) {
+        signingState.fields.forEach(function(f, i) {
+          if (i !== idx && f.fieldType === field.fieldType) {
+            f.textValue = value;
+            f.filled = true;
+          }
+        });
+      }
     }
 
     function renderAddFieldButton(container) {
@@ -7362,6 +7420,8 @@
           { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
           { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
           { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
+          { type: 'checkmark', label: 'Checkmark ✓', icon: '☑️', w: 22, h: 22 },
+          { type: 'xmark', label: 'X Mark ✕', icon: '☒', w: 22, h: 22 },
         ];
         types.forEach(function(t) {
           var btn = document.createElement('button');
@@ -7407,6 +7467,11 @@
       let prefillValue = '';
       if (fieldType === 'name') prefillValue = signingState.signerName || '';
       else if (fieldType === 'date') prefillValue = new Date().toLocaleDateString();
+      else if (fieldType === 'checkmark') prefillValue = '✓';
+      else if (fieldType === 'xmark') prefillValue = '✕';
+
+      // Checkmark/xmark are auto-confirmed since they need no editing
+      const autoConfirm = (fieldType === 'checkmark' || fieldType === 'xmark');
 
       const newField = {
         id: 'field-' + signingState.fields.length,
@@ -7418,7 +7483,7 @@
         height: height,
         label: label,
         filled: true,
-        confirmed: false,
+        confirmed: autoConfirm,
         aiDetected: false,
         textValue: prefillValue
       };
@@ -7895,7 +7960,7 @@
           } else if (field.fieldType === 'date') {
             const { rgb } = PDFLib;
             const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(new Date().toLocaleDateString(), {
+            page.drawText(field.textValue || new Date().toLocaleDateString(), {
               x: pdfX + 2,
               y: pdfY + (pdfH - fontSize) / 2,
               size: fontSize,
@@ -7904,7 +7969,7 @@
           } else if (field.fieldType === 'name') {
             const { rgb } = PDFLib;
             const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(signingState.signerName, {
+            page.drawText(field.textValue || signingState.signerName, {
               x: pdfX + 2,
               y: pdfY + (pdfH - fontSize) / 2,
               size: fontSize,
@@ -7918,6 +7983,24 @@
               y: pdfY + (pdfH - fontSize) / 2,
               size: fontSize,
               color: rgb(0, 0, 0),
+            });
+          } else if (field.fieldType === 'checkmark') {
+            const { rgb } = PDFLib;
+            const fontSize = Math.min(pdfW, pdfH) * 0.85;
+            page.drawText('✓', {
+              x: pdfX + (pdfW - fontSize * 0.6) / 2,
+              y: pdfY + (pdfH - fontSize) / 2,
+              size: fontSize,
+              color: rgb(0, 0.4, 0),
+            });
+          } else if (field.fieldType === 'xmark') {
+            const { rgb } = PDFLib;
+            const fontSize = Math.min(pdfW, pdfH) * 0.85;
+            page.drawText('✕', {
+              x: pdfX + (pdfW - fontSize * 0.6) / 2,
+              y: pdfY + (pdfH - fontSize) / 2,
+              size: fontSize,
+              color: rgb(0.7, 0, 0),
             });
           }
         }
