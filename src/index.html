@@ -1821,6 +1821,118 @@
       cursor: nwse-resize;
       z-index: 30;
     }
+    /* Confirmed field state */
+    .field-overlay.filled.field-confirmed {
+      border: 1px solid transparent !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      cursor: grab;
+    }
+    .field-overlay.filled.field-confirmed:hover {
+      border: 1px dashed #c4c4c4 !important;
+      background: rgba(0,0,0,0.02) !important;
+    }
+    .field-overlay.filled.field-confirmed .field-confirm-btn,
+    .field-overlay.filled.field-confirmed .field-delete-btn {
+      display: none !important;
+    }
+    .field-overlay.filled.field-confirmed:hover .field-confirm-btn,
+    .field-overlay.filled.field-confirmed:hover .field-delete-btn,
+    .field-overlay.filled.field-confirmed.active-field .field-confirm-btn,
+    .field-overlay.filled.field-confirmed.active-field .field-delete-btn {
+      display: flex !important;
+      opacity: 0.7;
+    }
+    .field-overlay.filled.active-field,
+    .field-overlay.field-confirmed.active-field {
+      border: 2px solid #6366f1;
+      background: rgba(99, 102, 241, 0.08);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+      cursor: move;
+    }
+    /* Confirm button */
+    .field-overlay .field-confirm-btn {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      width: 22px;
+      height: 22px;
+      background: #22c55e;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 35;
+      font-size: 12px;
+      color: #fff;
+      line-height: 1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .field-overlay .field-confirm-btn.confirmed {
+      background: #16a34a;
+      opacity: 1;
+    }
+    .field-overlay:hover .field-confirm-btn,
+    .field-overlay.active-field .field-confirm-btn { opacity: 1; }
+    /* Delete button */
+    .field-overlay .field-delete-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 22px;
+      height: 22px;
+      background: #ef4444;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 35;
+      font-size: 11px;
+      color: #fff;
+      line-height: 1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .field-overlay:hover .field-delete-btn,
+    .field-overlay.active-field .field-delete-btn { opacity: 1; }
+    /* Add-field picker */
+    .add-field-picker {
+      position: absolute;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 6px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 150px;
+    }
+    .add-field-picker-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.12s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .add-field-picker-item:hover { background: rgba(99,102,241,0.08); }
+    .add-field-picker-item span { font-size: 16px; }
     .signing-page-nav {
       display: flex;
       align-items: center;
@@ -6887,7 +6999,7 @@
         );
       }
 
-      signingState.fields = fields.map((f, idx) => ({ ...f, id: 'field-' + idx, filled: false }));
+      signingState.fields = fields.map((f, idx) => ({ ...f, id: 'field-' + idx, filled: false, confirmed: false }));
     }
 
     // ===== PAGE NAVIGATION =====
@@ -6928,39 +7040,96 @@
 
         const div = document.createElement('div');
         const isActive = idx === signingState.currentFieldIndex;
-        div.className = 'field-overlay' + (field.filled ? ' filled' : '') + (isActive ? ' active-field' : '');
+        div.className = 'field-overlay' + (field.filled ? ' filled' : '') + (field.confirmed ? ' field-confirmed' : '') + (isActive ? ' active-field' : '');
         div.style.left = (field.x * scale) + 'px';
         div.style.top = (field.y * scale) + 'px';
         div.style.width = (field.width * scale) + 'px';
         div.style.height = (field.height * scale) + 'px';
         div.dataset.fieldIdx = idx;
 
-        // Click to select this field
+        // Double-click to re-edit a confirmed field
+        div.ondblclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (field.confirmed) {
+            field.confirmed = false;
+            signingState.currentFieldIndex = idx;
+            renderFieldOverlays(pageNum);
+            renderSigningSidebar();
+            showToast('Field unlocked for editing', 'info');
+          }
+        };
+
+        // Click to select this field and start drag
         div.onmousedown = (e) => {
           if (e.target.classList.contains('resize-handle')) return;
+          if (e.target.classList.contains('field-delete-btn')) return;
+          if (e.target.classList.contains('field-confirm-btn')) return;
+          if (e.target.classList.contains('field-inline-edit')) return;
           e.preventDefault();
+          const wasActive = signingState.currentFieldIndex === idx;
           signingState.currentFieldIndex = idx;
           startFieldDrag(e, idx);
-          renderFieldOverlays(pageNum);
-          renderSigningSidebar();
+          if (!wasActive) {
+            renderFieldOverlays(pageNum);
+            renderSigningSidebar();
+          }
         };
 
         if (field.filled) {
           if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
-            div.innerHTML = `<img src="${signingState.signatureDataUrl}" alt="Signature">`;
+            div.innerHTML = '<img src="' + signingState.signatureDataUrl + '" alt="Signature">';
           } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
-            div.innerHTML = `<img src="${signingState.initialsDataUrl}" alt="Initials">`;
-          } else if (field.fieldType === 'date') {
-            div.innerHTML = `<div class="field-text">${new Date().toLocaleDateString()}</div>`;
-          } else if (field.fieldType === 'name') {
-            div.innerHTML = `<div class="field-text">${signingState.signerName || 'Name'}</div>`;
-          } else if (field.fieldType === 'text') {
-            div.innerHTML = `<div class="field-text" style="color:#999;font-style:italic;font-size:10px;">${field.label}</div>`;
+            div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" alt="Initials">';
+          } else if (field.fieldType === 'date' || field.fieldType === 'name' || field.fieldType === 'text') {
+            var defVal = '';
+            if (field.fieldType === 'date') defVal = field.textValue || new Date().toLocaleDateString();
+            else if (field.fieldType === 'name') defVal = field.textValue || signingState.signerName || '';
+            else defVal = field.textValue || '';
+
+            if (field.confirmed) {
+              var span = document.createElement('span');
+              span.className = 'field-inline-edit';
+              span.textContent = defVal || field.label;
+              span.style.cssText = 'width:calc(100% - 8px);height:100%;display:flex;align-items:center;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;pointer-events:none;cursor:grab;color:#333;';
+              div.appendChild(span);
+            } else {
+              var inp = document.createElement('input');
+              inp.type = 'text';
+              inp.className = 'field-inline-edit';
+              inp.value = defVal;
+              inp.placeholder = field.label;
+              inp.style.cssText = 'width:calc(100% - 8px);height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;cursor:text;';
+              inp.onmousedown = function(ev) {
+                if (isActive) { ev.stopPropagation(); }
+              };
+              inp.onclick = function(ev) { ev.stopPropagation(); };
+              (function(fieldIdx) {
+                inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
+              })(idx);
+              div.appendChild(inp);
+            }
           }
         } else {
           const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
-          div.innerHTML = `<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">${icons[field.fieldType] || '📝'} ${field.label}</div>`;
+          div.innerHTML = '<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">' + (icons[field.fieldType] || '📝') + ' ' + field.label + '</div>';
         }
+
+        // Add confirm (checkmark) button
+        const confirmBtn = document.createElement('div');
+        confirmBtn.className = 'field-confirm-btn' + (field.confirmed ? ' confirmed' : '');
+        confirmBtn.innerHTML = '✓';
+        confirmBtn.title = field.confirmed ? 'Confirmed' : 'Click to confirm';
+        confirmBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); confirmSigningField(idx); };
+        div.appendChild(confirmBtn);
+
+        // Add delete button (X)
+        const delBtn = document.createElement('div');
+        delBtn.className = 'field-delete-btn';
+        delBtn.innerHTML = '✕';
+        delBtn.title = 'Delete field';
+        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteSigningField(idx); };
+        div.appendChild(delBtn);
 
         // Add resize handle for active field
         if (isActive) {
@@ -6972,6 +7141,8 @@
 
         container.appendChild(div);
       });
+      // Add the floating + button at top-right of page
+      renderAddFieldButton(container);
     }
 
     // ===== DRAG FIELDS =====
@@ -7023,6 +7194,174 @@
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     }
+
+    // ===== DELETE / CONFIRM / ADD FIELD FUNCTIONS =====
+    function deleteSigningField(idx) {
+      if (idx < 0 || idx >= signingState.fields.length) return;
+      signingState.fields.splice(idx, 1);
+      signingState.fields.forEach((f, i) => f.id = 'field-' + i);
+      if (signingState.currentFieldIndex >= signingState.fields.length) {
+        signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1);
+      }
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
+      showToast('Field deleted', 'info');
+    }
+
+    function confirmSigningField(idx) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      field.confirmed = !field.confirmed;
+      if (field.confirmed) {
+        field.filled = true;
+        const nextUnconfirmed = signingState.fields.findIndex((f, i) => i !== idx && !f.confirmed);
+        if (nextUnconfirmed >= 0) {
+          signingState.currentFieldIndex = nextUnconfirmed;
+        } else {
+          signingState.currentFieldIndex = -1;
+        }
+      }
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
+    }
+
+    function updateFieldValue(idx, value) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      field.textValue = value;
+      field.filled = true;
+      signingState.fields.forEach(function(f, i) {
+        if (i !== idx && f.fieldType === field.fieldType && f.fieldType !== 'signature' && f.fieldType !== 'initials') {
+          f.textValue = value;
+          f.filled = true;
+        }
+      });
+    }
+
+    function renderAddFieldButton(container) {
+      if (signingState.step !== 2 && signingState.step !== 3) return;
+      var oldFloat = document.getElementById('signing-add-field-float');
+      if (oldFloat) oldFloat.remove();
+      var overlayContainer = document.getElementById('signing-field-overlays');
+      if (!overlayContainer) return;
+      var floatWrap = document.createElement('div');
+      floatWrap.id = 'signing-add-field-float';
+      floatWrap.style.cssText = 'position:absolute;top:12px;right:12px;z-index:45;pointer-events:none;';
+      var addBtn = document.createElement('div');
+      addBtn.className = 'add-field-page-btn';
+      addBtn.innerHTML = '<span style="font-size:18px;line-height:1;">+</span>';
+      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:44px;height:44px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.4);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
+      addBtn.title = 'Add Field';
+      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.1)'; this.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)'; };
+      addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.4)'; };
+      addBtn.onclick = function(e) {
+        e.stopPropagation();
+        var existing = document.querySelector('.add-field-float-picker');
+        if (existing) { existing.remove(); return; }
+        var picker = document.createElement('div');
+        picker.className = 'add-field-float-picker';
+        picker.style.cssText = 'position:absolute;top:52px;right:0;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:10px;display:flex;flex-direction:column;gap:6px;z-index:55;pointer-events:auto;min-width:140px;';
+        var types = [
+          { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
+          { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
+          { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
+          { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
+          { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
+        ];
+        types.forEach(function(t) {
+          var btn = document.createElement('button');
+          btn.style.cssText = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;width:100%;text-align:left;transition:background 0.15s;';
+          btn.innerHTML = '<span style="font-size:18px;">' + t.icon + '</span>' + t.label;
+          btn.onmouseenter = function() { this.style.background = '#ede9fe'; };
+          btn.onmouseleave = function() { this.style.background = '#f8f9fa'; };
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
+            picker.remove();
+            addFieldToCenter(t.type, t.label, t.w, t.h);
+          };
+          picker.appendChild(btn);
+        });
+        floatWrap.appendChild(picker);
+      };
+      floatWrap.appendChild(addBtn);
+      overlayContainer.appendChild(floatWrap);
+    }
+
+    function addFieldToCenter(fieldType, label, width, height) {
+      const wrap = document.getElementById('signing-canvas-wrap');
+      if (!wrap) return;
+      const scale = signingState.pageScale;
+      const wrapRect = wrap.getBoundingClientRect();
+      const visibleCenterX = (wrapRect.width / 2) / scale;
+      const visibleCenterY = (wrapRect.height / 2) / scale;
+      const x = visibleCenterX - (width / 2);
+      const y = visibleCenterY - (height / 2);
+      addNewSigningField(fieldType, label, Math.max(10, x), Math.max(10, y), width, height);
+    }
+
+    function addNewSigningField(fieldType, label, x, y, width, height) {
+      if (x === undefined || y === undefined) {
+        x = x !== undefined ? x : 200;
+        y = y !== undefined ? y : 300;
+      }
+      const newField = {
+        id: 'field-' + signingState.fields.length,
+        fieldType: fieldType,
+        pageNumber: signingCurrentPage,
+        x: Math.max(10, x),
+        y: Math.max(10, y),
+        width: width,
+        height: height,
+        label: label,
+        filled: true,
+        confirmed: false,
+        aiDetected: false,
+        textValue: ''
+      };
+      signingState.fields.push(newField);
+      signingState.currentFieldIndex = signingState.fields.length - 1;
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
+      showToast(label + ' field added — drag to reposition', 'success');
+    }
+
+    // ===== KEYBOARD HANDLERS FOR SIGNING =====
+    // Arrow key navigation
+    document.addEventListener('keydown', function(e) {
+      if (!signingState || signingState.step < 2 || signingState.step > 3) return;
+      const idx = signingState.currentFieldIndex;
+      if (idx < 0 || idx >= signingState.fields.length) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      if (!arrows.includes(e.key)) return;
+      e.preventDefault();
+      const field = signingState.fields[idx];
+      const nudge = e.shiftKey ? 10 : 2;
+      if (e.key === 'ArrowUp') field.y = Math.max(0, field.y - nudge);
+      else if (e.key === 'ArrowDown') field.y += nudge;
+      else if (e.key === 'ArrowLeft') field.x = Math.max(0, field.x - nudge);
+      else if (e.key === 'ArrowRight') field.x += nudge;
+      const scale = signingState.pageScale || 1;
+      const overlayEl = document.querySelector('.field-overlay[data-field-idx="' + idx + '"]');
+      if (overlayEl) {
+        overlayEl.style.left = (field.x * scale) + 'px';
+        overlayEl.style.top = (field.y * scale) + 'px';
+      }
+    });
+
+    // Escape/Delete key handler
+    document.addEventListener('keydown', (e) => {
+      const overlay = document.getElementById('signing-overlay');
+      if (!overlay || !overlay.classList.contains('visible')) return;
+      if (signingState.step !== 2 && signingState.step !== 3) return;
+      const picker = document.querySelector('.add-field-picker');
+      if (picker && e.key === 'Escape') { picker.remove(); return; }
+      if ((e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') && signingState.fields.length > 0) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        deleteSigningField(signingState.currentFieldIndex);
+      }
+    });
 
     function scrollToField(idx) {
       signingState.currentFieldIndex = idx;
@@ -7336,6 +7675,7 @@
     // ----- STEP 4: FINALIZE + PAYMENT -----
     function renderFinalizeStep(content, actions) {
       const filledCount = signingState.fields.filter(f => f.filled).length;
+      const confirmedCount = signingState.fields.filter(f => f.confirmed).length;
 
       content.innerHTML = `
         <h3>Finalize Document</h3>
@@ -7347,28 +7687,16 @@
             <strong style="font-size:13px;color:#166534;">Ready to Finalize</strong>
           </div>
           <ul style="font-size:12px;color:#166534;margin:0;padding-left:20px;">
-            <li>${filledCount} of ${signingState.fields.length} field(s) signed</li>
+            <li>${filledCount} of ${signingState.fields.length} field(s) filled</li>
+            <li>${confirmedCount} of ${signingState.fields.length} field(s) confirmed</li>
             <li>PDF will be flattened (no edits possible)</li>
           </ul>
         </div>
 
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <input type="checkbox" id="signing-payment-toggle" onchange="togglePayment()" ${signingState.paymentEnabled ? 'checked' : ''}>
-            <label for="signing-payment-toggle" style="font-size:13px;font-weight:500;cursor:pointer;">Require payment after signing</label>
-          </div>
-
-          <div id="signing-payment-config" style="display:${signingState.paymentEnabled ? 'block' : 'none'};">
-            <div class="payment-setup">
-              <h4>💳 Payment Details</h4>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                <span style="font-size:20px;font-weight:600;">$</span>
-                <input type="number" class="payment-amount-input" id="signing-payment-amount" min="0.50" step="0.01" value="${signingState.paymentAmount || ''}" placeholder="0.00">
-              </div>
-              <div class="form-group">
-                <input type="text" id="signing-payment-desc" placeholder="Payment description (e.g., Retainer Agreement)" value="${signingState.paymentDescription || ''}" style="width:100%;padding:8px 10px;border:1px solid #86efac;border-radius:6px;font-size:13px;">
-              </div>
-            </div>
+        <div style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">💡</span>
+            <span style="font-size:12px;color:var(--text-secondary);">Tip: Double-click any confirmed field to unlock it for re-editing before finalizing.</span>
           </div>
         </div>
       `;
@@ -7376,7 +7704,7 @@
       actions.innerHTML = `
         <button class="btn btn-secondary" onclick="setSigningStep(3)">← Back</button>
         <button class="btn btn-primary" onclick="finalizeAndSign()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;padding:10px 20px;">
-          🔒 Finalize ${signingState.paymentEnabled ? '& Pay' : '& Download'}
+          🔒 Finalize & Download
         </button>
       `;
     }
@@ -7465,63 +7793,9 @@
         const blob = new Blob([signedBytes], { type: 'application/pdf' });
         const signedFilename = signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
 
-        // Check if payment is required
-        if (signingState.paymentEnabled) {
-          const amount = parseFloat(document.getElementById('signing-payment-amount')?.value || '0');
-          const desc = document.getElementById('signing-payment-desc')?.value || 'Signing payment';
-
-          if (amount < 0.50) {
-            showToast('Minimum payment is $0.50', 'error');
-            return;
-          }
-
-          try {
-            const apiBase = (typeof DPStudioAPI !== 'undefined' && DPStudioAPI.baseUrl)
-              ? DPStudioAPI.baseUrl
-              : 'https://openpdf-studio-production.up.railway.app';
-            const token = localStorage.getItem('dpstudio_access_token');
-            const amountCents = Math.round(amount * 100);
-
-            const currentOrigin = window.location.origin;
-            const resp = await fetch(apiBase + '/payments/quick-checkout', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                amount: amountCents,
-                currency: 'usd',
-                description: desc,
-                documentName: signingState.file?.name || 'Document',
-                payerEmail: signingState.signerEmail,
-                successUrl: currentOrigin + window.location.pathname + '?payment=success',
-                cancelUrl: currentOrigin + window.location.pathname + '?payment=cancelled',
-              }),
-            });
-
-            if (!resp.ok) {
-              const errText = await resp.text();
-              console.error('Payment API error:', resp.status, errText);
-              throw new Error('Payment API returned ' + resp.status);
-            }
-
-            const data = await resp.json();
-            if (data.checkoutUrl) {
-              saveAs(blob, signedFilename);
-              showToast('Document saved! Redirecting to payment...', 'success');
-              setTimeout(() => { window.open(data.checkoutUrl, '_blank'); }, 1000);
-            } else {
-              throw new Error('No checkout URL returned');
-            }
-          } catch (payErr) {
-            console.error('Payment error:', payErr);
-            showToast('Payment setup failed: ' + payErr.message + '. Document saved without payment.', 'error');
-            saveAs(blob, signedFilename);
-          }
-        } else {
-          saveAs(blob, signedFilename);
-          showToast('Document signed and saved!', 'success');
-        }
+        // Download the signed PDF
+        saveAs(blob, signedFilename);
+        showToast('Document signed and saved!', 'success');
 
         closeSigningFlow();
       } catch (err) {
