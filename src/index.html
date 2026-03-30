@@ -7062,9 +7062,9 @@
 
         // Click to select this field and start drag
         div.onmousedown = (e) => {
+          if (e.target.closest && e.target.closest('.field-confirm-btn')) return;
+          if (e.target.closest && e.target.closest('.field-delete-btn')) return;
           if (e.target.classList.contains('resize-handle')) return;
-          if (e.target.classList.contains('field-delete-btn')) return;
-          if (e.target.classList.contains('field-confirm-btn')) return;
           if (e.target.classList.contains('field-inline-edit')) return;
           e.preventDefault();
           const wasActive = signingState.currentFieldIndex === idx;
@@ -7120,6 +7120,7 @@
         confirmBtn.className = 'field-confirm-btn' + (field.confirmed ? ' confirmed' : '');
         confirmBtn.innerHTML = '✓';
         confirmBtn.title = field.confirmed ? 'Confirmed' : 'Click to confirm';
+        confirmBtn.onmousedown = (e) => { e.stopPropagation(); };
         confirmBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); confirmSigningField(idx); };
         div.appendChild(confirmBtn);
 
@@ -7128,6 +7129,7 @@
         delBtn.className = 'field-delete-btn';
         delBtn.innerHTML = '✕';
         delBtn.title = 'Delete field';
+        delBtn.onmousedown = (e) => { e.stopPropagation(); };
         delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteSigningField(idx); };
         div.appendChild(delBtn);
 
