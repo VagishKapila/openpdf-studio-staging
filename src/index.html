@@ -1367,6 +1367,42 @@
     }
 
     /* ===== SIGNING FLOW OVERLAY ===== */
+    /* Signing PDF scroll container */
+    .pdf-scroll {
+      flex: 1; overflow: auto; background: #e0e0e4; display: flex;
+      align-items: flex-start; justify-content: center; padding: 24px;
+      position: relative; min-height: 0;
+    }
+    /* When signing-pdf-scroll is shown at top level, fill available space */
+    #signing-pdf-scroll {
+      position: fixed; top: 44px; left: 0; right: 0; bottom: 40px;
+      z-index: 50;
+    }
+    #signing-pdf-nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 51;
+    }
+    /* Signing PDF canvas wrap — positions overlays correctly */
+    .pdf-canvas-wrap {
+      position: relative; display: inline-block;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15); background: #fff;
+      transform-origin: center top; transition: transform 0.1s ease;
+    }
+    .pdf-canvas-wrap canvas { display: block; }
+    /* Signing PDF navigation bar */
+    .pdf-nav {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 8px 16px; background: #fff; border-top: 1px solid #e8e8f0;
+    }
+    .pdf-nav button {
+      padding: 5px 14px; border: 1px solid #e5e7eb; border-radius: 6px;
+      background: #fff; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .pdf-nav button:disabled { opacity: 0.4; cursor: default; }
+    .pdf-nav span { font-size: 12px; color: #6b7280; font-weight: 500; }
+    #signing-field-overlays {
+      position: absolute; top: 0; left: 0;
+    }
+
     /* ===== FIELD OVERLAYS ON PDF ===== */
     .field-placed {
       position: absolute; border: 1px solid transparent; border-radius: 2px;
@@ -6268,6 +6304,7 @@
       function signingApplyZoom() {
         const wrap = document.getElementById('signing-pdf-canvas-wrap');
         if (!wrap) return;
+        wrap.style.transformOrigin = 'center top';
         wrap.style.transform = 'scale(' + signingState.zoom + ')';
         document.getElementById('signing-zoom-label').textContent = Math.round(signingState.zoom * 100) + '%';
       }
@@ -6963,10 +7000,23 @@
         const pdfScroll = document.getElementById('signing-pdf-scroll');
         const canvasWrapper = document.getElementById('canvas-wrapper');
         const welcomeScreen = document.getElementById('welcome-screen');
+        const sidebar = document.getElementById('sidebar');
+        const toolbar = document.querySelector('.toolbar');
+        const statusBar = document.querySelector('.status-bar');
 
         if (pdfScroll) pdfScroll.style.display = 'flex';
         if (canvasWrapper) canvasWrapper.style.display = 'none';
         if (welcomeScreen) welcomeScreen.style.display = 'none';
+        // Hide main editor sidebar/toolbar — signing has its own panel
+        if (sidebar) sidebar.style.display = 'none';
+        if (toolbar) toolbar.style.display = 'none';
+        if (statusBar) statusBar.style.display = 'none';
+
+        // Adjust signing scroll area to fill from top nav down
+        if (pdfScroll) {
+          pdfScroll.style.top = '44px';
+          pdfScroll.style.bottom = '0';
+        }
 
         // Show floating panel
         const panel = document.getElementById('floating-panel');
@@ -6988,10 +7038,17 @@
         const pdfScroll = document.getElementById('signing-pdf-scroll');
         const welcomeScreen = document.getElementById('welcome-screen');
         const panel = document.getElementById('floating-panel');
+        const sidebar = document.getElementById('sidebar');
+        const toolbar = document.querySelector('.toolbar');
+        const statusBar = document.querySelector('.status-bar');
 
         if (pdfScroll) pdfScroll.style.display = 'none';
         if (welcomeScreen) welcomeScreen.style.display = 'block';
         if (panel) panel.style.display = 'none';
+        // Restore main editor sidebar/toolbar/status
+        if (sidebar) sidebar.style.display = '';
+        if (toolbar) toolbar.style.display = '';
+        if (statusBar) statusBar.style.display = '';
 
         // Reset PDF display
         const uploadPrompt = document.getElementById('signing-upload-prompt');
