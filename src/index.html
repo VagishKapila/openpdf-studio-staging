@@ -1931,8 +1931,8 @@
           </div>
           <div class="feature-card" onclick="openSigningFlow()" style="cursor: pointer; transition: all 0.2s; border-color: var(--primary);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1z"/><path d="M8 11.25h8M8 12.75h8"/><path d="M13 7v10M17 9c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4v1.9h4c2.76 0 5-2.24 5-5s-2.24-5-5-5h-4v1.9z"/></svg>
-            <h4>Sign &amp; Pay</h4>
-            <p>E-sign documents with payment</p>
+            <h4>Sign Documents</h4>
+            <p>E-sign &amp; download signed PDFs</p>
           </div>
         </div>
 
@@ -6285,15 +6285,17 @@
 
       // ===== STAMP DEFINITIONS (alphabetical) =====
       const STAMPS = [
-        { id: 'address',   label: 'Address',   icon: '🏠', source: 'prof-address', w: 220, h: 22 },
-        { id: 'check',     label: '✓ Check',   icon: '☑️', source: null,           w: 18,  h: 18, value: () => '✓' },
-        { id: 'text',      label: 'Text',      icon: '📝', source: null,           w: 160, h: 40, value: () => '__EDITABLE__' },
-        { id: 'date',      label: 'Date',      icon: '📅', source: null,           w: 100, h: 22, value: () => new Date().toLocaleDateString() },
-        { id: 'email',     label: 'Email',     icon: '✉️', source: 'prof-email',   w: 160, h: 22 },
-        { id: 'initials',  label: 'Initials',  icon: '✏️', source: null,           w: 70,  h: 34 },
+        // Most-used stamps first
         { id: 'name',      label: 'Name',      icon: '👤', source: 'prof-name',    w: 160, h: 22 },
-        { id: 'phone',     label: 'Phone',     icon: '📞', source: 'prof-phone',   w: 130, h: 22 },
+        { id: 'email',     label: 'Email',     icon: '✉️', source: 'prof-email',   w: 160, h: 22 },
         { id: 'signature', label: 'Signature', icon: '✍️', source: null,           w: 180, h: 44 },
+        { id: 'initials',  label: 'Initials',  icon: '🔤', source: null,           w: 70,  h: 34 },
+        { id: 'phone',     label: 'Phone',     icon: '📞', source: 'prof-phone',   w: 130, h: 22 },
+        { id: 'date',      label: 'Date',      icon: '📅', source: null,           w: 100, h: 22, value: () => new Date().toLocaleDateString() },
+        // Additional stamps
+        { id: 'address',   label: 'Address',   icon: '🏠', source: 'prof-address', w: 220, h: 22 },
+        { id: 'text',      label: 'Text',      icon: '📝', source: null,           w: 160, h: 40, value: () => '__EDITABLE__' },
+        { id: 'check',     label: '✓ Check',   icon: '☑️', source: null,           w: 18,  h: 18, value: () => '✓' },
         { id: 'xmark',     label: '✕ Cross',   icon: '☒',  source: null,           w: 18,  h: 18, value: () => '✕' },
       ];
 
@@ -6699,6 +6701,14 @@
                 if (panel) panel.scrollTop = 0;
                 input.focus();
                 input.select();
+                // Flash highlight to draw attention
+                input.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+                input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.4)';
+                input.style.borderColor = '#6366f1';
+                setTimeout(() => {
+                  input.style.boxShadow = '';
+                  input.style.borderColor = '';
+                }, 2000);
                 signingToast('Edit ' + f.stampId + ' above, then re-place the stamp');
               }
             }
