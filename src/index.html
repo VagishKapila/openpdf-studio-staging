@@ -1415,6 +1415,7 @@
     .field-placed .field-value {
       font-size: 11px; font-weight: 500; color: #1a1a2e; white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis; width: 100%; pointer-events: none;
+      display: flex; align-items: center; height: 100%; padding: 0 4px;
     }
     .field-placed .field-delete {
       position: absolute; top: -10px; right: -10px; width: 20px; height: 20px;
@@ -6286,7 +6287,7 @@
       const STAMPS = [
         { id: 'address',   label: 'Address',   icon: '🏠', source: 'prof-address', w: 220, h: 22 },
         { id: 'check',     label: '✓ Check',   icon: '☑️', source: null,           w: 18,  h: 18, value: () => '✓' },
-        { id: 'text',      label: 'Custom',    icon: '📝', source: null,           w: 160, h: 40, value: () => '__EDITABLE__' },
+        { id: 'text',      label: 'Text',      icon: '📝', source: null,           w: 160, h: 40, value: () => '__EDITABLE__' },
         { id: 'date',      label: 'Date',      icon: '📅', source: null,           w: 100, h: 22, value: () => new Date().toLocaleDateString() },
         { id: 'email',     label: 'Email',     icon: '✉️', source: 'prof-email',   w: 160, h: 22 },
         { id: 'initials',  label: 'Initials',  icon: '✏️', source: null,           w: 70,  h: 34 },
@@ -6618,13 +6619,13 @@
               };
               ta.onblur = () => {
                 f._editing = false;
-                if (!f.value || f.value === '__EDITABLE__') f.value = 'Custom text';
+                if (!f.value || f.value === '__EDITABLE__') f.value = 'Text';
                 renderOverlays();
               };
               setTimeout(() => ta.focus(), 50);
               div.appendChild(ta);
             } else {
-              const displayVal = (!f.value || f.value === '__EDITABLE__') ? 'Custom text' : f.value;
+              const displayVal = (!f.value || f.value === '__EDITABLE__') ? 'Text' : f.value;
               div.innerHTML = '<span class="field-value">' + escHTML(displayVal) + '</span>';
             }
           } else {
