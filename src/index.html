@@ -2488,8 +2488,10 @@
       </div>
       <div class="sig-actions">
         <button onclick="clearSigPad()">Clear</button>
-        <button onclick="toggleType()">Type Instead</button>
+        <button id="sig-toggle-btn" onclick="toggleSigMode()">Type Instead</button>
+        <button onclick="uploadSigImage()" title="Upload a signature image">Upload</button>
       </div>
+      <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="handleSigUpload(event)">
     </div>
 
     <!-- STAMPS -->
@@ -6889,19 +6891,69 @@
         updateStampPreviews();
       }
 
-      function toggleType() {
-        const name = prompt('Type your signature:');
-        if (!name) return;
-        const canvas = document.getElementById('sig-canvas');
-        const rect = canvas.parentElement.getBoundingClientRect();
-        signingCtx.clearRect(0, 0, canvas.width, canvas.height);
-        signingCtx.font = "italic 28px 'Brush Script MT', 'Segoe Script', cursive";
-        signingCtx.fillStyle = '#1a1a2e';
-        const m = signingCtx.measureText(name);
-        signingCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
-        signingState.sigDataUrl = canvas.toDataURL('image/png');
-        generateInitials();
-        updateStampPreviews();
+      // Signature mode: 'draw' or 'type'
+      let sigMode = 'draw';
+
+      function toggleSigMode() {
+        const btn = document.getElementById('sig-toggle-btn');
+        if (sigMode === 'draw') {
+          // Switch to type mode
+          const name = prompt('Type your signature:');
+          if (!name) return;
+          sigMode = 'type';
+          btn.textContent = 'Draw Instead';
+          const canvas = document.getElementById('sig-canvas');
+          const rect = canvas.parentElement.getBoundingClientRect();
+          signingCtx.clearRect(0, 0, canvas.width, canvas.height);
+          signingCtx.font = "italic 28px 'Brush Script MT', 'Segoe Script', cursive";
+          signingCtx.fillStyle = '#1a1a2e';
+          const m = signingCtx.measureText(name);
+          signingCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
+          signingState.sigDataUrl = canvas.toDataURL('image/png');
+          generateInitials();
+          updateStampPreviews();
+        } else {
+          // Switch back to draw mode
+          sigMode = 'draw';
+          btn.textContent = 'Type Instead';
+          clearSigPad();
+        }
+      }
+
+      // Keep old name as alias for backward compat
+      function toggleType() { toggleSigMode(); }
+
+      function uploadSigImage() {
+        document.getElementById('sig-upload-input').click();
+      }
+
+      function handleSigUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.getElementById('sig-canvas');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            signingCtx.clearRect(0, 0, canvas.width, canvas.height);
+            // Scale image to fit within the sig pad, preserving aspect ratio
+            const scale = Math.min(rect.width / img.width, rect.height / img.height) * 0.85;
+            const w = img.width * scale;
+            const h = img.height * scale;
+            const x = (rect.width - w) / 2;
+            const y = (rect.height - h) / 2;
+            signingCtx.drawImage(img, x, y, w, h);
+            signingState.sigDataUrl = canvas.toDataURL('image/png');
+            sigMode = 'draw'; // Reset mode
+            document.getElementById('sig-toggle-btn').textContent = 'Type Instead';
+            generateInitials();
+            updateStampPreviews();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // Reset so same file can be re-uploaded
       }
 
       function generateInitials() {
