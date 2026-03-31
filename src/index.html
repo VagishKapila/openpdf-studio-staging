@@ -2374,7 +2374,7 @@
 
   <!-- ===== SMART SIGNING FLOW ===== -->
   <!-- PDF AREA (full bleed background) -->
-  <div id="pdf-scroll" class="pdf-scroll" style="display:none;">
+  <div id="signing-pdf-scroll" class="pdf-scroll" style="display:none;">
     <!-- Mode indicator pill -->
     <div class="mode-indicator" id="mode-indicator">
       <span id="mode-label">Placing: Name</span>
@@ -2382,25 +2382,36 @@
     </div>
 
     <!-- Upload prompt -->
-    <div class="upload-prompt" id="upload-prompt">
+    <div class="upload-prompt" id="signing-upload-prompt">
       <div class="upload-icon">📄</div>
       <p><strong>Open a PDF</strong> to start the smart signing flow.</p>
-      <label for="file-input">Choose PDF</label>
+      <label for="signing-file-input">Choose PDF</label>
     </div>
 
     <!-- PDF canvas -->
-    <div class="pdf-canvas-wrap" id="pdf-canvas-wrap" style="display:none">
-      <canvas id="pdf-canvas"></canvas>
-      <div id="field-overlays"></div>
+    <div class="pdf-canvas-wrap" id="signing-pdf-canvas-wrap" style="display:none">
+      <canvas id="signing-pdf-canvas"></canvas>
+      <div id="signing-field-overlays"></div>
     </div>
   </div>
 
   <!-- PDF navigation bar (when PDF loaded) -->
-  <div class="pdf-nav" id="pdf-nav" style="display:none">
-    <button onclick="prevPage()" id="btn-prev">← Prev</button>
-    <span id="page-info">Page 1 of 1</span>
-    <button onclick="nextOrFinalize()" id="btn-next">Next →</button>
+  <div class="pdf-nav" id="signing-pdf-nav" style="display:none">
+    <button onclick="signingPrevPage()" id="signing-btn-prev">← Prev</button>
+    <span id="signing-page-info">Page 1 of 1</span>
+    <button onclick="signingNextOrFinalize()" id="signing-btn-next">Next →</button>
   </div>
+
+  <!-- Signing zoom controls (floating) -->
+  <div id="signing-zoom-controls" style="display:none; position:fixed; bottom:80px; right:20px; z-index:99; background:rgba(255,255,255,0.95); border-radius:8px; padding:8px 12px; box-shadow:0 2px 8px rgba(0,0,0,0.12); gap:8px; flex-direction:column;">
+    <button onclick="signingZoomIn()" style="padding:6px 8px; border:1px solid #e5e7eb; border-radius:4px; cursor:pointer; font-size:12px;">+</button>
+    <span id="signing-zoom-label" style="text-align:center; font-size:11px; font-weight:600; min-width:30px;">100%</span>
+    <button onclick="signingZoomOut()" style="padding:6px 8px; border:1px solid #e5e7eb; border-radius:4px; cursor:pointer; font-size:12px;">-</button>
+    <button onclick="signingZoomReset()" style="padding:6px 8px; border:1px solid #e5e7eb; border-radius:4px; cursor:pointer; font-size:11px;">Reset</button>
+  </div>
+
+  <!-- Finalize button (floating, bottom-right) -->
+  <button id="signing-finalize-btn" onclick="signingFinalizePDF()" style="display:none; position:fixed; bottom:20px; right:20px; z-index:99; padding:12px 20px; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; box-shadow:0 4px 12px rgba(99,102,241,0.3);">Download Signed</button>
 
   <!-- FLOATING TRANSLUCENT PANEL -->
   <div class="floating-panel" id="floating-panel" style="display:none">
@@ -2464,11 +2475,11 @@
     </div>
   </div>
 
-  <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="loadPDF(event)">
+  <input type="file" id="signing-file-input" accept=".pdf" style="display:none" onchange="signingLoadPDF(event)">
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="signing-toast"></div>
 
   <script>
     // ===== APP STATE =====
@@ -6218,13 +6229,12 @@
     })();
 
     // ===================================================================
-    // ===================================================================
-    // SMART SIGNING FLOW
+    // ===================================================================    // SMART SIGNING FLOW
     // ===================================================================
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
       // ===== STATE =====
-      const state = {
+      const signingState = {
         pdfDoc: null,
         pdfLibDoc: null,
         pdfBytes: null,
@@ -6255,28 +6265,28 @@
       ];
 
       // ===== ZOOM (PDF-ONLY) =====
-      function applyZoom() {
-        const wrap = document.getElementById('pdf-canvas-wrap');
+      function signingApplyZoom() {
+        const wrap = document.getElementById('signing-pdf-canvas-wrap');
         if (!wrap) return;
-        wrap.style.transform = 'scale(' + state.zoom + ')';
-        document.getElementById('zoom-label').textContent = Math.round(state.zoom * 100) + '%';
+        wrap.style.transform = 'scale(' + signingState.zoom + ')';
+        document.getElementById('signing-zoom-label').textContent = Math.round(signingState.zoom * 100) + '%';
       }
-      function zoomIn() { state.zoom = Math.min(3, state.zoom + 0.15); applyZoom(); }
-      function zoomOut() { state.zoom = Math.max(0.3, state.zoom - 0.15); applyZoom(); }
-      function zoomReset() { state.zoom = 1; applyZoom(); }
+      function signingZoomIn() { signingState.zoom = Math.min(3, signingState.zoom + 0.15); signingApplyZoom(); }
+      function signingZoomOut() { signingState.zoom = Math.max(0.3, signingState.zoom - 0.15); signingApplyZoom(); }
+      function signingZoomReset() { signingState.zoom = 1; signingApplyZoom(); }
 
       // Ctrl/Cmd + scroll wheel zooms only the PDF
-      document.getElementById('pdf-scroll').addEventListener('wheel', function(e) {
+      document.getElementById('signing-pdf-scroll').addEventListener('wheel', function(e) {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          if (e.deltaY < 0) zoomIn(); else zoomOut();
+          if (e.deltaY < 0) signingZoomIn(); else signingZoomOut();
         }
       }, { passive: false });
 
       // Pinch-to-zoom on touch
       (function() {
         let lastDist = 0, isPinching = false;
-        const el = document.getElementById('pdf-scroll');
+        const el = document.getElementById('signing-pdf-scroll');
         function dist(t) {
           const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
           return Math.sqrt(dx*dx + dy*dy);
@@ -6289,9 +6299,9 @@
           e.preventDefault();
           const d = dist(e.touches);
           const delta = (d - lastDist) / 200;
-          state.zoom = Math.max(0.3, Math.min(3, state.zoom + delta));
+          signingState.zoom = Math.max(0.3, Math.min(3, signingState.zoom + delta));
           lastDist = d;
-          applyZoom();
+          signingApplyZoom();
         }, { passive: false });
         el.addEventListener('touchend', function() { isPinching = false; }, { passive: true });
       })();
@@ -6365,8 +6375,8 @@
           const el = document.getElementById(s.source);
           return el?.value || 'Not set';
         }
-        if (s.id === 'signature') return state.sigDataUrl ? 'Ready' : 'Draw first';
-        if (s.id === 'initials') return state.initialsDataUrl ? 'Ready' : 'Auto';
+        if (s.id === 'signature') return signingState.sigDataUrl ? 'Ready' : 'Draw first';
+        if (s.id === 'initials') return signingState.initialsDataUrl ? 'Ready' : 'Auto';
         if (s.id === 'date') return new Date().toLocaleDateString();
         if (s.id === 'check') return '✓';
         if (s.id === 'xmark') return '✕';
@@ -6388,16 +6398,16 @@
         const stamp = STAMPS.find(s => s.id === id);
         if (!stamp) return;
         if (stamp.source && !document.getElementById(stamp.source)?.value) {
-          toast('Fill in ' + stamp.label + ' first');
+          signingToast('Fill in ' + stamp.label + ' first');
           document.getElementById(stamp.source).focus();
           return;
         }
-        if (id === 'signature' && !state.sigDataUrl) { toast('Draw your signature first'); return; }
-        if (state.activeStamp === id) { clearMode(); return; }
+        if (id === 'signature' && !signingState.sigDataUrl) { signingToast('Draw your signature first'); return; }
+        if (signingState.activeStamp === id) { clearMode(); return; }
 
-        state.activeStamp = id;
+        signingState.activeStamp = id;
         document.querySelectorAll('.stamp-btn').forEach(b => b.classList.toggle('active', b.dataset.stampId === id));
-        const scroll = document.getElementById('pdf-scroll');
+        const scroll = document.getElementById('signing-pdf-scroll');
         scroll.className = scroll.className.replace(/\bplacing[\w-]*/g, '').trim();
         scroll.classList.add('placing', 'placing-' + id);
         document.getElementById('mode-label').textContent = 'Click on PDF to place: ' + stamp.label;
@@ -6408,9 +6418,9 @@
       }
 
       function clearMode() {
-        state.activeStamp = null;
+        signingState.activeStamp = null;
         document.querySelectorAll('.stamp-btn').forEach(b => b.classList.remove('active'));
-        const scroll = document.getElementById('pdf-scroll');
+        const scroll = document.getElementById('signing-pdf-scroll');
         scroll.className = scroll.className.replace(/\bplacing[\w-]*/g, '').trim();
         document.getElementById('mode-indicator').classList.remove('visible');
         // Highlight move tool as active
@@ -6425,18 +6435,18 @@
       // Keyboard shortcuts: Escape exits mode, Arrow keys nudge selected field
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-          if (state.activeStamp) { clearMode(); return; }
+          if (signingState.activeStamp) { clearMode(); return; }
           hideContextMenu();
           deselectAll();
           return;
         }
 
         // Arrow keys nudge the selected field
-        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && state.selectedFieldIdx >= 0) {
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && signingState.selectedFieldIdx >= 0) {
           // Don't nudge if user is typing in a textarea or input
           if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
           e.preventDefault();
-          const f = state.placedFields[state.selectedFieldIdx];
+          const f = signingState.placedFields[signingState.selectedFieldIdx];
           if (!f) return;
           const step = e.shiftKey ? 5 : 1; // Shift = bigger jumps
           if (e.key === 'ArrowUp')    f.y -= step;
@@ -6455,16 +6465,16 @@
         }
         hideContextMenu();
 
-        if (!state.activeStamp) return;
-        const wrap = document.getElementById('pdf-canvas-wrap');
+        if (!signingState.activeStamp) return;
+        const wrap = document.getElementById('signing-pdf-canvas-wrap');
         if (!wrap || !wrap.contains(e.target)) return;
         if (e.target.closest('.field-placed')) return;
 
-        const stamp = STAMPS.find(s => s.id === state.activeStamp);
+        const stamp = STAMPS.find(s => s.id === signingState.activeStamp);
         if (!stamp) return;
 
         const rect = wrap.getBoundingClientRect();
-        const effectiveScale = state.scale * state.zoom;
+        const effectiveScale = signingState.scale * signingState.zoom;
         const x = (e.clientX - rect.left) / effectiveScale;
         const y = (e.clientY - rect.top) / effectiveScale;
 
@@ -6479,17 +6489,17 @@
           id: 'f-' + Date.now() + '-' + Math.random().toString(36).substr(2,4),
           stampId: stamp.id,
           label: stamp.label,
-          page: state.currentPage,
+          page: signingState.currentPage,
           x: x - stamp.w / 2,
           y: y - stamp.h / 2,
           w: stamp.w,
           h: stamp.h,
           value: value,
         };
-        state.placedFields.push(field);
+        signingState.placedFields.push(field);
         renderOverlays();
         updatePlacedList();
-        toast(stamp.label + ' placed');
+        signingToast(stamp.label + ' placed');
       });
 
       // ===== CONTEXT MENU =====
@@ -6529,22 +6539,22 @@
       }
 
       function deselectAll() {
-        state.selectedFieldIdx = -1;
+        signingState.selectedFieldIdx = -1;
         document.querySelectorAll('.field-placed.selected').forEach(el => el.classList.remove('selected'));
       }
 
       // ===== RENDER OVERLAYS =====
       function renderOverlays() {
-        const container = document.getElementById('field-overlays');
+        const container = document.getElementById('signing-field-overlays');
         container.innerHTML = '';
-        const scale = state.scale;
+        const scale = signingState.scale;
 
-        state.placedFields.forEach((f, idx) => {
-          if (f.page !== state.currentPage) return;
+        signingState.placedFields.forEach((f, idx) => {
+          if (f.page !== signingState.currentPage) return;
 
           const div = document.createElement('div');
           div.className = 'field-placed';
-          if (idx === state.selectedFieldIdx) div.classList.add('selected');
+          if (idx === signingState.selectedFieldIdx) div.classList.add('selected');
           div.style.left = (f.x * scale) + 'px';
           div.style.top = (f.y * scale) + 'px';
           div.style.width = (f.w * scale) + 'px';
@@ -6556,10 +6566,10 @@
           } else if (f.stampId === 'xmark') {
             div.classList.add('field-check', 'xmark');
             div.innerHTML = '<span class="field-value" style="text-align:center;color:#dc2626;font-weight:700;">✕</span>';
-          } else if (f.stampId === 'signature' && state.sigDataUrl) {
-            div.innerHTML = '<img src="' + state.sigDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
-          } else if (f.stampId === 'initials' && state.initialsDataUrl) {
-            div.innerHTML = '<img src="' + state.initialsDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
+          } else if (f.stampId === 'signature' && signingState.sigDataUrl) {
+            div.innerHTML = '<img src="' + signingState.sigDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
+          } else if (f.stampId === 'initials' && signingState.initialsDataUrl) {
+            div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
           } else if (f.stampId === 'text') {
             // Multiline editable textarea
             div.classList.add('field-textarea-wrap');
@@ -6592,7 +6602,7 @@
           const del = document.createElement('button');
           del.className = 'field-delete';
           del.textContent = '✕';
-          del.onclick = (e) => { e.stopPropagation(); state.placedFields.splice(idx, 1); renderOverlays(); updatePlacedList(); };
+          del.onclick = (e) => { e.stopPropagation(); signingState.placedFields.splice(idx, 1); renderOverlays(); updatePlacedList(); };
           div.appendChild(del);
 
           // Resize handle
@@ -6603,7 +6613,7 @@
             e.preventDefault();
             const startX = e.clientX, startY = e.clientY;
             const origW = f.w, origH = f.h;
-            const effectiveScale = scale * state.zoom;
+            const effectiveScale = scale * signingState.zoom;
             const onMove = (ev) => {
               f.w = Math.max(10, origW + (ev.clientX - startX) / effectiveScale);
               f.h = Math.max(8, origH + (ev.clientY - startY) / effectiveScale);
@@ -6621,12 +6631,12 @@
             if (e.target.classList.contains('field-delete') || e.target.classList.contains('resize-handle')) return;
             if (e.target.tagName === 'TEXTAREA') return;
             e.preventDefault();
-            state.selectedFieldIdx = idx;
+            signingState.selectedFieldIdx = idx;
             deselectAll();
             div.classList.add('selected');
             const startX = e.clientX, startY = e.clientY;
             const origX = f.x, origY = f.y;
-            const effectiveScale = scale * state.zoom;
+            const effectiveScale = scale * signingState.zoom;
             const onMove = (ev) => {
               f.x = origX + (ev.clientX - startX) / effectiveScale;
               f.y = origY + (ev.clientY - startY) / effectiveScale;
@@ -6642,30 +6652,30 @@
           div.oncontextmenu = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            state.selectedFieldIdx = idx;
+            signingState.selectedFieldIdx = idx;
             deselectAll();
             div.classList.add('selected');
 
             showContextMenu(e.clientX, e.clientY, [
               { label: 'Duplicate', icon: '📋', action: () => {
                 const copy = { ...f, id: 'f-' + Date.now(), x: f.x + 15, y: f.y + 15 };
-                state.placedFields.push(copy);
+                signingState.placedFields.push(copy);
                 renderOverlays(); updatePlacedList();
-                toast('Duplicated');
+                signingToast('Duplicated');
               }},
               { label: 'Duplicate as ✓', icon: '☑️', action: () => {
                 const copy = { ...f, id: 'f-' + Date.now(), stampId: 'check', label: '✓ Check', x: f.x + 15, y: f.y + 15, w: 18, h: 18, value: '✓' };
-                state.placedFields.push(copy);
+                signingState.placedFields.push(copy);
                 renderOverlays(); updatePlacedList();
               }},
               { label: 'Duplicate as ✕', icon: '☒', action: () => {
                 const copy = { ...f, id: 'f-' + Date.now(), stampId: 'xmark', label: '✕ Cross', x: f.x + 15, y: f.y + 15, w: 18, h: 18, value: '✕' };
-                state.placedFields.push(copy);
+                signingState.placedFields.push(copy);
                 renderOverlays(); updatePlacedList();
               }},
               { sep: true },
               { label: 'Delete', icon: '🗑️', danger: true, action: () => {
-                state.placedFields.splice(idx, 1);
+                signingState.placedFields.splice(idx, 1);
                 renderOverlays(); updatePlacedList();
               }},
             ]);
@@ -6679,10 +6689,10 @@
         const section = document.getElementById('placed-section');
         const list = document.getElementById('placed-list');
         const count = document.getElementById('placed-count');
-        count.textContent = state.placedFields.length;
-        section.style.display = state.placedFields.length ? 'block' : 'none';
+        count.textContent = signingState.placedFields.length;
+        section.style.display = signingState.placedFields.length ? 'block' : 'none';
         list.innerHTML = '';
-        state.placedFields.forEach((f, idx) => {
+        signingState.placedFields.forEach((f, idx) => {
           const div = document.createElement('div');
           div.className = 'placed-item';
           const displayVal = f.stampId === 'signature' ? '(sig)' : f.stampId === 'initials' ? '(init)' : f.value;
@@ -6693,69 +6703,69 @@
           `;
           list.appendChild(div);
         });
-        document.getElementById('finalize-btn').style.display = state.placedFields.length ? '' : 'none';
+        document.getElementById('signing-finalize-btn').style.display = signingState.placedFields.length ? '' : 'none';
       }
 
       function removeField(idx) {
-        state.placedFields.splice(idx, 1);
+        signingState.placedFields.splice(idx, 1);
         renderOverlays();
         updatePlacedList();
       }
 
       // ===== PDF LOADING =====
-      async function loadPDF(e) {
+      async function signingLoadPDF(e) {
         const file = e.target.files?.[0];
         if (!file) return;
 
         // Warn if there are already placed fields (wrong document opened by mistake)
-        if (state.placedFields.length > 0) {
-          if (!confirm('You have ' + state.placedFields.length + ' placed field(s) on the current document. Opening a new PDF will remove them.\n\nContinue?')) {
+        if (signingState.placedFields.length > 0) {
+          if (!confirm('You have ' + signingState.placedFields.length + ' placed field(s) on the current document. Opening a new PDF will remove them.\n\nContinue?')) {
             e.target.value = ''; // reset file input
             return;
           }
         }
 
-        state.fileName = file.name;
+        signingState.fileName = file.name;
         const bytes = await file.arrayBuffer();
-        state.pdfBytes = new Uint8Array(bytes);
-        state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes.slice() }).promise;
-        state.pdfLibDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
-        state.totalPages = state.pdfDoc.numPages;
-        state.currentPage = 1;
-        state.placedFields = [];
-        state.zoom = 1;
+        signingState.pdfBytes = new Uint8Array(bytes);
+        signingState.pdfDoc = await pdfjsLib.getDocument({ data: signingState.pdfBytes.slice() }).promise;
+        signingState.pdfLibDoc = await PDFLib.PDFDocument.load(signingState.pdfBytes);
+        signingState.totalPages = signingState.pdfDoc.numPages;
+        signingState.currentPage = 1;
+        signingState.placedFields = [];
+        signingState.zoom = 1;
 
-        document.getElementById('upload-prompt').style.display = 'none';
-        document.getElementById('pdf-canvas-wrap').style.display = 'block';
-        document.getElementById('pdf-nav').style.display = 'flex';
-        document.getElementById('zoom-controls').style.display = 'flex';
-        document.getElementById('panel-btn').style.display = '';
+        document.getElementById('signing-upload-prompt').style.display = 'none';
+        document.getElementById('signing-pdf-canvas-wrap').style.display = 'block';
+        document.getElementById('signing-pdf-nav').style.display = 'flex';
+        document.getElementById('signing-zoom-controls').style.display = 'flex';
+        document.getElementById('signing-panel-btn').style.display = '';
 
-        await renderPage(state.currentPage);
+        await signingRenderPage(signingState.currentPage);
         updatePlacedList();
-        applyZoom();
-        toast('Loaded: ' + file.name + ' (' + state.totalPages + ' pages)');
+        signingApplyZoom();
+        signingToast('Loaded: ' + file.name + ' (' + signingState.totalPages + ' pages)');
       }
 
-      async function renderPage(num) {
-        state.currentPage = num;
-        const page = await state.pdfDoc.getPage(num);
-        const viewport = page.getViewport({ scale: state.scale });
-        const canvas = document.getElementById('pdf-canvas');
+      async function signingRenderPage(num) {
+        signingState.currentPage = num;
+        const page = await signingState.pdfDoc.getPage(num);
+        const viewport = page.getViewport({ scale: signingState.scale });
+        const canvas = document.getElementById('signing-pdf-canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        const overlays = document.getElementById('field-overlays');
+        const overlays = document.getElementById('signing-field-overlays');
         overlays.style.width = viewport.width + 'px';
         overlays.style.height = viewport.height + 'px';
 
         renderOverlays();
-        document.getElementById('page-info').textContent = `Page ${num} of ${state.totalPages}`;
+        document.getElementById('signing-page-info').textContent = `Page ${num} of ${signingState.totalPages}`;
         // Update Next button — show "Finalize" on last page
-        const nextBtn = document.getElementById('btn-next');
-        if (num >= state.totalPages) {
+        const nextBtn = document.getElementById('signing-btn-next');
+        if (num >= signingState.totalPages) {
           nextBtn.textContent = 'Finalize & Download';
           nextBtn.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
           nextBtn.style.color = '#fff';
@@ -6770,13 +6780,13 @@
         }
       }
 
-      function prevPage() { if (state.currentPage > 1) renderPage(state.currentPage - 1); }
-      function nextPage() { if (state.currentPage < state.totalPages) renderPage(state.currentPage + 1); }
-      function nextOrFinalize() {
-        if (state.currentPage >= state.totalPages) {
-          finalizePDF();
+      function signingPrevPage() { if (signingState.currentPage > 1) signingRenderPage(signingState.currentPage - 1); }
+      function signingNextPage() { if (signingState.currentPage < signingState.totalPages) signingRenderPage(signingState.currentPage + 1); }
+      function signingNextOrFinalize() {
+        if (signingState.currentPage >= signingState.totalPages) {
+          signingFinalizePDF();
         } else {
-          nextPage();
+          signingNextPage();
         }
       }
 
@@ -6810,7 +6820,7 @@
         };
         canvas.onmouseup = canvas.ontouchend = () => {
           sigDrawing = false;
-          state.sigDataUrl = canvas.toDataURL('image/png');
+          signingState.sigDataUrl = canvas.toDataURL('image/png');
           generateInitials();
           updateStampPreviews();
         };
@@ -6818,7 +6828,7 @@
         canvas.onmouseleave = () => {
           if (sigDrawing) {
             sigDrawing = false;
-            state.sigDataUrl = canvas.toDataURL('image/png');
+            signingState.sigDataUrl = canvas.toDataURL('image/png');
             generateInitials();
             updateStampPreviews();
           }
@@ -6835,8 +6845,8 @@
       function clearSigPad() {
         const canvas = document.getElementById('sig-canvas');
         sigCtx.clearRect(0, 0, canvas.width, canvas.height);
-        state.sigDataUrl = null;
-        state.initialsDataUrl = null;
+        signingState.sigDataUrl = null;
+        signingState.initialsDataUrl = null;
         updateStampPreviews();
       }
 
@@ -6850,7 +6860,7 @@
         sigCtx.fillStyle = '#1a1a2e';
         const m = sigCtx.measureText(name);
         sigCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
-        state.sigDataUrl = canvas.toDataURL('image/png');
+        signingState.sigDataUrl = canvas.toDataURL('image/png');
         generateInitials();
         updateStampPreviews();
       }
@@ -6869,22 +6879,22 @@
         ctx.fillStyle = '#1a1a2e';
         const m = ctx.measureText(initials);
         ctx.fillText(initials, (w - m.width) / 2, 48);
-        state.initialsDataUrl = c.toDataURL('image/png');
+        signingState.initialsDataUrl = c.toDataURL('image/png');
       }
 
       // ===== FINALIZE =====
-      async function finalizePDF() {
+      async function signingFinalizePDF() {
         try {
-          toast('Finalizing...');
-          const doc = state.pdfLibDoc;
+          signingToast('Finalizing...');
+          const doc = signingState.pdfLibDoc;
           const pages = doc.getPages();
 
-          for (const f of state.placedFields) {
+          for (const f of signingState.placedFields) {
             const page = pages[f.page - 1];
             if (!page) continue;
             const pH = page.getHeight();
             const pW = page.getWidth();
-            const pdfJsPage = await state.pdfDoc.getPage(f.page);
+            const pdfJsPage = await signingState.pdfDoc.getPage(f.page);
             const vp = pdfJsPage.getViewport({ scale: 1 });
             const sx = pW / vp.width;
             const sy = pH / vp.height;
@@ -6893,11 +6903,11 @@
             const ph = f.h * sy;
             const py = pH - (f.y * sy) - ph;
 
-            if ((f.stampId === 'signature') && state.sigDataUrl) {
-              const img = await doc.embedPng(await fetch(state.sigDataUrl).then(r => r.arrayBuffer()));
+            if ((f.stampId === 'signature') && signingState.sigDataUrl) {
+              const img = await doc.embedPng(await fetch(signingState.sigDataUrl).then(r => r.arrayBuffer()));
               page.drawImage(img, { x: px, y: py, width: pw, height: ph });
-            } else if ((f.stampId === 'initials') && state.initialsDataUrl) {
-              const img = await doc.embedPng(await fetch(state.initialsDataUrl).then(r => r.arrayBuffer()));
+            } else if ((f.stampId === 'initials') && signingState.initialsDataUrl) {
+              const img = await doc.embedPng(await fetch(signingState.initialsDataUrl).then(r => r.arrayBuffer()));
               page.drawImage(img, { x: px, y: py, width: pw, height: ph });
             } else if (f.stampId === 'check') {
               const { rgb } = PDFLib;
@@ -6928,19 +6938,19 @@
           const blob = new Blob([bytes], { type: 'application/pdf' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = state.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
+          a.download = signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
           a.click();
-          toast('Document saved!');
+          signingToast('Document saved!');
         } catch (err) {
           console.error(err);
-          toast('Error: ' + err.message);
+          signingToast('Error: ' + err.message);
         }
       }
 
       // ===== UTILS =====
       function escHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-      function toast(msg) {
-        const t = document.getElementById('toast');
+      function signingToast(msg) {
+        const t = document.getElementById('signing-toast');
         t.textContent = msg;
         t.classList.add('visible');
         clearTimeout(t._timer);
@@ -6950,7 +6960,7 @@
       // ===== ENTRY POINT FOR FEATURE CARD =====
       function openSigningFlow() {
         // Show the signing PDF area
-        const pdfScroll = document.getElementById('pdf-scroll');
+        const pdfScroll = document.getElementById('signing-pdf-scroll');
         const canvasWrapper = document.getElementById('canvas-wrapper');
         const welcomeScreen = document.getElementById('welcome-screen');
 
@@ -6963,19 +6973,19 @@
         if (panel) panel.style.display = 'block';
 
         // Reset state
-        state.pdfDoc = null;
-        state.pdfLibDoc = null;
-        state.pdfBytes = null;
-        state.placedFields = [];
-        state.activeStamp = null;
-        state.zoom = 1;
+        signingState.pdfDoc = null;
+        signingState.pdfLibDoc = null;
+        signingState.pdfBytes = null;
+        signingState.placedFields = [];
+        signingState.activeStamp = null;
+        signingState.zoom = 1;
 
-        toast('Open a PDF to start signing');
+        signingToast('Open a PDF to start signing');
       }
 
       function closeSigningFlow() {
         // Hide the signing PDF area and show welcome screen
-        const pdfScroll = document.getElementById('pdf-scroll');
+        const pdfScroll = document.getElementById('signing-pdf-scroll');
         const welcomeScreen = document.getElementById('welcome-screen');
         const panel = document.getElementById('floating-panel');
 
@@ -6984,22 +6994,22 @@
         if (panel) panel.style.display = 'none';
 
         // Reset PDF display
-        const uploadPrompt = document.getElementById('upload-prompt');
-        const pdfCanvasWrap = document.getElementById('pdf-canvas-wrap');
-        const pdfNav = document.getElementById('pdf-nav');
+        const uploadPrompt = document.getElementById('signing-upload-prompt');
+        const pdfCanvasWrap = document.getElementById('signing-pdf-canvas-wrap');
+        const pdfNav = document.getElementById('signing-pdf-nav');
         if (uploadPrompt) uploadPrompt.style.display = 'block';
         if (pdfCanvasWrap) pdfCanvasWrap.style.display = 'none';
         if (pdfNav) pdfNav.style.display = 'none';
 
         // Reset state
-        state.pdfDoc = null;
-        state.pdfLibDoc = null;
-        state.pdfBytes = null;
-        state.placedFields = [];
-        state.activeStamp = null;
-        state.selectedFieldIdx = -1;
+        signingState.pdfDoc = null;
+        signingState.pdfLibDoc = null;
+        signingState.pdfBytes = null;
+        signingState.placedFields = [];
+        signingState.activeStamp = null;
+        signingState.selectedFieldIdx = -1;
 
-        toast('Signing flow closed');
+        signingToast('Signing flow closed');
       }
 
       // ===== INIT =====
