@@ -2417,19 +2417,19 @@
       <div class="panel-section-title">Your Information</div>
       <div class="profile-field">
         <label>Full Name</label>
-        <input type="text" id="prof-name" placeholder="John Doe" oninput="updateStampPreviews()">
+        <input type="text" id="prof-name" name="name" autocomplete="name" placeholder="John Doe" oninput="updateStampPreviews()">
       </div>
       <div class="profile-field">
         <label>Email</label>
-        <input type="text" id="prof-email" placeholder="john@example.com" oninput="updateStampPreviews()">
+        <input type="email" id="prof-email" name="email" autocomplete="email" placeholder="john@example.com" oninput="updateStampPreviews()">
       </div>
       <div class="profile-field">
         <label>Phone</label>
-        <input type="text" id="prof-phone" placeholder="(555) 123-4567" oninput="updateStampPreviews()">
+        <input type="tel" id="prof-phone" name="phone" autocomplete="tel" placeholder="(555) 123-4567" oninput="updateStampPreviews()">
       </div>
       <div class="profile-field">
         <label>Address</label>
-        <input type="text" id="prof-address" placeholder="123 Main St, City, ST 12345" oninput="updateStampPreviews()">
+        <input type="text" id="prof-address" name="address" autocomplete="street-address" placeholder="123 Main St, City, ST 12345" oninput="updateStampPreviews()">
       </div>
     </div>
 
