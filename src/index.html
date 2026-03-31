@@ -6775,8 +6775,10 @@
         document.getElementById('signing-upload-prompt').style.display = 'none';
         document.getElementById('signing-pdf-canvas-wrap').style.display = 'block';
         document.getElementById('signing-pdf-nav').style.display = 'flex';
-        document.getElementById('signing-zoom-controls').style.display = 'flex';
-        document.getElementById('signing-panel-btn').style.display = '';
+        const zoomCtrl = document.getElementById('signing-zoom-controls');
+        if (zoomCtrl) zoomCtrl.style.display = 'flex';
+        const panelBtn = document.getElementById('signing-panel-btn');
+        if (panelBtn) panelBtn.style.display = '';
 
         await signingRenderPage(signingState.currentPage);
         updatePlacedList();
