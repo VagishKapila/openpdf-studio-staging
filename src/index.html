@@ -6877,7 +6877,7 @@
         };
         canvas.onmouseup = canvas.ontouchend = () => {
           signingDrawing = false;
-          signingState.sigDataUrl = canvas.toDataURL('image/png');
+          signingState.sigDataUrl = getCroppedSigDataUrl(canvas);
           generateInitials();
           updateStampPreviews();
         };
@@ -6885,7 +6885,7 @@
         canvas.onmouseleave = () => {
           if (signingDrawing) {
             signingDrawing = false;
-            signingState.sigDataUrl = canvas.toDataURL('image/png');
+            signingState.sigDataUrl = getCroppedSigDataUrl(canvas);
             generateInitials();
             updateStampPreviews();
           }
@@ -6897,6 +6897,36 @@
         const rect = canvas.getBoundingClientRect();
         const t = e.touches ? e.touches[0] : e;
         return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      }
+
+      // Create a tightly cropped data URL from a canvas (trims whitespace around ink)
+      function getCroppedSigDataUrl(canvas) {
+        const ctx = canvas.getContext('2d');
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let top = canvas.height, bottom = 0, left = canvas.width, right = 0;
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            const i = (y * canvas.width + x) * 4;
+            const a = data[i+3];
+            if (a < 20) continue;
+            const r = data[i], g = data[i+1], b = data[i+2];
+            if (r > 240 && g > 240 && b > 240) continue;
+            if (y < top) top = y;
+            if (y > bottom) bottom = y;
+            if (x < left) left = x;
+            if (x > right) right = x;
+          }
+        }
+        if (top >= bottom || left >= right) return canvas.toDataURL('image/png');
+        const pad = Math.max(4, Math.round(Math.max(right - left, bottom - top) * 0.05));
+        const sx = Math.max(0, left - pad);
+        const sy = Math.max(0, top - pad);
+        const sw = Math.min(canvas.width - sx, (right - left) + pad * 2);
+        const sh = Math.min(canvas.height - sy, (bottom - top) + pad * 2);
+        const cropped = document.createElement('canvas');
+        cropped.width = sw; cropped.height = sh;
+        cropped.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+        return cropped.toDataURL('image/png');
       }
 
       function clearSigPad() {
@@ -6925,7 +6955,7 @@
           signingCtx.fillStyle = '#1a1a2e';
           const m = signingCtx.measureText(name);
           signingCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
-          signingState.sigDataUrl = canvas.toDataURL('image/png');
+          signingState.sigDataUrl = getCroppedSigDataUrl(canvas);
           generateInitials();
           updateStampPreviews();
         } else {
@@ -6943,6 +6973,42 @@
         document.getElementById('sig-upload-input').click();
       }
 
+      // Auto-crop whitespace from a signature image
+      // Scans pixel data to find the bounding box of non-white/non-transparent ink
+      function autoCropSignature(img) {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, c.width, c.height).data;
+        let top = c.height, bottom = 0, left = c.width, right = 0;
+        // Threshold: pixel is "ink" if it's not near-white and not fully transparent
+        for (let y = 0; y < c.height; y++) {
+          for (let x = 0; x < c.width; x++) {
+            const i = (y * c.width + x) * 4;
+            const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+            // Skip transparent or near-white pixels
+            if (a < 20) continue;
+            if (r > 240 && g > 240 && b > 240) continue;
+            if (y < top) top = y;
+            if (y > bottom) bottom = y;
+            if (x < left) left = x;
+            if (x > right) right = x;
+          }
+        }
+        // If no ink found, return original image dimensions
+        if (top >= bottom || left >= right) {
+          return { sx: 0, sy: 0, sw: img.width, sh: img.height };
+        }
+        // Add small padding (5% of cropped size or 4px min)
+        const pad = Math.max(4, Math.round(Math.max(right - left, bottom - top) * 0.05));
+        const sx = Math.max(0, left - pad);
+        const sy = Math.max(0, top - pad);
+        const sw = Math.min(c.width - sx, (right - left) + pad * 2);
+        const sh = Math.min(c.height - sy, (bottom - top) + pad * 2);
+        return { sx, sy, sw, sh };
+      }
+
       function handleSigUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -6950,18 +7016,20 @@
         reader.onload = function(ev) {
           const img = new Image();
           img.onload = function() {
+            // Smart auto-crop: trim whitespace around the signature ink
+            const crop = autoCropSignature(img);
             const canvas = document.getElementById('sig-canvas');
             const rect = canvas.parentElement.getBoundingClientRect();
             signingCtx.clearRect(0, 0, canvas.width, canvas.height);
-            // Scale image to fit within the sig pad, preserving aspect ratio
-            const scale = Math.min(rect.width / img.width, rect.height / img.height) * 0.85;
-            const w = img.width * scale;
-            const h = img.height * scale;
+            // Scale the cropped region to fit the sig pad
+            const scale = Math.min(rect.width / crop.sw, rect.height / crop.sh) * 0.9;
+            const w = crop.sw * scale;
+            const h = crop.sh * scale;
             const x = (rect.width - w) / 2;
             const y = (rect.height - h) / 2;
-            signingCtx.drawImage(img, x, y, w, h);
-            signingState.sigDataUrl = canvas.toDataURL('image/png');
-            sigMode = 'draw'; // Reset mode
+            signingCtx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, x, y, w, h);
+            signingState.sigDataUrl = getCroppedSigDataUrl(canvas);
+            sigMode = 'draw';
             document.getElementById('sig-toggle-btn').textContent = 'Type Instead';
             generateInitials();
             updateStampPreviews();
@@ -6969,7 +7037,7 @@
           img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
-        e.target.value = ''; // Reset so same file can be re-uploaded
+        e.target.value = '';
       }
 
       function generateInitials() {
