@@ -1367,686 +1367,227 @@
     }
 
     /* ===== SIGNING FLOW OVERLAY ===== */
-    .signing-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9998;
-      backdrop-filter: blur(6px);
-      padding: 20px;
+    /* ===== FIELD OVERLAYS ON PDF ===== */
+    .field-placed {
+      position: absolute; border: 1px solid transparent; border-radius: 2px;
+      background: transparent; cursor: grab; display: flex;
+      align-items: center; padding: 0; overflow: visible;
     }
-    .signing-overlay.visible { display: flex; }
-    .signing-container {
-      background: var(--bg-secondary, #fff);
-      border-radius: 16px;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
-      width: 100%;
-      max-width: 1100px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      animation: signingSlideIn 0.3s ease-out;
+    .field-placed.field-textarea-wrap { align-items: stretch; padding: 0; }
+    .field-placed:hover { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.3); }
+    .field-placed.selected { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+    .field-placed .field-value {
+      font-size: 11px; font-weight: 500; color: #1a1a2e; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; width: 100%; pointer-events: none;
     }
-    @keyframes signingSlideIn {
-      from { opacity: 0; transform: scale(0.96) translateY(-16px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
+    .field-placed .field-delete {
+      position: absolute; top: -10px; right: -10px; width: 20px; height: 20px;
+      background: #ef4444; color: #fff; border: none; border-radius: 50%;
+      font-size: 11px; cursor: pointer; display: none; align-items: center;
+      justify-content: center; line-height: 1; z-index: 10;
     }
-    .signing-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--border, #e5e7eb);
-      flex-shrink: 0;
-      background: var(--bg-secondary, #fff);
-      gap: 16px;
+    .field-placed:hover .field-delete { display: flex; }
+    .field-placed .resize-handle {
+      position: absolute; bottom: -5px; right: -5px; width: 12px; height: 12px;
+      background: #6366f1; border: 2px solid #fff; border-radius: 3px; cursor: se-resize;
+      display: none; z-index: 10; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     }
-    .signing-header h2 {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text, #1f2937);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .signing-steps {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: 1;
-      justify-content: center;
-    }
-    .step-indicator {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: var(--bg, #f3f4f6);
-      border: 2px solid var(--border, #e5e7eb);
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-secondary, #9ca3af);
-      transition: all 0.25s ease;
-      flex-shrink: 0;
-    }
-    .step-indicator.active {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-color: #6366f1;
-      color: white;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.35);
-    }
-    .step-indicator.completed {
-      background: var(--success, #22c55e);
-      border-color: var(--success, #22c55e);
-      color: white;
-    }
-    .step-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary, #9ca3af);
-      margin-right: 8px;
-      transition: color 0.2s;
-    }
-    .step-label.active {
-      color: var(--text, #1f2937);
-    }
-    .step-label.completed {
-      color: var(--success, #22c55e);
-    }
-    .signing-body {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      padding: 0;
-      position: relative;
-      min-height: 0;
-      background: var(--bg, #f9fafb);
-    }
-    .signing-pdf-area {
-      flex: 1;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    #signing-pdf-preview {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: hidden;
-    }
-    .signing-sidebar {
-      width: 300px;
-      min-width: 300px;
-      max-width: 300px;
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid var(--border, #e5e7eb);
-      background: var(--bg-secondary, #fff);
-      overflow-y: auto;
-    }
-    .signing-sidebar-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-    }
-    .signing-actions {
-      padding: 12px 16px;
-      border-top: 1px solid var(--border, #e5e7eb);
-      flex-shrink: 0;
-    }
-    .signing-pdf-canvas-wrap {
-      flex: 1;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      overflow: auto;
-      padding: 20px;
-      background: #e8e8e8;
-      position: relative;
-      min-height: 0;
-      touch-action: pan-x pan-y;
-    }
-    .signing-pdf-canvas-wrap canvas {
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      background: white;
-      max-width: 100%;
-      height: auto;
-    }
-    /* Zoom controls — inline in page nav bar */
-    .signing-zoom-controls {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 2px 4px;
-      margin: 0 8px;
-    }
-    .signing-zoom-controls button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      color: #374151;
-      transition: background 0.15s;
-    }
-    .signing-zoom-controls button:hover {
-      background: #f3f4f6;
-    }
-    .signing-zoom-controls .zoom-level-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #6b7280;
-      min-width: 40px;
-      text-align: center;
-      cursor: pointer;
-      user-select: none;
-    }
-    .signing-zoom-controls .zoom-level-label:hover {
-      color: #6366f1;
-    }
-    .signing-step {
-      display: none;
-      animation: fadeIn 0.2s ease-out;
-    }
-    .signing-step.active { display: flex; flex-direction: column; }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .signing-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 24px;
-      border-top: 1px solid var(--border, #e5e7eb);
-      background: var(--bg-secondary, #fff);
-      flex-shrink: 0;
-    }
-    .signing-footer button {
-      padding: 10px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
-    }
-    #signing-prev {
-      background: var(--bg-tertiary);
-      color: var(--text);
-      display: none;
-    }
-    #signing-prev:hover { background: var(--border); }
-    #signing-next {
-      background: var(--primary);
-      color: white;
-      margin-left: auto;
-    }
-    #signing-next:hover { background: var(--primary-hover); }
-    #signing-next:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .field-placed:hover .resize-handle, .field-placed.selected .resize-handle { display: block; }
+    .field-check { font-size: 14px; font-weight: 700; justify-content: center; }
+    .field-check.check { color: #16a34a; }
+    .field-check.xmark { color: #dc2626; }
+
+    /* Multiline custom text */
+    .field-placed textarea.field-inline-textarea {
+      width: 100%; height: 100%; border: none; background: transparent;
+      font-size: 11px; font-weight: 500; padding: 3px 5px; outline: none;
+      font-family: inherit; color: #1a1a2e; resize: none; overflow: hidden;
+      line-height: 1.35; display: block;
     }
 
-    /* Step 1: Upload */
-    .signing-dropzone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 40px 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--bg);
+    /* ===== ACTIVE MODE INDICATOR ===== */
+    .mode-indicator {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+      padding: 8px 20px; border-radius: 24px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4); z-index: 300;
+      display: none; align-items: center; gap: 8px; cursor: pointer;
+      transition: all 0.15s;
     }
-    .signing-dropzone:hover, .signing-dropzone.dragover {
-      border-color: var(--primary);
-      background: rgba(107, 92, 231, 0.03);
+    .mode-indicator.visible { display: flex; }
+    .mode-indicator:hover { transform: translateX(-50%) scale(1.03); }
+    .mode-indicator .mode-close {
+      width: 18px; height: 18px; background: rgba(255,255,255,0.25);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; cursor: pointer;
     }
-    .signing-dropzone svg { width: 48px; height: 48px; color: var(--text-secondary); margin-bottom: 12px; }
-    .signing-dropzone p { color: var(--text-secondary); margin: 8px 0; font-size: 14px; }
-    .signing-dropzone .upload-btn {
-      display: inline-block;
-      padding: 10px 24px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 12px;
-      font-family: inherit;
-      transition: background 0.15s;
-    }
-    .signing-dropzone .upload-btn:hover { background: var(--primary-hover); }
-    .signing-file-info {
-      display: none;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-      background: var(--bg);
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-    .signing-file-info.visible { display: flex; }
-    .signing-file-icon {
-      width: 48px;
-      height: 48px;
-      background: var(--primary-light);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .signing-file-icon svg { width: 24px; height: 24px; color: var(--primary); }
-    .signing-file-details h4 { font-size: 14px; font-weight: 600; margin: 0; }
-    .signing-file-details p { font-size: 12px; color: var(--text-secondary); margin: 4px 0 0 0; }
 
-    /* Step 2: Setup & Signature Pad */
-    .signing-step-2 {
-      display: flex;
-      gap: 24px;
-      align-items: flex-start;
-    }
-    .signing-document-preview {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .signing-document-preview h4 { font-size: 14px; font-weight: 600; margin: 0; }
-    .signing-preview-canvas {
-      width: 100%;
-      height: 300px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-secondary);
-      font-size: 13px;
-    }
-    .signing-sig-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .signing-sig-section h4 { font-size: 14px; font-weight: 600; margin: 0; }
-    .signing-sig-tabs {
-      display: flex;
-      gap: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .signing-sig-tab {
-      padding: 8px 16px;
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.15s;
-      font-family: inherit;
-    }
-    .signing-sig-tab.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-    .signing-sig-canvas {
-      width: 100%;
-      height: 200px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: crosshair;
-      background: white;
-      display: block;
-    }
-    .signing-sig-input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-family: 'Brush Script MT', cursive;
-      font-size: 32px;
-      color: var(--text);
-      display: none;
-    }
-    .signing-sig-input.active { display: block; }
-    .signing-sig-canvas.hidden { display: none; }
-    .signing-sig-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .signing-sig-buttons button {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      background: white;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
-    }
-    .signing-sig-buttons button:hover { background: var(--bg-tertiary); }
-    .signing-sig-buttons button.primary {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-    .signing-sig-buttons button.primary:hover { background: var(--primary-hover); }
+    /* ===== CURSOR MODES ===== */
+    .pdf-scroll.placing { cursor: crosshair; }
+    .pdf-scroll.placing-name      { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%236366f1' /%3E%3Ctext x='14' y='18' text-anchor='middle' font-size='14' fill='white'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-email     { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%236366f1' /%3E%3Ctext x='14' y='19' text-anchor='middle' font-size='15' fill='white'%3E%40%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-phone     { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%236366f1' /%3E%3Ctext x='14' y='18' text-anchor='middle' font-size='14' fill='white'%3E%F0%9F%93%9E%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-address   { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%236366f1' /%3E%3Ctext x='14' y='18' text-anchor='middle' font-size='14' fill='white'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-date      { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%236366f1' /%3E%3Ctext x='14' y='18' text-anchor='middle' font-size='14' fill='white'%3E%F0%9F%93%85%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-signature { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%238b5cf6' /%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' fill='white'%3E%E2%9C%8D%EF%B8%8F%3C/text%3E%3C/svg%3E") 16 16, crosshair; }
+    .pdf-scroll.placing-initials  { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%238b5cf6' /%3E%3Ctext x='14' y='19' text-anchor='middle' font-size='13' font-weight='bold' font-style='italic' fill='white'%3EAB%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-check     { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%2316a34a' /%3E%3Ctext x='14' y='20' text-anchor='middle' font-size='18' font-weight='bold' fill='white'%3E%E2%9C%93%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-xmark     { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%23dc2626' /%3E%3Ctext x='14' y='20' text-anchor='middle' font-size='18' font-weight='bold' fill='white'%3E%E2%9C%95%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
+    .pdf-scroll.placing-text      { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Crect x='2' y='2' width='24' height='24' rx='6' fill='%23f59e0b' /%3E%3Ctext x='14' y='19' text-anchor='middle' font-size='14' font-weight='bold' fill='white'%3ET%3C/text%3E%3C/svg%3E") 14 14, crosshair; }
 
-    /* Step 3: Review */
-    .signing-fields-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    /* ===== FLOATING PANEL (translucent overlay) ===== */
+    .floating-panel {
+      position: fixed; top: 60px; right: 12px;
+      width: 300px; max-height: calc(100vh - 80px);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 16px; z-index: 200;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+      overflow-y: auto; overflow-x: hidden;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    .signing-field-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+    .floating-panel.collapsed {
+      transform: translateX(calc(100% + 20px));
+      opacity: 0; pointer-events: none;
     }
-    .signing-field-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
+    .panel-toggle {
+      position: fixed; top: 64px; right: 12px;
+      width: 40px; height: 40px; border-radius: 12px;
+      background: rgba(255,255,255,0.9); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: none; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 200; font-size: 18px;
     }
-    .signing-field-label-type {
-      display: inline-block;
-      padding: 2px 8px;
-      background: var(--primary-light);
-      color: var(--primary);
-      border-radius: 4px;
-      cursor: move;
-      transition: background 0.15s, border-color 0.15s;
-      user-select: none;
-      z-index: 10;
+    .panel-toggle.visible { display: flex; }
+
+    /* ===== PANEL SECTIONS ===== */
+    .panel-section {
+      padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);
     }
-    #signing-field-overlays {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
+    .panel-section:last-child { border-bottom: none; }
+    .panel-section-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #6366f1; margin-bottom: 10px;
     }
-    .field-overlay {
-      position: absolute;
-      border: 2px dashed #6366f1;
-      border-radius: 4px;
-      background: rgba(99, 102, 241, 0.08);
-      cursor: grab;
-      pointer-events: all;
-      box-sizing: border-box;
-      overflow: visible;
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);
+      cursor: grab; user-select: none;
     }
-    .field-overlay:active { cursor: grabbing; }
-    .field-overlay:hover { background: rgba(99, 102, 241, 0.15); }
-    .field-overlay.active-field {
-      border: 2px solid #6366f1;
-      background: rgba(99, 102, 241, 0.12);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
-      z-index: 20;
+    .panel-header:active { cursor: grabbing; }
+    .panel-header-title { font-size: 13px; font-weight: 700; color: #1a1a2e; display: flex; align-items: center; gap: 6px; }
+    .drag-dots {
+      display: flex; flex-direction: column; gap: 2px; opacity: 0.3;
     }
-    .field-overlay.filled {
-      border-style: solid;
-      border-color: #22c55e;
-      background: rgba(34, 197, 94, 0.05);
+    .drag-dots span {
+      display: flex; gap: 2px;
     }
-    .field-overlay.filled.active-field {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+    .drag-dots span::before, .drag-dots span::after {
+      content: ''; width: 3px; height: 3px; border-radius: 50%; background: #6b7280;
     }
-    .field-overlay img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
-    .field-overlay .field-text {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+    .panel-collapse-btn {
+      width: 24px; height: 24px; border: none; background: rgba(0,0,0,0.05);
+      border-radius: 6px; cursor: pointer; font-size: 14px; display: flex;
+      align-items: center; justify-content: center; color: #6b7280;
     }
-    .signing-option input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: var(--primary);
-    }
-    .signing-option label {
-      flex: 1;
-      font-size: 13px;
-      font-weight: 500;
-      pointer-events: none;
-    }
-    .field-overlay .resize-handle {
-      position: absolute;
-      bottom: -4px;
-      right: -4px;
-      width: 12px;
-      height: 12px;
-      background: #6366f1;
-      border-radius: 2px;
-      cursor: nwse-resize;
-      z-index: 30;
-    }
-    /* Confirmed field state */
-    .field-overlay.filled.field-confirmed {
-      border: 1px solid transparent !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      cursor: grab;
-    }
-    .field-overlay.filled.field-confirmed:hover {
-      border: 1px dashed #c4c4c4 !important;
-      background: rgba(0,0,0,0.02) !important;
-    }
-    .field-overlay.filled.field-confirmed .field-confirm-btn,
-    .field-overlay.filled.field-confirmed .field-delete-btn {
-      display: none !important;
-    }
-    .field-overlay.filled.field-confirmed.active-field .field-confirm-btn,
-    .field-overlay.filled.field-confirmed.active-field .field-delete-btn {
-      display: flex !important;
-      opacity: 0.7;
-    }
-    .field-overlay.filled.active-field,
-    .field-overlay.field-confirmed.active-field {
-      border: 2px solid #6366f1;
-      background: rgba(99, 102, 241, 0.08);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
-      cursor: grab;
-    }
-    .field-overlay.filled.active-field:active,
-    .field-overlay.field-confirmed.active-field:active { cursor: grabbing; }
-    /* Confirm button */
-    .field-overlay .field-confirm-btn {
-      position: absolute;
-      top: -10px;
-      right: 16px;
-      width: 22px;
-      height: 22px;
-      background: #22c55e;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 35;
-      font-size: 12px;
-      color: #fff;
-      line-height: 1;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .field-overlay .field-confirm-btn.confirmed {
-      background: #16a34a;
-      opacity: 1;
-    }
-    .field-overlay:hover .field-confirm-btn,
-    .field-overlay.active-field .field-confirm-btn { opacity: 1; }
-    /* Delete button */
-    .field-overlay .field-delete-btn {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 22px;
-      height: 22px;
-      background: #ef4444;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 35;
-      font-size: 11px;
-      color: #fff;
-      line-height: 1;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .field-overlay:hover .field-delete-btn,
-    .field-overlay.active-field .field-delete-btn { opacity: 1; }
-    /* Add-field picker */
-    .add-field-picker {
-      position: absolute;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-      padding: 6px;
-      z-index: 50;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 150px;
-    }
-    .add-field-picker-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      transition: background 0.12s;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-    }
-    .add-field-picker-item:hover { background: rgba(99,102,241,0.08); }
-    .add-field-picker-item span { font-size: 16px; }
-    .signing-page-nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 10px 20px;
-      background: var(--bg-secondary, #fff);
-      border-top: 1px solid var(--border, #e5e7eb);
-      width: 100%;
-      z-index: 50;
-      flex-shrink: 0;
-    }
-    .signing-page-nav button {
-      background: var(--bg, #f3f4f6);
-      border: 1px solid var(--border, #e5e7eb);
-      color: var(--text, #1f2937);
-      padding: 6px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      font-family: inherit;
-      transition: all 0.15s;
-    }
-    .signing-page-nav button:hover { background: var(--border, #e5e7eb); }
-    .signing-page-nav button:disabled { opacity: 0.3; cursor: default; }
-    .signing-page-nav span { color: var(--text, #1f2937); font-size: 13px; font-weight: 600; }
-    .field-banner {
-      background: linear-gradient(135deg,#6366f1,#8b5cf6);
-      color: white;
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-    .field-banner .field-banner-step {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      opacity: 0.8;
-      margin-bottom: 4px;
-    }
-    .field-banner .field-banner-title {
-      font-size: 16px;
-      font-weight: 600;
+    .panel-collapse-btn:hover { background: rgba(0,0,0,0.1); }
+
+    .profile-field { margin-bottom: 8px; }
+    .profile-field label {
+      display: block; font-size: 10px; font-weight: 600; color: #6b7280;
       margin-bottom: 2px;
     }
-    .field-banner .field-banner-desc {
-      font-size: 12px;
-      opacity: 0.8;
+    .profile-field input {
+      width: 100%; padding: 6px 10px; border: 1.5px solid #e5e7eb;
+      border-radius: 8px; font-size: 12px; font-family: inherit;
+      transition: border-color 0.15s; background: rgba(255,255,255,0.7);
     }
-    .signing-option input[type="text"],
-    .signing-option input[type="number"] {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: inherit;
-      color: var(--text);
-      background: var(--bg-secondary);
+    .profile-field input:focus {
+      outline: none; border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
     }
-    .signing-option input[type="text"]:focus,
-    .signing-option input[type="number"]:focus {
-      outline: none;
-      border-color: var(--primary);
+
+    /* ===== STAMP BUTTONS ===== */
+    .stamp-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
     }
-    .signing-option-row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
+    .stamp-btn {
+      padding: 8px 6px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      background: rgba(255,255,255,0.6); cursor: pointer; text-align: center;
+      transition: all 0.15s; display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
     }
+    .stamp-btn:hover { border-color: #6366f1; background: rgba(245,243,255,0.8); transform: translateY(-1px); }
+    .stamp-btn.active {
+      border-color: #6366f1; background: rgba(237,233,254,0.9);
+      box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+    }
+    .stamp-btn .stamp-icon { font-size: 18px; }
+    .stamp-btn .stamp-label { font-size: 10px; font-weight: 600; color: #374151; }
+    .stamp-btn .stamp-preview {
+      font-size: 9px; color: #6b7280; max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .stamp-btn.empty .stamp-preview { font-style: italic; color: #aaa; }
+
+    /* ===== SIGNATURE PAD ===== */
+    .sig-section { padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .sig-pad-wrap {
+      border: 2px dashed #d1d5db; border-radius: 10px; background: rgba(255,255,255,0.6);
+      position: relative; height: 70px; margin-bottom: 6px; overflow: hidden;
+    }
+    .sig-pad-wrap canvas { width: 100%; height: 100%; cursor: crosshair; }
+    .sig-actions { display: flex; gap: 5px; }
+    .sig-actions button {
+      flex: 1; padding: 5px; border: 1px solid #e5e7eb; border-radius: 6px;
+      background: rgba(255,255,255,0.7); font-size: 10px; font-weight: 500; cursor: pointer;
+    }
+    .sig-actions button:hover { background: rgba(245,243,255,0.8); border-color: #6366f1; }
+
+    /* ===== PLACED FIELDS LIST ===== */
+    .placed-list { max-height: 120px; overflow-y: auto; }
+    .placed-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 8px; border-radius: 6px; font-size: 11px; margin-bottom: 3px;
+      background: rgba(249,250,251,0.7); border: 1px solid rgba(0,0,0,0.04);
+    }
+    .placed-item .pi-label { font-weight: 600; color: #374151; }
+    .placed-item .pi-value { color: #6b7280; font-size: 10px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .placed-item .pi-delete { cursor: pointer; color: #9ca3af; font-size: 13px; }
+    .placed-item .pi-delete:hover { color: #ef4444; }
+
+    /* ===== UPLOAD STATE ===== */
+    .upload-prompt {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; color: #6b7280;
+    }
+    .upload-prompt .upload-icon { font-size: 48px; opacity: 0.3; }
+    .upload-prompt p { font-size: 14px; max-width: 300px; text-align: center; }
+    .upload-prompt label {
+      padding: 10px 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; border-radius: 10px; font-weight: 600; font-size: 14px;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+      transition: all 0.15s;
+    }
+    .upload-prompt label:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(99,102,241,0.4); }
+
+    /* ===== CONTEXT MENU ===== */
+    .ctx-menu {
+      position: fixed; background: #fff; border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18); z-index: 500;
+      min-width: 160px; padding: 4px; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .ctx-menu-item {
+      padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer;
+      border-radius: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .ctx-menu-item:hover { background: #f5f3ff; color: #6366f1; }
+    .ctx-menu-item.danger { color: #ef4444; }
+    .ctx-menu-item.danger:hover { background: #fef2f2; }
+    .ctx-menu-sep { height: 1px; background: #f0f0f5; margin: 4px 0; }
 
   </style>
 </head>
@@ -2831,90 +2372,103 @@
     </div>
   </div>
 
-  <!-- ===== SIGNING FLOW OVERLAY ===== -->
-  <div class="signing-overlay" id="signing-overlay">
-    <div class="signing-container">
-      <div class="signing-header">
-        <h2>
-          <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;vertical-align:middle;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          </div>
-          Sign &amp; Pay
-        </h2>
-        <div class="signing-steps" id="signing-steps">
-          <div class="step-indicator active" data-step="1">1</div>
-          <div class="step-label active">Upload</div>
-          <div class="step-indicator" data-step="2">2</div>
-          <div class="step-label">Setup</div>
-          <div class="step-indicator" data-step="3">3</div>
-          <div class="step-label">Review</div>
-          <div class="step-indicator" data-step="4">4</div>
-          <div class="step-label">Finalize</div>
-        </div>
-        <button onclick="closeSigningFlow()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;font-family:inherit;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--text)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">✕ Close</button>
-      </div>
-      <div class="signing-body">
-        <div class="signing-pdf-area" id="signing-pdf-area">
-          <!-- Step 1: Upload -->
-          <div id="signing-upload-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;width:100%;padding:40px 20px;">
-            <!-- Upload prompt (visible by default) -->
-            <div id="signing-upload-prompt">
-              <div style="display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;">
-                <div style="width:88px;height:88px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(99,102,241,0.3);">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-                </div>
-                <h3 style="color:var(--text);margin:0;font-size:20px;font-weight:700;">Upload a document to sign</h3>
-                <p style="color:var(--text-secondary);margin:0;font-size:14px;max-width:360px;">PDF or Word document. We'll auto-detect signature fields.</p>
-                <button class="btn btn-primary" id="signing-choose-file-btn" onclick="document.getElementById('signing-file-input').click()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;padding:12px 32px;font-size:14px;font-weight:600;border-radius:10px;color:white;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.3);transition:all 0.2s;font-family:inherit;">
-                  Choose File
-                </button>
-                <p style="color:var(--text-secondary);margin:0;font-size:12px;opacity:0.6;">or drag & drop your file here</p>
-              </div>
-            </div>
-            <!-- Loading spinner (hidden by default) -->
-            <div id="signing-upload-loading" style="display:none;">
-              <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-                <div style="width:60px;height:60px;border:4px solid var(--border);border-top:4px solid #8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                <h3 style="color:var(--text);margin:0;" id="signing-loading-text">Loading document...</h3>
-                <p style="color:var(--text-secondary);margin:0;font-size:13px;" id="signing-loading-detail">Detecting signature fields</p>
-              </div>
-            </div>
-            <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
-          </div>
-          <!-- Steps 2-4: PDF preview with field overlays -->
-          <div id="signing-pdf-preview" style="display:none;">
-            <div class="signing-pdf-canvas-wrap" id="signing-canvas-wrap">
-              <div id="signing-pdf-canvas-container" style="position:relative;display:inline-block;transition:transform 0.1s ease-out;">
-                <canvas id="signing-pdf-canvas"></canvas>
-                <div id="signing-field-overlays"></div>
-              </div>
-            </div>
-            <div class="signing-page-nav" id="signing-page-nav">
-              <button onclick="signingPrevPage()" id="signing-prev-page-btn">← Prev</button>
-              <span id="signing-page-info">Page 1 of 1</span>
-              <div class="signing-zoom-controls" id="signing-zoom-controls">
-                <button onclick="signingZoomOut()" title="Zoom out">−</button>
-                <span class="zoom-level-label" id="signing-zoom-label" onclick="signingZoomReset()" title="Reset zoom">100%</span>
-                <button onclick="signingZoomIn()" title="Zoom in">+</button>
-              </div>
-              <button onclick="signingNextPage()" id="signing-next-page-btn">Next →</button>
-            </div>
-          </div>
-        </div>
-        <div class="signing-sidebar" id="signing-sidebar" style="display:none;">
-          <div class="signing-sidebar-content" id="signing-sidebar-content">
-            <!-- Dynamic content per step -->
-          </div>
-          <div class="signing-actions" id="signing-actions">
-            <!-- Dynamic buttons per step -->
-          </div>
-        </div>
-      </div>
+  <!-- ===== SMART SIGNING FLOW ===== -->
+  <!-- PDF AREA (full bleed background) -->
+  <div id="pdf-scroll" class="pdf-scroll" style="display:none;">
+    <!-- Mode indicator pill -->
+    <div class="mode-indicator" id="mode-indicator">
+      <span id="mode-label">Placing: Name</span>
+      <div class="mode-close" onclick="clearMode()">✕</div>
+    </div>
+
+    <!-- Upload prompt -->
+    <div class="upload-prompt" id="upload-prompt">
+      <div class="upload-icon">📄</div>
+      <p><strong>Open a PDF</strong> to start the smart signing flow.</p>
+      <label for="file-input">Choose PDF</label>
+    </div>
+
+    <!-- PDF canvas -->
+    <div class="pdf-canvas-wrap" id="pdf-canvas-wrap" style="display:none">
+      <canvas id="pdf-canvas"></canvas>
+      <div id="field-overlays"></div>
     </div>
   </div>
 
+  <!-- PDF navigation bar (when PDF loaded) -->
+  <div class="pdf-nav" id="pdf-nav" style="display:none">
+    <button onclick="prevPage()" id="btn-prev">← Prev</button>
+    <span id="page-info">Page 1 of 1</span>
+    <button onclick="nextOrFinalize()" id="btn-next">Next →</button>
+  </div>
+
+  <!-- FLOATING TRANSLUCENT PANEL -->
+  <div class="floating-panel" id="floating-panel" style="display:none">
+    <div class="panel-header" id="panel-header">
+      <span class="panel-header-title">
+        <span class="drag-dots"><span></span><span></span><span></span></span>
+        Signing Tools
+      </span>
+      <button class="panel-collapse-btn" onclick="togglePanel()" title="Collapse panel">✕</button>
+    </div>
+
+    <!-- YOUR INFO -->
+    <div class="panel-section">
+      <div class="panel-section-title">Your Information</div>
+      <div class="profile-field">
+        <label>Full Name</label>
+        <input type="text" id="prof-name" placeholder="John Doe" oninput="updateStampPreviews()">
+      </div>
+      <div class="profile-field">
+        <label>Email</label>
+        <input type="text" id="prof-email" placeholder="john@example.com" oninput="updateStampPreviews()">
+      </div>
+      <div class="profile-field">
+        <label>Phone</label>
+        <input type="text" id="prof-phone" placeholder="(555) 123-4567" oninput="updateStampPreviews()">
+      </div>
+      <div class="profile-field">
+        <label>Address</label>
+        <input type="text" id="prof-address" placeholder="123 Main St, City, ST 12345" oninput="updateStampPreviews()">
+      </div>
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="sig-section">
+      <div class="panel-section-title">Signature</div>
+      <div class="sig-pad-wrap">
+        <canvas id="sig-canvas"></canvas>
+      </div>
+      <div class="sig-actions">
+        <button onclick="clearSigPad()">Clear</button>
+        <button onclick="toggleType()">Type Instead</button>
+      </div>
+    </div>
+
+    <!-- STAMPS -->
+    <div class="panel-section">
+      <div class="panel-section-title">Tools</div>
+      <div style="margin-bottom:8px;">
+        <button id="move-tool-btn" onclick="clearMode()" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:10px;background:rgba(255,255,255,0.6);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
+          <span style="font-size:16px;">🔀</span> Select & Move
+        </button>
+      </div>
+      <div class="panel-section-title" style="margin-top:4px;">Click to Place</div>
+      <div class="stamp-grid" id="stamp-grid"></div>
+    </div>
+
+    <!-- PLACED FIELDS -->
+    <div class="panel-section" id="placed-section" style="display:none">
+      <div class="panel-section-title">Placed (<span id="placed-count">0</span>)</div>
+      <div class="placed-list" id="placed-list"></div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="loadPDF(event)">
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
+  <div class="toast" id="toast"></div>
 
   <script>
     // ===== APP STATE =====
@@ -6664,1508 +6218,793 @@
     })();
 
     // ===================================================================
-    // SIGNING & PAYMENT FLOW
     // ===================================================================
-    const signingState = {
-      step: 1,           // 1=upload, 2=setup, 3=review, 4=finalize
-      pdfDoc: null,       // PDF.js document
-      pdfLibDoc: null,    // pdf-lib document for editing
-      pdfBytes: null,     // Raw PDF bytes
-      fileName: '',
-      requestId: null,
-      documentId: null,
-      fields: [],         // Detected fields with positions
-      currentFieldIndex: 0,
-      signatureDataUrl: null,
-      signatureType: null,
-      initialsDataUrl: null,
-      signerName: '',
-      signerEmail: '',
-      paymentEnabled: false,
-      paymentAmount: 0,
-      paymentDescription: '',
-      pageScale: 1,
-      zoomLevel: 1,       // Pinch-to-zoom level (1 = 100%)
-    };
+    // SMART SIGNING FLOW
+    // ===================================================================
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    // ===== PINCH-TO-ZOOM ON SIGNING PDF =====
-    (function initSigningPinchZoom() {
-      let lastDist = 0;
-      let isPinching = false;
+      // ===== STATE =====
+      const state = {
+        pdfDoc: null,
+        pdfLibDoc: null,
+        pdfBytes: null,
+        fileName: '',
+        currentPage: 1,
+        totalPages: 0,
+        scale: 1.3,
+        zoom: 1,           // independent PDF zoom
+        activeStamp: null,
+        placedFields: [],
+        sigDataUrl: null,
+        initialsDataUrl: null,
+        selectedFieldIdx: -1,
+      };
 
-      function getTouchDist(touches) {
-        const dx = touches[0].clientX - touches[1].clientX;
-        const dy = touches[0].clientY - touches[1].clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
+      // ===== STAMP DEFINITIONS (alphabetical) =====
+      const STAMPS = [
+        { id: 'address',   label: 'Address',   icon: '🏠', source: 'prof-address', w: 220, h: 22 },
+        { id: 'check',     label: '✓ Check',   icon: '☑️', source: null,           w: 18,  h: 18, value: () => '✓' },
+        { id: 'text',      label: 'Custom',    icon: '📝', source: null,           w: 160, h: 40, value: () => '__EDITABLE__' },
+        { id: 'date',      label: 'Date',      icon: '📅', source: null,           w: 100, h: 22, value: () => new Date().toLocaleDateString() },
+        { id: 'email',     label: 'Email',     icon: '✉️', source: 'prof-email',   w: 160, h: 22 },
+        { id: 'initials',  label: 'Initials',  icon: '✏️', source: null,           w: 70,  h: 34 },
+        { id: 'name',      label: 'Name',      icon: '👤', source: 'prof-name',    w: 160, h: 22 },
+        { id: 'phone',     label: 'Phone',     icon: '📞', source: 'prof-phone',   w: 130, h: 22 },
+        { id: 'signature', label: 'Signature', icon: '✍️', source: null,           w: 180, h: 44 },
+        { id: 'xmark',     label: '✕ Cross',   icon: '☒',  source: null,           w: 18,  h: 18, value: () => '✕' },
+      ];
 
+      // ===== ZOOM (PDF-ONLY) =====
       function applyZoom() {
-        const container = document.getElementById('signing-pdf-canvas-container');
-        if (!container) return;
-        container.style.transform = 'scale(' + signingState.zoomLevel + ')';
-        container.style.transformOrigin = 'center top';
-        const label = document.getElementById('signing-zoom-label');
-        if (label) label.textContent = Math.round(signingState.zoomLevel * 100) + '%';
+        const wrap = document.getElementById('pdf-canvas-wrap');
+        if (!wrap) return;
+        wrap.style.transform = 'scale(' + state.zoom + ')';
+        document.getElementById('zoom-label').textContent = Math.round(state.zoom * 100) + '%';
       }
+      function zoomIn() { state.zoom = Math.min(3, state.zoom + 0.15); applyZoom(); }
+      function zoomOut() { state.zoom = Math.max(0.3, state.zoom - 0.15); applyZoom(); }
+      function zoomReset() { state.zoom = 1; applyZoom(); }
 
-      // Attach listeners on the wrap (the scrollable area)
-      document.addEventListener('touchstart', function(e) {
-        const wrap = document.getElementById('signing-canvas-wrap');
-        if (!wrap || !wrap.contains(e.target)) return;
-        if (e.touches.length === 2) {
-          isPinching = true;
-          lastDist = getTouchDist(e.touches);
+      // Ctrl/Cmd + scroll wheel zooms only the PDF
+      document.getElementById('pdf-scroll').addEventListener('wheel', function(e) {
+        if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
+          if (e.deltaY < 0) zoomIn(); else zoomOut();
         }
       }, { passive: false });
 
-      document.addEventListener('touchmove', function(e) {
-        if (!isPinching || e.touches.length !== 2) return;
-        e.preventDefault();
-        const dist = getTouchDist(e.touches);
-        const delta = dist / lastDist;
-        lastDist = dist;
-        signingState.zoomLevel = Math.min(3, Math.max(0.5, signingState.zoomLevel * delta));
-        applyZoom();
-      }, { passive: false });
-
-      document.addEventListener('touchend', function(e) {
-        if (isPinching) {
-          isPinching = false;
-          lastDist = 0;
+      // Pinch-to-zoom on touch
+      (function() {
+        let lastDist = 0, isPinching = false;
+        const el = document.getElementById('pdf-scroll');
+        function dist(t) {
+          const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+          return Math.sqrt(dx*dx + dy*dy);
         }
-      });
+        el.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 2) { isPinching = true; lastDist = dist(e.touches); }
+        }, { passive: true });
+        el.addEventListener('touchmove', function(e) {
+          if (!isPinching || e.touches.length < 2) return;
+          e.preventDefault();
+          const d = dist(e.touches);
+          const delta = (d - lastDist) / 200;
+          state.zoom = Math.max(0.3, Math.min(3, state.zoom + delta));
+          lastDist = d;
+          applyZoom();
+        }, { passive: false });
+        el.addEventListener('touchend', function() { isPinching = false; }, { passive: true });
+      })();
 
-      // Also support Ctrl/Cmd + scroll wheel for desktop zoom
-      document.addEventListener('wheel', function(e) {
-        const wrap = document.getElementById('signing-canvas-wrap');
-        if (!wrap || !wrap.contains(e.target)) return;
-        if (!e.ctrlKey && !e.metaKey) return;
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.95 : 1.05;
-        signingState.zoomLevel = Math.min(3, Math.max(0.5, signingState.zoomLevel * delta));
-        applyZoom();
-      }, { passive: false });
-
-      // Expose for use in zoom buttons
-      window.signingZoomIn = function() {
-        signingState.zoomLevel = Math.min(3, signingState.zoomLevel * 1.15);
-        applyZoom();
-      };
-      window.signingZoomOut = function() {
-        signingState.zoomLevel = Math.max(0.5, signingState.zoomLevel * 0.85);
-        applyZoom();
-      };
-      window.signingZoomReset = function() {
-        signingState.zoomLevel = 1;
-        applyZoom();
-      };
-    })();
-
-    // ===== OPEN / CLOSE SIGNING FLOW =====
-    function openSigningFlow() {
-      document.getElementById('signing-overlay').classList.add('visible');
-      setSigningStep(1);
-    }
-
-    function closeSigningFlow() {
-      document.getElementById('signing-overlay').classList.remove('visible');
-      // Reset signature mode toggle
-      signingModeIsType = false;
-      // Reset state
-      signingState.step = 1;
-      signingState.pdfDoc = null;
-      signingState.pdfLibDoc = null;
-      signingState.pdfBytes = null;
-      signingState.fields = [];
-      signingState.signatureDataUrl = null;
-      signingState.initialsDataUrl = null;
-      signingState.requestId = null;
-      signingState.documentId = null;
-      signingState.currentFieldIndex = 0;
-      signingState.paymentEnabled = false;
-      signingState.paymentAmount = 0;
-      signingState.paymentDescription = '';
-      signingState.signerName = '';
-      signingState.signerEmail = '';
-      signingState.zoomLevel = 1;
-      // Reset zoom transform
-      var zoomContainer = document.getElementById('signing-pdf-canvas-container');
-      if (zoomContainer) zoomContainer.style.transform = '';
-      signingCurrentPage = 1;
-      // Reset upload view
-      document.getElementById('signing-upload-view').style.display = 'flex';
-      document.getElementById('signing-pdf-preview').style.display = 'none';
-      document.getElementById('signing-sidebar').style.display = 'none';
-      // Reset loading state
-      const uploadPrompt = document.getElementById('signing-upload-prompt');
-      const uploadLoading = document.getElementById('signing-upload-loading');
-      if (uploadPrompt) uploadPrompt.style.display = 'block';
-      if (uploadLoading) uploadLoading.style.display = 'none';
-      // Clear file input so same file can be re-selected
-      const fileInput = document.getElementById('signing-file-input');
-      if (fileInput) fileInput.value = '';
-    }
-
-    // ===== STEP MANAGEMENT =====
-    function setSigningStep(step) {
-      signingState.step = step;
-      // Update step indicator circles
-      document.querySelectorAll('#signing-steps .step-indicator').forEach(el => {
-        const s = parseInt(el.dataset.step);
-        el.classList.remove('active', 'completed');
-        if (s === step) el.classList.add('active');
-        if (s < step) el.classList.add('completed');
-      });
-      // Update step labels
-      const labels = document.querySelectorAll('#signing-steps .step-label');
-      const indicators = document.querySelectorAll('#signing-steps .step-indicator');
-      labels.forEach((label, i) => {
-        const s = indicators[i] ? parseInt(indicators[i].dataset.step) : i + 1;
-        label.classList.remove('active', 'completed');
-        if (s === step) label.classList.add('active');
-        if (s < step) label.classList.add('completed');
-      });
-      renderSigningSidebar();
-      // Initialize marquee selection when entering setup/review steps
-      if (step === 2 || step === 3) {
-        setTimeout(initMarqueeSelection, 100);
+      // ===== PANEL TOGGLE =====
+      let panelVisible = true;
+      function togglePanel() {
+        panelVisible = !panelVisible;
+        document.getElementById('floating-panel').classList.toggle('collapsed', !panelVisible);
       }
-    }
 
-    // ===== FILE UPLOAD =====
-    async function handleSigningFileUpload(event) {
-      const file = event.target.files?.[0] || (event.detail && event.detail.file);
-      if (!file) return;
+      // ===== DRAGGABLE PANEL =====
+      (function initPanelDrag() {
+        const panel = document.getElementById('floating-panel');
+        const header = document.getElementById('panel-header');
+        let dragging = false, startX, startY, origLeft, origTop;
 
-      signingState.fileName = file.name;
+        header.addEventListener('mousedown', function(e) {
+          if (e.target.closest('.panel-collapse-btn')) return;
+          dragging = true;
+          const rect = panel.getBoundingClientRect();
+          // Switch from right-positioned to left-positioned for dragging
+          panel.style.left = rect.left + 'px';
+          panel.style.top = rect.top + 'px';
+          panel.style.right = 'auto';
+          origLeft = rect.left;
+          origTop = rect.top;
+          startX = e.clientX;
+          startY = e.clientY;
+          e.preventDefault();
+        });
 
-      // Show loading state
-      const uploadPrompt = document.getElementById('signing-upload-prompt');
-      const uploadLoading = document.getElementById('signing-upload-loading');
-      const loadingText = document.getElementById('signing-loading-text');
-      const loadingDetail = document.getElementById('signing-loading-detail');
+        document.addEventListener('mousemove', function(e) {
+          if (!dragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          let newLeft = origLeft + dx;
+          let newTop = origTop + dy;
+          // Keep panel on screen
+          newLeft = Math.max(0, Math.min(window.innerWidth - panel.offsetWidth, newLeft));
+          newTop = Math.max(52, Math.min(window.innerHeight - 60, newTop));
+          panel.style.left = newLeft + 'px';
+          panel.style.top = newTop + 'px';
+        });
 
-      if (uploadPrompt) uploadPrompt.style.display = 'none';
-      if (uploadLoading) uploadLoading.style.display = 'flex';
-      if (loadingText) loadingText.textContent = 'Loading document...';
-      if (loadingDetail) loadingDetail.textContent = 'Reading file';
+        document.addEventListener('mouseup', function() {
+          dragging = false;
+        });
+      })();
 
-      try {
-        // If it's not a PDF, reject early
-        if (!file.name.toLowerCase().endsWith('.pdf')) {
-          showToast('For now, please upload a PDF file. Word conversion coming soon.', 'info');
-          if (uploadPrompt) uploadPrompt.style.display = 'block';
-          if (uploadLoading) uploadLoading.style.display = 'none';
+      // ===== INIT STAMP GRID =====
+      function initStampGrid() {
+        const grid = document.getElementById('stamp-grid');
+        grid.innerHTML = '';
+        STAMPS.forEach(s => {
+          const btn = document.createElement('div');
+          btn.className = 'stamp-btn' + (s.source && !document.getElementById(s.source)?.value ? ' empty' : '');
+          btn.dataset.stampId = s.id;
+          btn.innerHTML = `
+            <span class="stamp-icon">${s.icon}</span>
+            <span class="stamp-label">${s.label}</span>
+            <span class="stamp-preview" id="preview-${s.id}">${getStampPreview(s)}</span>
+          `;
+          btn.onclick = () => selectStamp(s.id);
+          grid.appendChild(btn);
+        });
+      }
+
+      function getStampPreview(s) {
+        if (s.source) {
+          const el = document.getElementById(s.source);
+          return el?.value || 'Not set';
+        }
+        if (s.id === 'signature') return state.sigDataUrl ? 'Ready' : 'Draw first';
+        if (s.id === 'initials') return state.initialsDataUrl ? 'Ready' : 'Auto';
+        if (s.id === 'date') return new Date().toLocaleDateString();
+        if (s.id === 'check') return '✓';
+        if (s.id === 'xmark') return '✕';
+        if (s.id === 'text') return 'Click to type';
+        return '';
+      }
+
+      function updateStampPreviews() {
+        STAMPS.forEach(s => {
+          const el = document.getElementById('preview-' + s.id);
+          if (el) el.textContent = getStampPreview(s);
+          const btn = document.querySelector(`.stamp-btn[data-stamp-id="${s.id}"]`);
+          if (btn) btn.classList.toggle('empty', s.source && !document.getElementById(s.source)?.value);
+        });
+        generateInitials();
+      }
+
+      function selectStamp(id) {
+        const stamp = STAMPS.find(s => s.id === id);
+        if (!stamp) return;
+        if (stamp.source && !document.getElementById(stamp.source)?.value) {
+          toast('Fill in ' + stamp.label + ' first');
+          document.getElementById(stamp.source).focus();
+          return;
+        }
+        if (id === 'signature' && !state.sigDataUrl) { toast('Draw your signature first'); return; }
+        if (state.activeStamp === id) { clearMode(); return; }
+
+        state.activeStamp = id;
+        document.querySelectorAll('.stamp-btn').forEach(b => b.classList.toggle('active', b.dataset.stampId === id));
+        const scroll = document.getElementById('pdf-scroll');
+        scroll.className = scroll.className.replace(/\bplacing[\w-]*/g, '').trim();
+        scroll.classList.add('placing', 'placing-' + id);
+        document.getElementById('mode-label').textContent = 'Click on PDF to place: ' + stamp.label;
+        document.getElementById('mode-indicator').classList.add('visible');
+        // Deactivate move tool button
+        const moveBtn = document.getElementById('move-tool-btn');
+        if (moveBtn) { moveBtn.style.borderColor = '#e5e7eb'; moveBtn.style.background = 'rgba(255,255,255,0.6)'; moveBtn.style.boxShadow = 'none'; }
+      }
+
+      function clearMode() {
+        state.activeStamp = null;
+        document.querySelectorAll('.stamp-btn').forEach(b => b.classList.remove('active'));
+        const scroll = document.getElementById('pdf-scroll');
+        scroll.className = scroll.className.replace(/\bplacing[\w-]*/g, '').trim();
+        document.getElementById('mode-indicator').classList.remove('visible');
+        // Highlight move tool as active
+        const moveBtn = document.getElementById('move-tool-btn');
+        if (moveBtn) {
+          moveBtn.style.borderColor = '#6366f1';
+          moveBtn.style.background = 'rgba(237,233,254,0.9)';
+          moveBtn.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.2)';
+        }
+      }
+
+      // Keyboard shortcuts: Escape exits mode, Arrow keys nudge selected field
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          if (state.activeStamp) { clearMode(); return; }
+          hideContextMenu();
+          deselectAll();
           return;
         }
 
-        if (loadingDetail) loadingDetail.textContent = 'Processing PDF...';
+        // Arrow keys nudge the selected field
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && state.selectedFieldIdx >= 0) {
+          // Don't nudge if user is typing in a textarea or input
+          if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+          e.preventDefault();
+          const f = state.placedFields[state.selectedFieldIdx];
+          if (!f) return;
+          const step = e.shiftKey ? 5 : 1; // Shift = bigger jumps
+          if (e.key === 'ArrowUp')    f.y -= step;
+          if (e.key === 'ArrowDown')  f.y += step;
+          if (e.key === 'ArrowLeft')  f.x -= step;
+          if (e.key === 'ArrowRight') f.x += step;
+          renderOverlays();
+        }
+      });
 
-        const arrayBuffer = await file.arrayBuffer();
-        signingState.pdfBytes = new Uint8Array(arrayBuffer);
+      // ===== CLICK ON PDF TO PLACE FIELD =====
+      document.addEventListener('click', function(e) {
+        // Click on empty area deselects field
+        if (!e.target.closest('.field-placed') && !e.target.closest('.ctx-menu')) {
+          deselectAll();
+        }
+        hideContextMenu();
 
-        if (loadingDetail) loadingDetail.textContent = 'Rendering pages...';
-        await loadSigningPDF(signingState.pdfBytes);
+        if (!state.activeStamp) return;
+        const wrap = document.getElementById('pdf-canvas-wrap');
+        if (!wrap || !wrap.contains(e.target)) return;
+        if (e.target.closest('.field-placed')) return;
 
-        // Auto-detect fields
-        if (loadingDetail) loadingDetail.textContent = 'Detecting signature fields...';
-        await detectSignatureFields();
+        const stamp = STAMPS.find(s => s.id === state.activeStamp);
+        if (!stamp) return;
 
-        // Show PDF preview and sidebar
-        document.getElementById('signing-upload-view').style.display = 'none';
-        document.getElementById('signing-pdf-preview').style.display = 'flex';
-        document.getElementById('signing-sidebar').style.display = 'flex';
+        const rect = wrap.getBoundingClientRect();
+        const effectiveScale = state.scale * state.zoom;
+        const x = (e.clientX - rect.left) / effectiveScale;
+        const y = (e.clientY - rect.top) / effectiveScale;
 
-        // Move to step 2 (Setup)
-        setSigningStep(2);
-        showToast(`Found ${signingState.fields.length} field(s) in your document`, 'success');
-      } catch (err) {
-        console.error('Signing upload error:', err);
-        showToast('Failed to load document: ' + (err.message || 'Unknown error'), 'error');
-        // Reset to upload prompt so user can try again
-        if (uploadPrompt) uploadPrompt.style.display = 'block';
-        if (uploadLoading) uploadLoading.style.display = 'none';
+        let value = '';
+        if (stamp.source) {
+          value = document.getElementById(stamp.source)?.value || '';
+        } else if (stamp.value) {
+          value = stamp.value();
+        }
+
+        const field = {
+          id: 'f-' + Date.now() + '-' + Math.random().toString(36).substr(2,4),
+          stampId: stamp.id,
+          label: stamp.label,
+          page: state.currentPage,
+          x: x - stamp.w / 2,
+          y: y - stamp.h / 2,
+          w: stamp.w,
+          h: stamp.h,
+          value: value,
+        };
+        state.placedFields.push(field);
+        renderOverlays();
+        updatePlacedList();
+        toast(stamp.label + ' placed');
+      });
+
+      // ===== CONTEXT MENU =====
+      let activeCtxMenu = null;
+      function hideContextMenu() {
+        if (activeCtxMenu) { activeCtxMenu.remove(); activeCtxMenu = null; }
       }
 
-      // Reset file input so the same file can be re-selected
-      if (event.target && event.target.value) event.target.value = '';
-    }
-
-    // ===== LOAD PDF FOR SIGNING =====
-    async function loadSigningPDF(bytes) {
-      // Pass a copy to PDF.js since it transfers the ArrayBuffer to a web worker,
-      // which detaches the original buffer and makes it unusable for pdf-lib
-      const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
-      signingState.pdfDoc = await loadingTask.promise;
-      signingState.pdfLibDoc = await PDFLib.PDFDocument.load(bytes);
-      await renderSigningPage(1);
-    }
-
-    async function renderSigningPage(pageNum) {
-      signingCurrentPage = pageNum;
-      const page = await signingState.pdfDoc.getPage(pageNum);
-      const scale = 1.2;
-      signingState.pageScale = scale;
-      const viewport = page.getViewport({ scale });
-
-      const canvas = document.getElementById('signing-pdf-canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-
-      // Size the field overlays container to match the canvas exactly
-      const overlaysDiv = document.getElementById('signing-field-overlays');
-      if (overlaysDiv) {
-        overlaysDiv.style.width = viewport.width + 'px';
-        overlaysDiv.style.height = viewport.height + 'px';
-      }
-
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      renderFieldOverlays(pageNum);
-      updateSigningPageNav();
-    }
-
-    // ===== SMART FIELD DETECTION (Client-Side — DocuSign-level) =====
-    async function detectSignatureFields() {
-      // DocuSign-style anchor detection: only create fields where there's actually
-      // a blank space to fill (underscores, lines after labels, or signature blocks).
-      // Never detect section headers or body text as fields.
-
-      const doc = signingState.pdfDoc;
-      const fields = [];
-      const totalPages = doc.numPages;
-      const seenPositions = new Set();
-
-      function addField(f) {
-        const key = `${f.fieldType}-${f.pageNumber}-${Math.round(f.x/40)}-${Math.round(f.y/40)}`;
-        if (seenPositions.has(key)) return;
-        seenPositions.add(key);
-        fields.push(f);
-      }
-
-      // Helper: is this line likely a section header? (large font, bold, short, standalone)
-      function isHeader(line, avgFontSize) {
-        return line.fontSize > avgFontSize * 1.3 || (line.text.trim().length < 50 && /^[A-Z][A-Z\s&:,]+$/.test(line.text.trim()));
-      }
-
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await doc.getPage(i);
-        const textContent = await page.getTextContent();
-        const viewport = page.getViewport({ scale: 1 });
-        const pageWidth = viewport.width;
-        const pageHeight = viewport.height;
-
-        const items = textContent.items;
-
-        // Build lines by grouping text items with similar Y coordinates
-        const lineMap = {};
-        items.forEach((item, idx) => {
-          if (!item.str) return;
-          const tx = item.transform;
-          const yKey = Math.round(tx[5] / 4) * 4;
-          if (!lineMap[yKey]) lineMap[yKey] = [];
-          lineMap[yKey].push({ ...item, _idx: idx, _x: tx[4], _y: tx[5], _fontSize: Math.sqrt(tx[0]*tx[0] + tx[1]*tx[1]) });
+      function showContextMenu(x, y, items) {
+        hideContextMenu();
+        const menu = document.createElement('div');
+        menu.className = 'ctx-menu';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        items.forEach(item => {
+          if (item.sep) {
+            const sep = document.createElement('div');
+            sep.className = 'ctx-menu-sep';
+            menu.appendChild(sep);
+            return;
+          }
+          const row = document.createElement('div');
+          row.className = 'ctx-menu-item' + (item.danger ? ' danger' : '');
+          row.innerHTML = (item.icon ? item.icon + ' ' : '') + item.label;
+          row.onclick = () => { hideContextMenu(); item.action(); };
+          menu.appendChild(row);
         });
+        document.body.appendChild(menu);
+        activeCtxMenu = menu;
 
-        const lines = Object.values(lineMap).map(lineItems => {
-          lineItems.sort((a, b) => a._x - b._x);
-          const fullText = lineItems.map(it => it.str).join(' ');
-          return { items: lineItems, text: fullText, y: lineItems[0]._y, x: lineItems[0]._x, fontSize: lineItems[0]._fontSize };
-        }).sort((a, b) => b.y - a.y); // Sort top to bottom (PDF y is bottom-up)
+        // Keep on screen
+        requestAnimationFrame(() => {
+          const r = menu.getBoundingClientRect();
+          if (r.right > window.innerWidth) menu.style.left = (window.innerWidth - r.width - 8) + 'px';
+          if (r.bottom > window.innerHeight) menu.style.top = (window.innerHeight - r.height - 8) + 'px';
+        });
+      }
 
-        // Calculate average font size to distinguish headers from body text
-        const avgFontSize = lines.reduce((sum, l) => sum + l.fontSize, 0) / (lines.length || 1);
+      function deselectAll() {
+        state.selectedFieldIdx = -1;
+        document.querySelectorAll('.field-placed.selected').forEach(el => el.classList.remove('selected'));
+      }
 
-        for (let li = 0; li < lines.length; li++) {
-          const line = lines[li];
-          const text = line.text;
-          const lowerText = text.toLowerCase().trim();
-          const x = line.x;
-          const y = pageHeight - line.y;
+      // ===== RENDER OVERLAYS =====
+      function renderOverlays() {
+        const container = document.getElementById('field-overlays');
+        container.innerHTML = '';
+        const scale = state.scale;
 
-          // Skip section headers, titles, and body paragraphs
-          if (isHeader(line, avgFontSize)) continue;
-          // Skip long body text — real field labels are short
-          if (lowerText.length > 80) continue;
-          // Skip lines that are just boilerplate content
-          if (/\b(acknowledge|agree|hereby|whereas|pursuant|therefore|notwithstanding)\b/i.test(lowerText)) continue;
+        state.placedFields.forEach((f, idx) => {
+          if (f.page !== state.currentPage) return;
 
-          // ===== 1. UNDERSCORE LINES — only detect SIGNING-ESSENTIAL fields =====
-          // Auto-detect ONLY: signature, initials, name, date. All other fields
-          // (address, city, state, zip, text, etc.) are added manually via "+" button.
-          const underscoreMatch = text.match(/_{3,}/);
-          if (underscoreMatch) {
-            const labelPart = text.split(/_{3,}/)[0].trim().toLowerCase();
-            let fieldType = null;
-            let label = '';
-            if (/sign(ature)?/i.test(labelPart)) { fieldType = 'signature'; label = 'Signature'; }
-            else if (/initial/i.test(labelPart)) { fieldType = 'initials'; label = 'Initials'; }
-            else if (/\bdate\b/i.test(labelPart) && !/birth|expir|filed|discharge|dismiss/i.test(labelPart)) { fieldType = 'date'; label = 'Date'; }
+          const div = document.createElement('div');
+          div.className = 'field-placed';
+          if (idx === state.selectedFieldIdx) div.classList.add('selected');
+          div.style.left = (f.x * scale) + 'px';
+          div.style.top = (f.y * scale) + 'px';
+          div.style.width = (f.w * scale) + 'px';
+          div.style.height = (f.h * scale) + 'px';
 
-            // Only add signature, initials, date — everything else added manually
-            if (fieldType) {
-              const underscoreItem = line.items.find(it => /_{3,}/.test(it.str));
-              const fieldX = underscoreItem ? underscoreItem._x : x + 100;
-              const fieldWidth = fieldType === 'signature' ? 200 : (fieldType === 'initials' ? 80 : 160);
-              const fieldHeight = fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25);
-
-              addField({
-                fieldType, pageNumber: i,
-                x: fieldX, y: y + 5,
-                width: fieldWidth, height: fieldHeight,
-                label, aiDetected: true,
-              });
+          if (f.stampId === 'check') {
+            div.classList.add('field-check', 'check');
+            div.innerHTML = '<span class="field-value" style="text-align:center;color:#16a34a;font-weight:700;">✓</span>';
+          } else if (f.stampId === 'xmark') {
+            div.classList.add('field-check', 'xmark');
+            div.innerHTML = '<span class="field-value" style="text-align:center;color:#dc2626;font-weight:700;">✕</span>';
+          } else if (f.stampId === 'signature' && state.sigDataUrl) {
+            div.innerHTML = '<img src="' + state.sigDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
+          } else if (f.stampId === 'initials' && state.initialsDataUrl) {
+            div.innerHTML = '<img src="' + state.initialsDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
+          } else if (f.stampId === 'text') {
+            // Multiline editable textarea
+            div.classList.add('field-textarea-wrap');
+            const ta = document.createElement('textarea');
+            ta.className = 'field-inline-textarea';
+            ta.value = (f.value === '__EDITABLE__') ? '' : f.value;
+            ta.placeholder = 'Type here...';
+            ta.onmousedown = (e) => e.stopPropagation();
+            ta.onclick = (e) => e.stopPropagation();
+            ta.oninput = () => {
+              f.value = ta.value;
+              updatePlacedList();
+              // Auto-grow height
+              ta.style.height = 'auto';
+              const newH = Math.max(f.h * scale, ta.scrollHeight);
+              ta.style.height = newH + 'px';
+              div.style.height = newH + 'px';
+              f.h = newH / scale;
+            };
+            if (f.value === '__EDITABLE__') {
+              f.value = '';
+              setTimeout(() => ta.focus(), 50);
             }
-            continue;
+            div.appendChild(ta);
+          } else {
+            div.innerHTML = '<span class="field-value">' + escHTML(f.value) + '</span>';
           }
 
-          // ===== 2. "Label:" pattern — only detect signing-essential fields =====
-          const colonMatch = lowerText.match(/^(.*?):\s*$/);
-          if (colonMatch && colonMatch[1].trim().length < 25) {
-            const labelText = colonMatch[1].trim();
-            let fieldType = null;
-            let label = '';
+          // Delete button (hover)
+          const del = document.createElement('button');
+          del.className = 'field-delete';
+          del.textContent = '✕';
+          del.onclick = (e) => { e.stopPropagation(); state.placedFields.splice(idx, 1); renderOverlays(); updatePlacedList(); };
+          div.appendChild(del);
 
-            if (/sign(ature)?/i.test(labelText)) { fieldType = 'signature'; label = 'Signature'; }
-            else if (/initial/i.test(labelText)) { fieldType = 'initials'; label = 'Initials'; }
-            else if (/^\s*date\s*$/i.test(labelText)) { fieldType = 'date'; label = 'Date'; }
-
-            if (fieldType) {
-              const lastItem = line.items[line.items.length - 1];
-              const fieldX = lastItem._x + (lastItem.str.length * lastItem._fontSize * 0.5) + 10;
-
-              addField({
-                fieldType, pageNumber: i,
-                x: Math.min(fieldX, pageWidth - 160), y: y,
-                width: fieldType === 'signature' ? 200 : 160,
-                height: fieldType === 'signature' ? 50 : 25,
-                label, aiDetected: true,
-              });
-            }
-            continue;
-          }
-
-          // ===== 3. SIGNATURE BLOCK labels — standalone label words below a line =====
-          // In formal contracts: a horizontal line, then "Signature" or "Date" below it
-          const trimmed = text.trim();
-          if (/^Signature\s*$/i.test(trimmed) && trimmed.length < 15) {
-            addField({ fieldType: 'signature', pageNumber: i, x, y: y - 50, width: 200, height: 50, label: 'Signature', aiDetected: true });
-          } else if (/^Date\s*$/i.test(trimmed) && trimmed.length < 10) {
-            addField({ fieldType: 'date', pageNumber: i, x, y: y - 25, width: 150, height: 25, label: 'Date', aiDetected: true });
-          } else if (/^Initials?\s*$/i.test(trimmed) && trimmed.length < 12) {
-            addField({ fieldType: 'initials', pageNumber: i, x, y: y - 35, width: 80, height: 35, label: 'Initials', aiDetected: true });
-          }
-        }
-      }
-
-      // If no fields detected, add sensible defaults on last page
-      if (fields.length === 0) {
-        const lastPage = await doc.getPage(totalPages);
-        const vp = lastPage.getViewport({ scale: 1 });
-        fields.push(
-          { fieldType: 'signature', pageNumber: totalPages, x: 72, y: vp.height - 150, width: 200, height: 50, label: 'Signature', aiDetected: false },
-          { fieldType: 'date', pageNumber: totalPages, x: 72, y: vp.height - 90, width: 120, height: 25, label: 'Date', aiDetected: false },
-          { fieldType: 'initials', pageNumber: totalPages, x: 250, y: vp.height - 90, width: 80, height: 35, label: 'Initials', aiDetected: false },
-        );
-      }
-
-      signingState.fields = fields.map((f, idx) => ({ ...f, id: 'field-' + idx, filled: false, confirmed: false }));
-    }
-
-    // ===== PAGE NAVIGATION =====
-    let signingCurrentPage = 1;
-
-    function updateSigningPageNav() {
-      const total = signingState.pdfDoc ? signingState.pdfDoc.numPages : 1;
-      document.getElementById('signing-page-info').textContent = `Page ${signingCurrentPage} of ${total}`;
-      document.getElementById('signing-prev-page-btn').disabled = signingCurrentPage <= 1;
-      document.getElementById('signing-next-page-btn').disabled = signingCurrentPage >= total;
-    }
-
-    function signingPrevPage() {
-      if (signingCurrentPage > 1) {
-        signingCurrentPage--;
-        renderSigningPage(signingCurrentPage);
-        updateSigningPageNav();
-      }
-    }
-
-    function signingNextPage() {
-      const total = signingState.pdfDoc ? signingState.pdfDoc.numPages : 1;
-      if (signingCurrentPage < total) {
-        signingCurrentPage++;
-        renderSigningPage(signingCurrentPage);
-        updateSigningPageNav();
-      }
-    }
-
-    // ===== RENDER FIELD OVERLAYS ON PDF =====
-    function renderFieldOverlays(pageNum) {
-      const container = document.getElementById('signing-field-overlays');
-      container.innerHTML = '';
-      const scale = signingState.pageScale;
-
-      signingState.fields.forEach((field, idx) => {
-        if (field.pageNumber !== pageNum) return;
-
-        const div = document.createElement('div');
-        const isActive = idx === signingState.currentFieldIndex;
-        div.className = 'field-overlay' + (field.filled ? ' filled' : '') + (field.confirmed ? ' field-confirmed' : '') + (isActive ? ' active-field' : '');
-        div.style.left = (field.x * scale) + 'px';
-        div.style.top = (field.y * scale) + 'px';
-        div.style.width = (field.width * scale) + 'px';
-        div.style.height = (field.height * scale) + 'px';
-        div.dataset.fieldIdx = idx;
-
-        // Double-click to re-edit a confirmed field
-        div.ondblclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (field.confirmed) {
-            field.confirmed = false;
-            signingState.currentFieldIndex = idx;
-            renderFieldOverlays(pageNum);
-            renderSigningSidebar();
-            showToast('Field unlocked for editing', 'info');
-          }
-        };
-
-        // Right-click context menu: Duplicate, Delete
-        div.oncontextmenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          // Remove any existing context menu
-          const oldMenu = document.getElementById('field-context-menu');
-          if (oldMenu) oldMenu.remove();
-
-          const menu = document.createElement('div');
-          menu.id = 'field-context-menu';
-          menu.style.cssText = 'position:fixed;left:' + e.clientX + 'px;top:' + e.clientY + 'px;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:4px;z-index:9999;min-width:160px;animation:fadeIn 0.1s ease-out;';
-
-          const items = [
-            { label: 'Duplicate', icon: '📋', action: () => duplicateField(idx) },
-            { label: 'Duplicate as ✓', icon: '☑️', action: () => duplicateFieldAs(idx, 'checkmark') },
-            { label: 'Duplicate as ✕', icon: '☒', action: () => duplicateFieldAs(idx, 'xmark') },
-            { label: 'Delete', icon: '🗑️', action: () => { signingState.fields.splice(idx, 1); if (signingState.currentFieldIndex >= signingState.fields.length) signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1); renderFieldOverlays(signingCurrentPage); renderSigningSidebar(); } },
-          ];
-          items.forEach(item => {
-            const btn = document.createElement('button');
-            btn.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1f2937;text-align:left;transition:background 0.12s;';
-            btn.innerHTML = '<span style="font-size:16px;width:22px;text-align:center;">' + item.icon + '</span>' + item.label;
-            btn.onmouseenter = () => { btn.style.background = '#f3f0ff'; };
-            btn.onmouseleave = () => { btn.style.background = 'transparent'; };
-            btn.onclick = (ev) => { ev.stopPropagation(); menu.remove(); item.action(); };
-            menu.appendChild(btn);
-          });
-
-          document.body.appendChild(menu);
-          // Close on click outside
-          const closeMenu = (ev) => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', closeMenu); } };
-          setTimeout(() => document.addEventListener('mousedown', closeMenu), 0);
-        };
-
-        // Click to select this field and start drag
-        div.onmousedown = (e) => {
-          if (e.target.closest && e.target.closest('.field-confirm-btn')) return;
-          if (e.target.closest && e.target.closest('.field-delete-btn')) return;
-          if (e.target.classList.contains('resize-handle')) return;
-          if (e.target.classList.contains('field-inline-edit')) return;
-          e.preventDefault();
-          const wasActive = signingState.currentFieldIndex === idx;
-          signingState.currentFieldIndex = idx;
-          startFieldDrag(e, idx);
-          if (!wasActive) {
-            renderFieldOverlays(pageNum);
-            renderSigningSidebar();
-          }
-        };
-
-        if (field.filled) {
-          if (field.fieldType === 'checkmark') {
-            div.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:' + Math.min(field.width, field.height) * scale * 0.8 + 'px;color:#16a34a;font-weight:bold;line-height:1;">✓</div>';
-          } else if (field.fieldType === 'xmark') {
-            div.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:' + Math.min(field.width, field.height) * scale * 0.8 + 'px;color:#dc2626;font-weight:bold;line-height:1;">✕</div>';
-          } else if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
-            div.innerHTML = '<img src="' + signingState.signatureDataUrl + '" alt="Signature">';
-          } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
-            div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" alt="Initials">';
-          } else if (field.fieldType === 'date' || field.fieldType === 'name' || field.fieldType === 'text') {
-            var defVal = '';
-            if (field.fieldType === 'date') defVal = field.textValue || new Date().toLocaleDateString();
-            else if (field.fieldType === 'name') defVal = field.textValue || signingState.signerName || '';
-            else defVal = field.textValue || '';
-
-            if (field.confirmed) {
-              var span = document.createElement('span');
-              span.className = 'field-inline-edit';
-              span.textContent = defVal || field.label;
-              span.style.cssText = 'width:calc(100% - 8px);height:100%;display:flex;align-items:center;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;pointer-events:none;cursor:grab;color:#333;';
-              div.appendChild(span);
-            } else {
-              var inp = document.createElement('input');
-              inp.type = 'text';
-              inp.className = 'field-inline-edit';
-              inp.value = defVal;
-              inp.placeholder = field.label;
-              inp.style.cssText = 'width:calc(100% - 8px);height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;cursor:text;';
-              inp.onmousedown = function(ev) {
-                if (isActive) { ev.stopPropagation(); }
-              };
-              inp.onclick = function(ev) { ev.stopPropagation(); };
-              (function(fieldIdx) {
-                inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
-              })(idx);
-              div.appendChild(inp);
-            }
-          }
-        } else {
-          const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝', checkmark: '☑️', xmark: '☒' };
-          div.innerHTML = '<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">' + (icons[field.fieldType] || '📝') + ' ' + field.label + '</div>';
-        }
-
-        // Add confirm (checkmark) button
-        const confirmBtn = document.createElement('div');
-        confirmBtn.className = 'field-confirm-btn' + (field.confirmed ? ' confirmed' : '');
-        confirmBtn.innerHTML = '✓';
-        confirmBtn.title = field.confirmed ? 'Confirmed' : 'Click to confirm';
-        confirmBtn.onmousedown = (e) => { e.stopPropagation(); };
-        confirmBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); confirmSigningField(idx); };
-        div.appendChild(confirmBtn);
-
-        // Add delete button (X)
-        const delBtn = document.createElement('div');
-        delBtn.className = 'field-delete-btn';
-        delBtn.innerHTML = '✕';
-        delBtn.title = 'Delete field';
-        delBtn.onmousedown = (e) => { e.stopPropagation(); };
-        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteSigningField(idx); };
-        div.appendChild(delBtn);
-
-        // Add resize handle for active field
-        if (isActive) {
+          // Resize handle
           const handle = document.createElement('div');
           handle.className = 'resize-handle';
-          handle.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); startFieldResize(e, idx); };
+          handle.onmousedown = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const startX = e.clientX, startY = e.clientY;
+            const origW = f.w, origH = f.h;
+            const effectiveScale = scale * state.zoom;
+            const onMove = (ev) => {
+              f.w = Math.max(10, origW + (ev.clientX - startX) / effectiveScale);
+              f.h = Math.max(8, origH + (ev.clientY - startY) / effectiveScale);
+              div.style.width = (f.w * scale) + 'px';
+              div.style.height = (f.h * scale) + 'px';
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); renderOverlays(); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          };
           div.appendChild(handle);
-        }
 
-        container.appendChild(div);
-      });
-      // Add the floating + button at top-right of page
-      renderAddFieldButton(container);
-    }
+          // Drag
+          div.onmousedown = (e) => {
+            if (e.target.classList.contains('field-delete') || e.target.classList.contains('resize-handle')) return;
+            if (e.target.tagName === 'TEXTAREA') return;
+            e.preventDefault();
+            state.selectedFieldIdx = idx;
+            deselectAll();
+            div.classList.add('selected');
+            const startX = e.clientX, startY = e.clientY;
+            const origX = f.x, origY = f.y;
+            const effectiveScale = scale * state.zoom;
+            const onMove = (ev) => {
+              f.x = origX + (ev.clientX - startX) / effectiveScale;
+              f.y = origY + (ev.clientY - startY) / effectiveScale;
+              div.style.left = (f.x * scale) + 'px';
+              div.style.top = (f.y * scale) + 'px';
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          };
 
-    // ===== DRAG FIELDS =====
-    function startFieldDrag(e, idx) {
-      const field = signingState.fields[idx];
-      const scale = signingState.pageScale;
-      const zoom = signingState.zoomLevel || 1;
-      const wrap = document.getElementById('signing-canvas-wrap');
-      const rect = wrap.getBoundingClientRect();
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const origX = field.x;
-      const origY = field.y;
+          // Right-click context menu (NOT auto-duplicate)
+          div.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.selectedFieldIdx = idx;
+            deselectAll();
+            div.classList.add('selected');
 
-      function onMove(ev) {
-        const dx = (ev.clientX - startX) / (scale * zoom);
-        const dy = (ev.clientY - startY) / (scale * zoom);
-        field.x = Math.max(0, origX + dx);
-        field.y = Math.max(0, origY + dy);
-        renderFieldOverlays(field.pageNumber);
+            showContextMenu(e.clientX, e.clientY, [
+              { label: 'Duplicate', icon: '📋', action: () => {
+                const copy = { ...f, id: 'f-' + Date.now(), x: f.x + 15, y: f.y + 15 };
+                state.placedFields.push(copy);
+                renderOverlays(); updatePlacedList();
+                toast('Duplicated');
+              }},
+              { label: 'Duplicate as ✓', icon: '☑️', action: () => {
+                const copy = { ...f, id: 'f-' + Date.now(), stampId: 'check', label: '✓ Check', x: f.x + 15, y: f.y + 15, w: 18, h: 18, value: '✓' };
+                state.placedFields.push(copy);
+                renderOverlays(); updatePlacedList();
+              }},
+              { label: 'Duplicate as ✕', icon: '☒', action: () => {
+                const copy = { ...f, id: 'f-' + Date.now(), stampId: 'xmark', label: '✕ Cross', x: f.x + 15, y: f.y + 15, w: 18, h: 18, value: '✕' };
+                state.placedFields.push(copy);
+                renderOverlays(); updatePlacedList();
+              }},
+              { sep: true },
+              { label: 'Delete', icon: '🗑️', danger: true, action: () => {
+                state.placedFields.splice(idx, 1);
+                renderOverlays(); updatePlacedList();
+              }},
+            ]);
+          };
+
+          container.appendChild(div);
+        });
       }
-      function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
+
+      function updatePlacedList() {
+        const section = document.getElementById('placed-section');
+        const list = document.getElementById('placed-list');
+        const count = document.getElementById('placed-count');
+        count.textContent = state.placedFields.length;
+        section.style.display = state.placedFields.length ? 'block' : 'none';
+        list.innerHTML = '';
+        state.placedFields.forEach((f, idx) => {
+          const div = document.createElement('div');
+          div.className = 'placed-item';
+          const displayVal = f.stampId === 'signature' ? '(sig)' : f.stampId === 'initials' ? '(init)' : f.value;
+          div.innerHTML = `
+            <span class="pi-label">${f.label}</span>
+            <span class="pi-value">p${f.page} — ${escHTML(displayVal)}</span>
+            <span class="pi-delete" onclick="removeField(${idx})">✕</span>
+          `;
+          list.appendChild(div);
+        });
+        document.getElementById('finalize-btn').style.display = state.placedFields.length ? '' : 'none';
       }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    }
 
-    // ===== RESIZE FIELDS =====
-    function startFieldResize(e, idx) {
-      const field = signingState.fields[idx];
-      const scale = signingState.pageScale;
-      const zoom = signingState.zoomLevel || 1;
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const origW = field.width;
-      const origH = field.height;
-
-      function onMove(ev) {
-        const dw = (ev.clientX - startX) / (scale * zoom);
-        const dh = (ev.clientY - startY) / (scale * zoom);
-        field.width = Math.max(40, origW + dw);
-        field.height = Math.max(20, origH + dh);
-        renderFieldOverlays(field.pageNumber);
+      function removeField(idx) {
+        state.placedFields.splice(idx, 1);
+        renderOverlays();
+        updatePlacedList();
       }
-      function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-      }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    }
 
-    // ===== DELETE / CONFIRM / ADD FIELD FUNCTIONS =====
-    function deleteSigningField(idx) {
-      if (idx < 0 || idx >= signingState.fields.length) return;
-      signingState.fields.splice(idx, 1);
-      signingState.fields.forEach((f, i) => f.id = 'field-' + i);
-      if (signingState.currentFieldIndex >= signingState.fields.length) {
-        signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1);
-      }
-      renderFieldOverlays(signingCurrentPage);
-      renderSigningSidebar();
-      showToast('Field deleted', 'info');
-    }
+      // ===== PDF LOADING =====
+      async function loadPDF(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    function duplicateField(idx) {
-      const field = signingState.fields[idx];
-      if (!field) return;
-      addNewSigningField(field.fieldType, field.label, field.x + 20, field.y + 20, field.width, field.height);
-    }
-
-    function duplicateFieldAs(idx, newType) {
-      const field = signingState.fields[idx];
-      if (!field) return;
-      const label = newType === 'checkmark' ? 'Checkmark ✓' : 'X Mark ✕';
-      addNewSigningField(newType, label, field.x + 20, field.y + 20, 22, 22);
-    }
-
-    // ===== MARQUEE SELECTION FOR BULK DELETE =====
-    function initMarqueeSelection() {
-      const wrap = document.getElementById('signing-canvas-wrap');
-      if (!wrap) return;
-
-      let marqueeDiv = null;
-      let startX = 0, startY = 0;
-      let isMarquee = false;
-
-      wrap.addEventListener('mousedown', function(e) {
-        // Only start marquee on direct click on the wrap background or canvas (not on fields)
-        if (e.target.closest('.field-overlay') || e.target.closest('#signing-add-field-float') || e.target.closest('.signing-zoom-controls')) return;
-        if (e.button !== 0) return; // Left click only
-        if (signingState.step < 2 || signingState.step > 3) return;
-
-        const container = document.getElementById('signing-pdf-canvas-container');
-        if (!container) return;
-        const containerRect = container.getBoundingClientRect();
-
-        startX = e.clientX;
-        startY = e.clientY;
-        isMarquee = false;
-
-        function onMove(ev) {
-          const dx = Math.abs(ev.clientX - startX);
-          const dy = Math.abs(ev.clientY - startY);
-          if (!isMarquee && (dx > 8 || dy > 8)) {
-            isMarquee = true;
-            marqueeDiv = document.createElement('div');
-            marqueeDiv.id = 'signing-marquee';
-            marqueeDiv.style.cssText = 'position:fixed;border:2px dashed #6366f1;background:rgba(99,102,241,0.08);border-radius:3px;z-index:100;pointer-events:none;';
-            document.body.appendChild(marqueeDiv);
-          }
-          if (isMarquee && marqueeDiv) {
-            const left = Math.min(startX, ev.clientX);
-            const top = Math.min(startY, ev.clientY);
-            const w = Math.abs(ev.clientX - startX);
-            const h = Math.abs(ev.clientY - startY);
-            marqueeDiv.style.left = left + 'px';
-            marqueeDiv.style.top = top + 'px';
-            marqueeDiv.style.width = w + 'px';
-            marqueeDiv.style.height = h + 'px';
-
-            // Highlight fields inside marquee
-            const scale = signingState.pageScale * (signingState.zoomLevel || 1);
-            document.querySelectorAll('.field-overlay').forEach(el => {
-              const r = el.getBoundingClientRect();
-              const overlap = !(r.right < left || r.left > left + w || r.bottom < top || r.top > top + h);
-              el.style.outline = overlap ? '3px solid #ef4444' : '';
-            });
+        // Warn if there are already placed fields (wrong document opened by mistake)
+        if (state.placedFields.length > 0) {
+          if (!confirm('You have ' + state.placedFields.length + ' placed field(s) on the current document. Opening a new PDF will remove them.\n\nContinue?')) {
+            e.target.value = ''; // reset file input
+            return;
           }
         }
 
-        function onUp(ev) {
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
-          if (isMarquee && marqueeDiv) {
-            const left = Math.min(startX, ev.clientX);
-            const top = Math.min(startY, ev.clientY);
-            const w = Math.abs(ev.clientX - startX);
-            const h = Math.abs(ev.clientY - startY);
+        state.fileName = file.name;
+        const bytes = await file.arrayBuffer();
+        state.pdfBytes = new Uint8Array(bytes);
+        state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes.slice() }).promise;
+        state.pdfLibDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+        state.totalPages = state.pdfDoc.numPages;
+        state.currentPage = 1;
+        state.placedFields = [];
+        state.zoom = 1;
 
-            // Find fields inside the marquee
-            const selectedIndices = [];
-            const scale = signingState.pageScale * (signingState.zoomLevel || 1);
-            document.querySelectorAll('.field-overlay').forEach(el => {
-              const r = el.getBoundingClientRect();
-              const overlap = !(r.right < left || r.left > left + w || r.bottom < top || r.top > top + h);
-              if (overlap) {
-                const idx = parseInt(el.dataset.fieldIdx);
-                if (!isNaN(idx)) selectedIndices.push(idx);
-              }
-              el.style.outline = '';
-            });
+        document.getElementById('upload-prompt').style.display = 'none';
+        document.getElementById('pdf-canvas-wrap').style.display = 'block';
+        document.getElementById('pdf-nav').style.display = 'flex';
+        document.getElementById('zoom-controls').style.display = 'flex';
+        document.getElementById('panel-btn').style.display = '';
 
-            marqueeDiv.remove();
-            marqueeDiv = null;
-            isMarquee = false;
+        await renderPage(state.currentPage);
+        updatePlacedList();
+        applyZoom();
+        toast('Loaded: ' + file.name + ' (' + state.totalPages + ' pages)');
+      }
 
-            if (selectedIndices.length > 0) {
-              showBulkDeletePrompt(selectedIndices);
+      async function renderPage(num) {
+        state.currentPage = num;
+        const page = await state.pdfDoc.getPage(num);
+        const viewport = page.getViewport({ scale: state.scale });
+        const canvas = document.getElementById('pdf-canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const overlays = document.getElementById('field-overlays');
+        overlays.style.width = viewport.width + 'px';
+        overlays.style.height = viewport.height + 'px';
+
+        renderOverlays();
+        document.getElementById('page-info').textContent = `Page ${num} of ${state.totalPages}`;
+        // Update Next button — show "Finalize" on last page
+        const nextBtn = document.getElementById('btn-next');
+        if (num >= state.totalPages) {
+          nextBtn.textContent = 'Finalize & Download';
+          nextBtn.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+          nextBtn.style.color = '#fff';
+          nextBtn.style.border = 'none';
+          nextBtn.style.fontWeight = '600';
+        } else {
+          nextBtn.textContent = 'Next →';
+          nextBtn.style.background = '#fff';
+          nextBtn.style.color = '';
+          nextBtn.style.border = '1px solid #e5e7eb';
+          nextBtn.style.fontWeight = '500';
+        }
+      }
+
+      function prevPage() { if (state.currentPage > 1) renderPage(state.currentPage - 1); }
+      function nextPage() { if (state.currentPage < state.totalPages) renderPage(state.currentPage + 1); }
+      function nextOrFinalize() {
+        if (state.currentPage >= state.totalPages) {
+          finalizePDF();
+        } else {
+          nextPage();
+        }
+      }
+
+      // ===== SIGNATURE PAD =====
+      let sigCtx, sigDrawing = false;
+      function initSigPad() {
+        const canvas = document.getElementById('sig-canvas');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        sigCtx = canvas.getContext('2d');
+        sigCtx.scale(dpr, dpr);
+        sigCtx.strokeStyle = '#1a1a2e';
+        sigCtx.lineWidth = 2;
+        sigCtx.lineCap = 'round';
+        sigCtx.lineJoin = 'round';
+
+        canvas.onmousedown = canvas.ontouchstart = (e) => {
+          sigDrawing = true;
+          const pos = getSigPos(e);
+          sigCtx.beginPath();
+          sigCtx.moveTo(pos.x, pos.y);
+        };
+        canvas.onmousemove = canvas.ontouchmove = (e) => {
+          if (!sigDrawing) return;
+          e.preventDefault();
+          const pos = getSigPos(e);
+          sigCtx.lineTo(pos.x, pos.y);
+          sigCtx.stroke();
+        };
+        canvas.onmouseup = canvas.ontouchend = () => {
+          sigDrawing = false;
+          state.sigDataUrl = canvas.toDataURL('image/png');
+          generateInitials();
+          updateStampPreviews();
+        };
+        // FIX: stop drawing when mouse leaves canvas
+        canvas.onmouseleave = () => {
+          if (sigDrawing) {
+            sigDrawing = false;
+            state.sigDataUrl = canvas.toDataURL('image/png');
+            generateInitials();
+            updateStampPreviews();
+          }
+        };
+      }
+
+      function getSigPos(e) {
+        const canvas = document.getElementById('sig-canvas');
+        const rect = canvas.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      }
+
+      function clearSigPad() {
+        const canvas = document.getElementById('sig-canvas');
+        sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+        state.sigDataUrl = null;
+        state.initialsDataUrl = null;
+        updateStampPreviews();
+      }
+
+      function toggleType() {
+        const name = prompt('Type your signature:');
+        if (!name) return;
+        const canvas = document.getElementById('sig-canvas');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+        sigCtx.font = "italic 28px 'Brush Script MT', 'Segoe Script', cursive";
+        sigCtx.fillStyle = '#1a1a2e';
+        const m = sigCtx.measureText(name);
+        sigCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
+        state.sigDataUrl = canvas.toDataURL('image/png');
+        generateInitials();
+        updateStampPreviews();
+      }
+
+      function generateInitials() {
+        const name = document.getElementById('prof-name')?.value || '';
+        if (!name.trim()) return;
+        const initials = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
+        const dpr = window.devicePixelRatio || 2;
+        const w = 140, h = 68; // 2x base size for crisp rendering
+        const c = document.createElement('canvas');
+        c.width = w * dpr; c.height = h * dpr;
+        const ctx = c.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.font = "italic 38px 'Brush Script MT', 'Segoe Script', cursive";
+        ctx.fillStyle = '#1a1a2e';
+        const m = ctx.measureText(initials);
+        ctx.fillText(initials, (w - m.width) / 2, 48);
+        state.initialsDataUrl = c.toDataURL('image/png');
+      }
+
+      // ===== FINALIZE =====
+      async function finalizePDF() {
+        try {
+          toast('Finalizing...');
+          const doc = state.pdfLibDoc;
+          const pages = doc.getPages();
+
+          for (const f of state.placedFields) {
+            const page = pages[f.page - 1];
+            if (!page) continue;
+            const pH = page.getHeight();
+            const pW = page.getWidth();
+            const pdfJsPage = await state.pdfDoc.getPage(f.page);
+            const vp = pdfJsPage.getViewport({ scale: 1 });
+            const sx = pW / vp.width;
+            const sy = pH / vp.height;
+            const px = f.x * sx;
+            const pw = f.w * sx;
+            const ph = f.h * sy;
+            const py = pH - (f.y * sy) - ph;
+
+            if ((f.stampId === 'signature') && state.sigDataUrl) {
+              const img = await doc.embedPng(await fetch(state.sigDataUrl).then(r => r.arrayBuffer()));
+              page.drawImage(img, { x: px, y: py, width: pw, height: ph });
+            } else if ((f.stampId === 'initials') && state.initialsDataUrl) {
+              const img = await doc.embedPng(await fetch(state.initialsDataUrl).then(r => r.arrayBuffer()));
+              page.drawImage(img, { x: px, y: py, width: pw, height: ph });
+            } else if (f.stampId === 'check') {
+              const { rgb } = PDFLib;
+              const s = Math.min(pw, ph) * 0.35;
+              const cx = px + pw/2, cy = py + ph/2;
+              page.drawLine({ start:{x:cx-s,y:cy}, end:{x:cx-s*0.2,y:cy-s*0.7}, thickness:Math.max(1.5,s*0.25), color:rgb(0,0.5,0) });
+              page.drawLine({ start:{x:cx-s*0.2,y:cy-s*0.7}, end:{x:cx+s,y:cy+s*0.7}, thickness:Math.max(1.5,s*0.25), color:rgb(0,0.5,0) });
+            } else if (f.stampId === 'xmark') {
+              const { rgb } = PDFLib;
+              const s = Math.min(pw, ph) * 0.35;
+              const cx = px + pw/2, cy = py + ph/2;
+              page.drawLine({ start:{x:cx-s,y:cy-s}, end:{x:cx+s,y:cy+s}, thickness:Math.max(1.5,s*0.25), color:rgb(0.7,0,0) });
+              page.drawLine({ start:{x:cx-s,y:cy+s}, end:{x:cx+s,y:cy-s}, thickness:Math.max(1.5,s*0.25), color:rgb(0.7,0,0) });
+            } else if (f.value && f.value !== '__EDITABLE__') {
+              const { rgb } = PDFLib;
+              // Handle multiline text
+              const lines = f.value.split('\n');
+              const fs = Math.min(11, ph * 0.7 / Math.max(1, lines.length));
+              lines.forEach((line, li) => {
+                if (line.trim()) {
+                  page.drawText(line, { x: px + 2, y: py + ph - (fs * 1.3 * (li + 1)), size: fs, color: rgb(0,0,0) });
+                }
+              });
             }
           }
-        }
 
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
-      });
-    }
-
-    function showBulkDeletePrompt(indices) {
-      // Remove any existing prompt
-      const old = document.getElementById('signing-bulk-delete');
-      if (old) old.remove();
-
-      const prompt = document.createElement('div');
-      prompt.id = 'signing-bulk-delete';
-      prompt.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;box-shadow:0 12px 48px rgba(0,0,0,0.25);padding:24px;z-index:9999;text-align:center;min-width:280px;animation:fadeIn 0.15s ease-out;';
-      prompt.innerHTML = '<div style="font-size:15px;font-weight:600;color:#1f2937;margin-bottom:6px;">Delete ' + indices.length + ' selected field' + (indices.length > 1 ? 's' : '') + '?</div>' +
-        '<div style="font-size:13px;color:#6b7280;margin-bottom:16px;">This cannot be undone.</div>' +
-        '<div style="display:flex;gap:8px;justify-content:center;">' +
-        '<button id="bulk-delete-cancel" style="padding:8px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;">Cancel</button>' +
-        '<button id="bulk-delete-confirm" style="padding:8px 20px;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Delete All</button>' +
-        '</div>';
-      document.body.appendChild(prompt);
-
-      document.getElementById('bulk-delete-cancel').onclick = () => prompt.remove();
-      document.getElementById('bulk-delete-confirm').onclick = () => {
-        // Delete from highest index to lowest to avoid shifting issues
-        indices.sort((a, b) => b - a).forEach(idx => {
-          signingState.fields.splice(idx, 1);
-        });
-        signingState.currentFieldIndex = Math.min(signingState.currentFieldIndex, Math.max(0, signingState.fields.length - 1));
-        renderFieldOverlays(signingCurrentPage);
-        renderSigningSidebar();
-        showToast(indices.length + ' field' + (indices.length > 1 ? 's' : '') + ' deleted', 'success');
-        prompt.remove();
-      };
-    }
-
-    function confirmSigningField(idx) {
-      const field = signingState.fields[idx];
-      if (!field) return;
-      field.confirmed = !field.confirmed;
-      if (field.confirmed) {
-        field.filled = true;
-        const nextUnconfirmed = signingState.fields.findIndex((f, i) => i !== idx && !f.confirmed);
-        if (nextUnconfirmed >= 0) {
-          signingState.currentFieldIndex = nextUnconfirmed;
-        } else {
-          signingState.currentFieldIndex = -1;
+          const bytes = await doc.save();
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = state.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
+          a.click();
+          toast('Document saved!');
+        } catch (err) {
+          console.error(err);
+          toast('Error: ' + err.message);
         }
       }
-      renderFieldOverlays(signingCurrentPage);
-      renderSigningSidebar();
-    }
 
-    function updateFieldValue(idx, value) {
-      const field = signingState.fields[idx];
-      if (!field) return;
-      field.textValue = value;
-      field.filled = true;
-      // Only sync values for name fields (your name is the same everywhere).
-      // Text, date, and other fields are independent — each has its own unique value.
-      const syncTypes = ['name'];
-      if (syncTypes.includes(field.fieldType)) {
-        signingState.fields.forEach(function(f, i) {
-          if (i !== idx && f.fieldType === field.fieldType) {
-            f.textValue = value;
-            f.filled = true;
-          }
-        });
-      }
-    }
-
-    // Field type definitions used by both "+" button and right-click menu
-    var FIELD_TYPES = [
-      { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
-      { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
-      { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
-      { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
-      { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
-      { type: 'checkmark', label: 'Checkmark ✓', icon: '☑️', w: 22, h: 22 },
-      { type: 'xmark', label: 'X Mark ✕', icon: '☒', w: 22, h: 22 },
-    ];
-
-    function buildFieldPickerMenu(onSelect) {
-      var menu = document.createElement('div');
-      menu.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:150px;animation:fadeIn 0.1s ease-out;';
-      FIELD_TYPES.forEach(function(t) {
-        var btn = document.createElement('button');
-        btn.style.cssText = 'background:transparent;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;width:100%;text-align:left;transition:background 0.12s;color:#1f2937;';
-        btn.innerHTML = '<span style="font-size:18px;width:24px;text-align:center;">' + t.icon + '</span>' + t.label;
-        btn.onmouseenter = function() { this.style.background = '#f3f0ff'; };
-        btn.onmouseleave = function() { this.style.background = 'transparent'; };
-        btn.onclick = function(ev) { ev.stopPropagation(); menu.remove(); onSelect(t); };
-        menu.appendChild(btn);
-      });
-      return menu;
-    }
-
-    function renderAddFieldButton(container) {
-      if (signingState.step !== 2 && signingState.step !== 3) return;
-      var oldFloat = document.getElementById('signing-add-field-float');
-      if (oldFloat) oldFloat.remove();
-      // Place the "+" button OUTSIDE the scroll area — in the signing-pdf-preview container
-      var preview = document.getElementById('signing-pdf-preview');
-      if (!preview) return;
-      // Make preview position:relative so our button can be positioned within it
-      preview.style.position = 'relative';
-
-      var floatWrap = document.createElement('div');
-      floatWrap.id = 'signing-add-field-float';
-      // Fixed position relative to the preview container — always visible top-right
-      floatWrap.style.cssText = 'position:absolute;top:16px;right:16px;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
-
-      var addBtn = document.createElement('div');
-      addBtn.className = 'add-field-page-btn';
-      addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
-      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:48px;height:48px;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.35);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
-      addBtn.title = 'Add Field (or right-click on PDF)';
-      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.08)'; this.style.boxShadow = '0 6px 24px rgba(99,102,241,0.5)'; };
-      addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; };
-      addBtn.onclick = function(e) {
-        e.stopPropagation();
-        var existing = document.querySelector('.add-field-float-picker');
-        if (existing) { existing.remove(); return; }
-        var picker = buildFieldPickerMenu(function(t) { addFieldToCenter(t.type, t.label, t.w, t.h); });
-        picker.className = 'add-field-float-picker';
-        picker.style.cssText += 'pointer-events:auto;position:relative;';
-        floatWrap.appendChild(picker);
-      };
-      floatWrap.appendChild(addBtn);
-      preview.appendChild(floatWrap);
-
-      // ===== RIGHT-CLICK ON EMPTY PDF AREA → Add field at click position =====
-      var wrap = document.getElementById('signing-canvas-wrap');
-      if (wrap && !wrap._contextMenuBound) {
-        wrap._contextMenuBound = true;
-        wrap.addEventListener('contextmenu', function(e) {
-          // Don't intercept if clicking on a field overlay (those have their own context menu)
-          if (e.target.closest('.field-overlay')) return;
-          if (signingState.step < 2 || signingState.step > 3) return;
-          e.preventDefault();
-
-          // Remove any existing menus
-          var oldMenu = document.getElementById('field-context-menu');
-          if (oldMenu) oldMenu.remove();
-          var oldPicker = document.querySelector('.add-field-float-picker');
-          if (oldPicker) oldPicker.remove();
-
-          // Calculate the PDF position from the click
-          var canvasContainer = document.getElementById('signing-pdf-canvas-container');
-          if (!canvasContainer) return;
-          var containerRect = canvasContainer.getBoundingClientRect();
-          var scale = signingState.pageScale;
-          var zoom = signingState.zoomLevel || 1;
-          var pdfX = (e.clientX - containerRect.left) / (scale * zoom);
-          var pdfY = (e.clientY - containerRect.top) / (scale * zoom);
-
-          var menu = document.createElement('div');
-          menu.id = 'field-context-menu';
-          menu.style.cssText = 'position:fixed;left:' + e.clientX + 'px;top:' + e.clientY + 'px;z-index:9999;';
-          var picker = buildFieldPickerMenu(function(t) {
-            // Place field at the exact click position
-            addNewSigningField(t.type, t.label, Math.max(10, pdfX - t.w/2), Math.max(10, pdfY - t.h/2), t.w, t.h);
-            menu.remove();
-          });
-          menu.appendChild(picker);
-          document.body.appendChild(menu);
-
-          var closeMenu = function(ev) { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', closeMenu); } };
-          setTimeout(function() { document.addEventListener('mousedown', closeMenu); }, 0);
-        });
-      }
-    }
-
-    function addFieldToCenter(fieldType, label, width, height) {
-      const wrap = document.getElementById('signing-canvas-wrap');
-      const canvasContainer = document.getElementById('signing-pdf-canvas-container');
-      if (!wrap || !canvasContainer) return;
-      const scale = signingState.pageScale;
-      const zoom = signingState.zoomLevel || 1;
-      const wrapRect = wrap.getBoundingClientRect();
-      const containerRect = canvasContainer.getBoundingClientRect();
-      // Calculate the visible center relative to the PDF canvas, accounting for scroll and zoom
-      const visibleCenterX = ((wrapRect.width / 2) + wrap.scrollLeft - (containerRect.left - wrapRect.left)) / (scale * zoom);
-      const visibleCenterY = ((wrapRect.height / 2) + wrap.scrollTop - (containerRect.top - wrapRect.top)) / (scale * zoom);
-      const x = visibleCenterX - (width / 2);
-      const y = visibleCenterY - (height / 2);
-      addNewSigningField(fieldType, label, Math.max(10, x), Math.max(10, y), width, height);
-    }
-
-    function addNewSigningField(fieldType, label, x, y, width, height) {
-      if (x === undefined || y === undefined) {
-        x = x !== undefined ? x : 200;
-        y = y !== undefined ? y : 300;
-      }
-      // Pre-fill textValue for name and date fields
-      let prefillValue = '';
-      if (fieldType === 'name') prefillValue = signingState.signerName || '';
-      else if (fieldType === 'date') prefillValue = new Date().toLocaleDateString();
-      else if (fieldType === 'checkmark') prefillValue = '✓';
-      else if (fieldType === 'xmark') prefillValue = '✕';
-
-      // Checkmark/xmark are auto-confirmed since they need no editing
-      const autoConfirm = (fieldType === 'checkmark' || fieldType === 'xmark');
-
-      const newField = {
-        id: 'field-' + signingState.fields.length,
-        fieldType: fieldType,
-        pageNumber: signingCurrentPage,
-        x: Math.max(10, x),
-        y: Math.max(10, y),
-        width: width,
-        height: height,
-        label: label,
-        filled: true,
-        confirmed: autoConfirm,
-        aiDetected: false,
-        textValue: prefillValue
-      };
-      signingState.fields.push(newField);
-      signingState.currentFieldIndex = signingState.fields.length - 1;
-      renderFieldOverlays(signingCurrentPage);
-      renderSigningSidebar();
-      showToast(label + ' field added — drag to reposition', 'success');
-    }
-
-    // ===== KEYBOARD HANDLERS FOR SIGNING =====
-    // Arrow key navigation
-    document.addEventListener('keydown', function(e) {
-      if (!signingState || signingState.step < 2 || signingState.step > 3) return;
-      const idx = signingState.currentFieldIndex;
-      if (idx < 0 || idx >= signingState.fields.length) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-      if (!arrows.includes(e.key)) return;
-      e.preventDefault();
-      const field = signingState.fields[idx];
-      const nudge = e.shiftKey ? 10 : 2;
-      if (e.key === 'ArrowUp') field.y = Math.max(0, field.y - nudge);
-      else if (e.key === 'ArrowDown') field.y += nudge;
-      else if (e.key === 'ArrowLeft') field.x = Math.max(0, field.x - nudge);
-      else if (e.key === 'ArrowRight') field.x += nudge;
-      const scale = signingState.pageScale || 1;
-      const overlayEl = document.querySelector('.field-overlay[data-field-idx="' + idx + '"]');
-      if (overlayEl) {
-        overlayEl.style.left = (field.x * scale) + 'px';
-        overlayEl.style.top = (field.y * scale) + 'px';
-      }
-    });
-
-    // Escape/Delete key handler
-    document.addEventListener('keydown', (e) => {
-      const overlay = document.getElementById('signing-overlay');
-      if (!overlay || !overlay.classList.contains('visible')) return;
-      if (signingState.step !== 2 && signingState.step !== 3) return;
-      const picker = document.querySelector('.add-field-picker');
-      if (picker && e.key === 'Escape') { picker.remove(); return; }
-      if ((e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') && signingState.fields.length > 0) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        e.preventDefault();
-        deleteSigningField(signingState.currentFieldIndex);
-      }
-    });
-
-    function scrollToField(idx) {
-      signingState.currentFieldIndex = idx;
-      const field = signingState.fields[idx];
-      if (!field) return;
-      // Navigate to the field's page
-      signingCurrentPage = field.pageNumber;
-      renderSigningPage(field.pageNumber);
-      updateSigningPageNav();
-      // Scroll the field into view
-      setTimeout(() => {
-        const overlay = document.querySelector(`.field-overlay[data-field-idx="${idx}"]`);
-        if (overlay) overlay.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    }
-
-    // ===== SIDEBAR RENDERING =====
-    function renderSigningSidebar() {
-      const content = document.getElementById('signing-sidebar-content');
-      const actions = document.getElementById('signing-actions');
-      const step = signingState.step;
-
-      if (step === 2) renderSetupStep(content, actions);
-      else if (step === 3) renderGuidedFieldStep(content, actions);
-      else if (step === 4) renderFinalizeStep(content, actions);
-    }
-
-    // ----- STEP 2: SETUP (Signature + Name — just capture signature, then go to guided flow) -----
-    function renderSetupStep(content, actions) {
-      const user = typeof DPStudioAPI !== 'undefined' ? DPStudioAPI.auth.getUser() : null;
-      const defaultName = signingState.signerName || user?.name || '';
-      const defaultEmail = signingState.signerEmail || user?.email || '';
-
-      content.innerHTML = `
-        <h3>Set Up Your Signature</h3>
-        <p>Draw or type your signature. You'll place each field one at a time.</p>
-
-        <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-size:12px;font-weight:500;">Your Full Name</label>
-          <input type="text" id="signing-name" value="${defaultName}" placeholder="Enter your full name" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-        </div>
-
-        <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-size:12px;font-weight:500;">Email</label>
-          <input type="email" id="signing-email" value="${defaultEmail}" placeholder="your@email.com" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-        </div>
-
-        <label style="font-size:12px;font-weight:500;display:block;margin-bottom:8px;">Your Signature</label>
-        <div class="sig-setup-area" style="border:2px solid #94a3b8;border-radius:10px;padding:10px;background:#fff;">
-          <div id="signing-sig-draw-mode">
-            <canvas id="signing-sig-pad" width="260" height="90" style="display:block;width:100%;border:1.5px dashed #cbd5e1;border-radius:6px;cursor:crosshair;background:#fafbfc;"></canvas>
-            <div style="text-align:center;margin-top:4px;font-size:10px;color:#94a3b8;">Draw your signature above</div>
-          </div>
-          <div id="signing-sig-type-mode" style="display:none;">
-            <input type="text" id="signing-sig-type-input" placeholder="Type your signature here..." oninput="updateTypedSignature()" style="width:100%;padding:12px 14px;border:1.5px dashed #cbd5e1;border-radius:6px;font-family:'Brush Script MT','Segoe Script','Dancing Script',cursive;font-size:28px;font-style:italic;color:#1e293b;background:#fafbfc;text-align:center;outline:none;" />
-            <div style="text-align:center;margin-top:4px;font-size:10px;color:#94a3b8;">Type your signature above</div>
-          </div>
-          <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;">
-            <button class="btn btn-secondary" id="signing-clear-btn" style="font-size:11px;padding:4px 10px;" onclick="clearSigningSigPad()">Clear</button>
-            <button class="btn btn-secondary" id="signing-mode-toggle-btn" style="font-size:11px;padding:4px 10px;" onclick="toggleSignatureMode()">Type Instead</button>
-          </div>
-        </div>
-
-        ${signingState.signatureDataUrl ? `
-          <div style="margin-bottom:12px;">
-            <label style="font-size:11px;color:var(--text-secondary);">Signature Preview:</label>
-            <div class="sig-preview"><img src="${signingState.signatureDataUrl}" alt="Signature"></div>
-          </div>
-        ` : ''}
-
-        <div style="background:var(--bg);border-radius:8px;padding:10px;margin-top:12px;font-size:12px;color:var(--text-secondary);">
-          Found ${signingState.fields.length} field${signingState.fields.length !== 1 ? 's' : ''} to sign. You can add more with the <strong>+</strong> button.
-        </div>
-      `;
-
-      actions.innerHTML = `
-        <button class="btn btn-secondary" onclick="setSigningStep(1); document.getElementById('signing-upload-view').style.display='flex'; document.getElementById('signing-pdf-preview').style.display='none'; document.getElementById('signing-sidebar').style.display='none';">Back</button>
-        <button class="btn btn-primary" onclick="startGuidedSigning()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;">Start Signing →</button>
-      `;
-
-      setTimeout(initSigningSigPad, 50);
-    }
-
-    // ===== START GUIDED SIGNING (DocuSign-style one-at-a-time) =====
-    function startGuidedSigning() {
-      const name = document.getElementById('signing-name')?.value;
-      const email = document.getElementById('signing-email')?.value;
-      if (!name) { showToast('Please enter your name', 'error'); return; }
-      if (!signingState.signatureDataUrl) { showToast('Please draw or type your signature first', 'error'); return; }
-
-      signingState.signerName = name;
-      signingState.signerEmail = email || '';
-      generateInitials();
-
-      // Pre-fill ALL fields with actual values so nothing is ever empty
-      signingState.fields.forEach(function(f) {
-        f.filled = true; // Mark all fields as filled
-        if (f.fieldType === 'name' && !f.textValue) {
-          f.textValue = name;
-        } else if (f.fieldType === 'date' && !f.textValue) {
-          f.textValue = new Date().toLocaleDateString();
-        }
-        // Signature and initials are filled via signatureDataUrl/initialsDataUrl
-      });
-
-      // Start at first field
-      signingState.currentFieldIndex = 0;
-      setSigningStep(3);
-
-      // Navigate to first field
-      const firstField = signingState.fields[0];
-      if (firstField) {
-        scrollToField(0);
-      }
-      showToast('Place each field one at a time. Drag to move, resize from corner.', 'info');
-    }
-
-    // ----- STEP 3: GUIDED FIELD-BY-FIELD (DocuSign style) -----
-    function renderGuidedFieldStep(content, actions) {
-      const fields = signingState.fields;
-      const idx = signingState.currentFieldIndex;
-      const field = fields[idx];
-      const total = fields.length;
-
-      if (!field) return;
-
-      const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
-      const icon = icons[field.fieldType] || '📝';
-
-      // Auto-fill the current field with the appropriate value
-      if (!field.filled || (field.fieldType === 'signature' && !field.filled) || (field.fieldType === 'initials' && !field.filled)) {
-        field.filled = true;
-        if (field.fieldType === 'name' && !field.textValue) field.textValue = signingState.signerName || '';
-        if (field.fieldType === 'date' && !field.textValue) field.textValue = new Date().toLocaleDateString();
-        renderFieldOverlays(signingCurrentPage);
+      // ===== UTILS =====
+      function escHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+      function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('visible');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove('visible'), 2500);
       }
 
-      // Count confirmed fields for progress
-      const confirmedCount = fields.filter(f => f.confirmed).length;
-      const progressPct = Math.round((confirmedCount / total) * 100);
+      // ===== ENTRY POINT FOR FEATURE CARD =====
+      function openSigningFlow() {
+        // Show the signing PDF area
+        const pdfScroll = document.getElementById('pdf-scroll');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const welcomeScreen = document.getElementById('welcome-screen');
 
-      content.innerHTML = `
-        <div class="field-banner">
-          <div class="field-banner-step">Field ${idx + 1} of ${total}</div>
-          <div class="field-banner-title">${icon} ${field.label}</div>
-          <div class="field-banner-desc">Page ${field.pageNumber}</div>
-        </div>
+        if (pdfScroll) pdfScroll.style.display = 'flex';
+        if (canvasWrapper) canvasWrapper.style.display = 'none';
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
 
-        <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px;">
-          ${field.fieldType === 'signature' ? `
-            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Your Signature:</label>
-            <div class="sig-preview"><img src="${signingState.signatureDataUrl}" alt="Sig"></div>
-          ` : ''}
-          ${field.fieldType === 'initials' ? `
-            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Your Initials:</label>
-            <div class="sig-preview"><img src="${signingState.initialsDataUrl}" alt="Init"></div>
-          ` : ''}
-          ${field.fieldType === 'date' ? `
-            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Date:</label>
-            <div style="font-size:16px;font-weight:600;">${field.textValue || new Date().toLocaleDateString()}</div>
-          ` : ''}
-          ${field.fieldType === 'name' ? `
-            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Name:</label>
-            <div style="font-size:16px;font-weight:600;">${field.textValue || signingState.signerName}</div>
-          ` : ''}
-          ${field.fieldType === 'text' ? `
-            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">${field.label}:</label>
-            <input type="text" id="signing-text-field-value" placeholder="Enter value..." value="${field.textValue || ''}" onchange="signingState.fields[${idx}].textValue = this.value; renderFieldOverlays(signingCurrentPage);" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-          ` : ''}
-        </div>
+        // Show floating panel
+        const panel = document.getElementById('floating-panel');
+        if (panel) panel.style.display = 'block';
 
-        <div style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.2);border-radius:8px;padding:10px;margin-bottom:16px;font-size:12px;color:#6366f1;">
-          <strong>Tip:</strong> Click <span style="color:#22c55e;">✓</span> to confirm, <span style="color:#ef4444;">✕</span> to delete. Drag to move.
-        </div>
+        // Reset state
+        state.pdfDoc = null;
+        state.pdfLibDoc = null;
+        state.pdfBytes = null;
+        state.placedFields = [];
+        state.activeStamp = null;
+        state.zoom = 1;
 
-        <!-- Progress bar instead of field list -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-bottom:4px;">
-            <span>${confirmedCount} of ${total} confirmed</span>
-            <span>${progressPct}%</span>
-          </div>
-          <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:3px;transition:width 0.3s;"></div>
-          </div>
-        </div>
-      `;
-
-      const isLast = idx >= total - 1;
-      actions.innerHTML = `
-        <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
-          ${idx === 0 ? '← Setup' : '← Previous'}
-        </button>
-        <button class="btn btn-primary" onclick="${isLast ? 'setSigningStep(4)' : 'guidedNext()'}" style="background:linear-gradient(135deg,${isLast ? '#22c55e,#16a34a' : '#6366f1,#8b5cf6'});border:none;font-size:13px;">
-          ${isLast ? 'Finalize →' : 'Next Field →'}
-        </button>
-      `;
-    }
-
-    function guidedNext() {
-      const total = signingState.fields.length;
-      if (signingState.currentFieldIndex < total - 1) {
-        signingState.currentFieldIndex++;
-        scrollToField(signingState.currentFieldIndex);
-        renderSigningSidebar();
-      }
-    }
-
-    function guidedPrev() {
-      if (signingState.currentFieldIndex > 0) {
-        signingState.currentFieldIndex--;
-        scrollToField(signingState.currentFieldIndex);
-        renderSigningSidebar();
-      }
-    }
-
-    // ----- Signature Pad for Signing Flow -----
-    let signingSigPadCtx = null;
-    let signingSigPadDrawing = false;
-
-    function initSigningSigPad() {
-      const canvas = document.getElementById('signing-sig-pad');
-      if (!canvas) return;
-
-      // Match canvas buffer resolution to actual CSS display size to prevent coordinate mismatch
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-
-      signingSigPadCtx = canvas.getContext('2d');
-      signingSigPadCtx.scale(dpr, dpr);
-      signingSigPadCtx.strokeStyle = '#000';
-      signingSigPadCtx.lineWidth = 2;
-      signingSigPadCtx.lineCap = 'round';
-      signingSigPadCtx.lineJoin = 'round';
-
-      function getCanvasXY(e) {
-        const r = canvas.getBoundingClientRect();
-        return { x: e.clientX - r.left, y: e.clientY - r.top };
+        toast('Open a PDF to start signing');
       }
 
-      canvas.onmousedown = (e) => { const p = getCanvasXY(e); signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(p.x, p.y); };
-      canvas.onmousemove = (e) => { if (signingSigPadDrawing) { const p = getCanvasXY(e); signingSigPadCtx.lineTo(p.x, p.y); signingSigPadCtx.stroke(); } };
-      canvas.onmouseup = () => { signingSigPadDrawing = false; captureSigningSig(); };
-      canvas.onmouseleave = () => { if (signingSigPadDrawing) { signingSigPadDrawing = false; captureSigningSig(); } };
+      function closeSigningFlow() {
+        // Hide the signing PDF area and show welcome screen
+        const pdfScroll = document.getElementById('pdf-scroll');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const panel = document.getElementById('floating-panel');
 
-      canvas.ontouchstart = (e) => { e.preventDefault(); const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadDrawing = true; signingSigPadCtx.beginPath(); signingSigPadCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
-      canvas.ontouchmove = (e) => { e.preventDefault(); if (signingSigPadDrawing) { const t = e.touches[0]; const r = canvas.getBoundingClientRect(); signingSigPadCtx.lineTo(t.clientX - r.left, t.clientY - r.top); signingSigPadCtx.stroke(); } };
-      canvas.ontouchend = () => { signingSigPadDrawing = false; captureSigningSig(); };
-    }
+        if (pdfScroll) pdfScroll.style.display = 'none';
+        if (welcomeScreen) welcomeScreen.style.display = 'block';
+        if (panel) panel.style.display = 'none';
 
-    function clearSigningSigPad() {
-      const canvas = document.getElementById('signing-sig-pad');
-      if (canvas && signingSigPadCtx) {
-        signingSigPadCtx.save();
-        signingSigPadCtx.setTransform(1, 0, 0, 1, 0, 0);
-        signingSigPadCtx.clearRect(0, 0, canvas.width, canvas.height);
-        signingSigPadCtx.restore();
+        // Reset PDF display
+        const uploadPrompt = document.getElementById('upload-prompt');
+        const pdfCanvasWrap = document.getElementById('pdf-canvas-wrap');
+        const pdfNav = document.getElementById('pdf-nav');
+        if (uploadPrompt) uploadPrompt.style.display = 'block';
+        if (pdfCanvasWrap) pdfCanvasWrap.style.display = 'none';
+        if (pdfNav) pdfNav.style.display = 'none';
+
+        // Reset state
+        state.pdfDoc = null;
+        state.pdfLibDoc = null;
+        state.pdfBytes = null;
+        state.placedFields = [];
+        state.activeStamp = null;
+        state.selectedFieldIdx = -1;
+
+        toast('Signing flow closed');
       }
-      const typeInput = document.getElementById('signing-sig-type-input');
-      if (typeInput) typeInput.value = '';
-      signingState.signatureDataUrl = null;
-      signingState.initialsDataUrl = null;
-    }
 
-    function captureSigningSig() {
-      const canvas = document.getElementById('signing-sig-pad');
-      if (!canvas) return;
-      signingState.signatureDataUrl = canvas.toDataURL('image/png');
-      signingState.signatureType = 'draw';
-      generateInitials();
-    }
-
-    let signingModeIsType = false;
-
-    function toggleSignatureMode() {
-      signingModeIsType = !signingModeIsType;
-      const drawMode = document.getElementById('signing-sig-draw-mode');
-      const typeMode = document.getElementById('signing-sig-type-mode');
-      const toggleBtn = document.getElementById('signing-mode-toggle-btn');
-
-      if (signingModeIsType) {
-        if (drawMode) drawMode.style.display = 'none';
-        if (typeMode) typeMode.style.display = 'block';
-        if (toggleBtn) toggleBtn.textContent = 'Draw Instead';
-        // Pre-fill with name if available
-        const nameVal = document.getElementById('signing-name')?.value || '';
-        const typeInput = document.getElementById('signing-sig-type-input');
-        if (typeInput && !typeInput.value && nameVal) typeInput.value = nameVal;
-        updateTypedSignature();
-      } else {
-        if (drawMode) drawMode.style.display = 'block';
-        if (typeMode) typeMode.style.display = 'none';
-        if (toggleBtn) toggleBtn.textContent = 'Type Instead';
-        // Clear typed signature and reset
-        signingState.signatureDataUrl = null;
-        signingState.signatureType = null;
-        setTimeout(initSigningSigPad, 50);
-      }
-    }
-
-    function updateTypedSignature() {
-      const typeInput = document.getElementById('signing-sig-type-input');
-      const text = typeInput?.value || '';
-      if (!text.trim()) {
-        signingState.signatureDataUrl = null;
-        return;
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = 280;
-      canvas.height = 100;
-      const ctx = canvas.getContext('2d');
-      ctx.font = "italic 32px 'Brush Script MT', 'Segoe Script', cursive";
-      ctx.fillStyle = '#1e293b';
-      // Center the text
-      const measured = ctx.measureText(text);
-      const x = Math.max(10, (280 - measured.width) / 2);
-      ctx.fillText(text, x, 60);
-      signingState.signatureDataUrl = canvas.toDataURL('image/png');
-      signingState.signatureType = 'type';
-      generateInitials();
-    }
-
-    // Keep old name for backward compat (called nowhere else now, but just in case)
-    function typeSignature() { toggleSignatureMode(); }
-
-    function generateInitials() {
-      const name = document.getElementById('signing-name')?.value || signingState.signerName || '';
-      const initials = name.split(' ').filter(w => w).map(w => w[0]).join('').toUpperCase().slice(0, 3);
-      const canvas = document.createElement('canvas');
-      canvas.width = 80;
-      canvas.height = 40;
-      const ctx = canvas.getContext('2d');
-      ctx.font = "italic 24px 'Brush Script MT', cursive";
-      ctx.fillStyle = '#000';
-      ctx.fillText(initials, 5, 30);
-      signingState.initialsDataUrl = canvas.toDataURL('image/png');
-    }
-
-    // ----- STEP 4: FINALIZE + PAYMENT -----
-    function renderFinalizeStep(content, actions) {
-      const filledCount = signingState.fields.filter(f => f.filled).length;
-      const confirmedCount = signingState.fields.filter(f => f.confirmed).length;
-
-      content.innerHTML = `
-        <h3>Finalize Document</h3>
-        <p>Your document will be permanently locked with all signatures flattened into the PDF.</p>
-
-        <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(16,185,129,0.05));border:1px solid #86efac;border-radius:10px;padding:14px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-size:18px;">✅</span>
-            <strong style="font-size:13px;color:#166534;">Ready to Finalize</strong>
-          </div>
-          <ul style="font-size:12px;color:#166534;margin:0;padding-left:20px;">
-            <li>${filledCount} of ${signingState.fields.length} field(s) filled</li>
-            <li>${confirmedCount} of ${signingState.fields.length} field(s) confirmed</li>
-            <li>PDF will be flattened (no edits possible)</li>
-          </ul>
-        </div>
-
-        <div style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:16px;">💡</span>
-            <span style="font-size:12px;color:var(--text-secondary);">Tip: Double-click any confirmed field to unlock it for re-editing before finalizing.</span>
-          </div>
-        </div>
-      `;
-
-      actions.innerHTML = `
-        <button class="btn btn-secondary" onclick="setSigningStep(3)">← Back</button>
-        <button class="btn btn-primary" onclick="finalizeAndSign()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;padding:10px 20px;">
-          🔒 Finalize & Download
-        </button>
-      `;
-    }
-
-    function togglePayment() {
-      signingState.paymentEnabled = document.getElementById('signing-payment-toggle')?.checked || false;
-      // Save current payment values before re-render
-      const amtEl = document.getElementById('signing-payment-amount');
-      const descEl = document.getElementById('signing-payment-desc');
-      if (amtEl) signingState.paymentAmount = amtEl.value;
-      if (descEl) signingState.paymentDescription = descEl.value;
-      document.getElementById('signing-payment-config').style.display = signingState.paymentEnabled ? 'block' : 'none';
-    }
-
-    // ===== FINALIZE: FLATTEN PDF + OPTIONAL PAYMENT =====
-    async function finalizeAndSign() {
-      try {
-        showToast('Finalizing document...', 'info');
-
-        const pdfDoc = signingState.pdfLibDoc;
-        if (!pdfDoc) { showToast('No document loaded', 'error'); return; }
-
-        const pages = pdfDoc.getPages();
-
-        for (const field of signingState.fields) {
-          if (!field.filled) continue;
-          const page = pages[field.pageNumber - 1];
-          if (!page) continue;
-
-          const pageHeight = page.getHeight();
-          const pageWidth = page.getWidth();
-
-          // Get the PDF.js page to determine the viewport used for detection
-          const pdfJsPage = await signingState.pdfDoc.getPage(field.pageNumber);
-          const viewport1x = pdfJsPage.getViewport({ scale: 1 });
-
-          // Field coordinates are in PDF.js viewport space (scale=1, origin top-left)
-          // Convert to pdf-lib space (origin bottom-left)
-          const scaleX = pageWidth / viewport1x.width;
-          const scaleY = pageHeight / viewport1x.height;
-
-          const pdfX = field.x * scaleX;
-          const pdfW = field.width * scaleX;
-          const pdfH = field.height * scaleY;
-          const pdfY = pageHeight - (field.y * scaleY) - pdfH;
-
-          if ((field.fieldType === 'signature') && signingState.signatureDataUrl) {
-            const imgBytes = await fetch(signingState.signatureDataUrl).then(r => r.arrayBuffer());
-            const img = await pdfDoc.embedPng(imgBytes);
-            page.drawImage(img, { x: pdfX, y: pdfY, width: pdfW, height: pdfH });
-          } else if ((field.fieldType === 'initials') && signingState.initialsDataUrl) {
-            const imgBytes = await fetch(signingState.initialsDataUrl).then(r => r.arrayBuffer());
-            const img = await pdfDoc.embedPng(imgBytes);
-            page.drawImage(img, { x: pdfX, y: pdfY, width: pdfW, height: pdfH });
-          } else if (field.fieldType === 'date') {
-            const { rgb } = PDFLib;
-            const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(field.textValue || new Date().toLocaleDateString(), {
-              x: pdfX + 2,
-              y: pdfY + (pdfH - fontSize) / 2,
-              size: fontSize,
-              color: rgb(0, 0, 0),
-            });
-          } else if (field.fieldType === 'name') {
-            const { rgb } = PDFLib;
-            const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(field.textValue || signingState.signerName, {
-              x: pdfX + 2,
-              y: pdfY + (pdfH - fontSize) / 2,
-              size: fontSize,
-              color: rgb(0, 0, 0),
-            });
-          } else if (field.fieldType === 'text' && field.textValue) {
-            const { rgb } = PDFLib;
-            const fontSize = Math.min(12, pdfH * 0.7);
-            page.drawText(field.textValue, {
-              x: pdfX + 2,
-              y: pdfY + (pdfH - fontSize) / 2,
-              size: fontSize,
-              color: rgb(0, 0, 0),
-            });
-          } else if (field.fieldType === 'checkmark') {
-            // Draw checkmark using lines (pdf-lib default font can't encode ✓)
-            const { rgb } = PDFLib;
-            const cx = pdfX + pdfW / 2;
-            const cy = pdfY + pdfH / 2;
-            const s = Math.min(pdfW, pdfH) * 0.35;
-            page.drawLine({ start: { x: cx - s, y: cy }, end: { x: cx - s * 0.2, y: cy - s * 0.7 }, thickness: Math.max(1.5, s * 0.25), color: rgb(0, 0.5, 0) });
-            page.drawLine({ start: { x: cx - s * 0.2, y: cy - s * 0.7 }, end: { x: cx + s, y: cy + s * 0.7 }, thickness: Math.max(1.5, s * 0.25), color: rgb(0, 0.5, 0) });
-          } else if (field.fieldType === 'xmark') {
-            // Draw X mark using lines (pdf-lib default font can't encode ✕)
-            const { rgb } = PDFLib;
-            const cx = pdfX + pdfW / 2;
-            const cy = pdfY + pdfH / 2;
-            const s = Math.min(pdfW, pdfH) * 0.35;
-            page.drawLine({ start: { x: cx - s, y: cy - s }, end: { x: cx + s, y: cy + s }, thickness: Math.max(1.5, s * 0.25), color: rgb(0.7, 0, 0) });
-            page.drawLine({ start: { x: cx - s, y: cy + s }, end: { x: cx + s, y: cy - s }, thickness: Math.max(1.5, s * 0.25), color: rgb(0.7, 0, 0) });
-          }
-        }
-
-        const signedBytes = await pdfDoc.save();
-        const blob = new Blob([signedBytes], { type: 'application/pdf' });
-        const signedFilename = signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
-
-        // Download the signed PDF
-        saveAs(blob, signedFilename);
-        showToast('Document signed and saved!', 'success');
-
-        closeSigningFlow();
-      } catch (err) {
-        console.error('Finalize error:', err);
-        showToast('Failed to finalize: ' + err.message, 'error');
-      }
-    }
-  </script>
-</body>
+      // ===== INIT =====
+      initStampGrid();
+      setTimeout(initSigPad, 100);
+    </script>
+  </body>
 </html>
