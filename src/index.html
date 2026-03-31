@@ -6791,43 +6791,43 @@
       }
 
       // ===== SIGNATURE PAD =====
-      let sigCtx, sigDrawing = false;
+      let signingCtx, signingDrawing = false;
       function initSigPad() {
         const canvas = document.getElementById('sig-canvas');
         const rect = canvas.parentElement.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
-        sigCtx = canvas.getContext('2d');
-        sigCtx.scale(dpr, dpr);
-        sigCtx.strokeStyle = '#1a1a2e';
-        sigCtx.lineWidth = 2;
-        sigCtx.lineCap = 'round';
-        sigCtx.lineJoin = 'round';
+        signingCtx = canvas.getContext('2d');
+        signingCtx.scale(dpr, dpr);
+        signingCtx.strokeStyle = '#1a1a2e';
+        signingCtx.lineWidth = 2;
+        signingCtx.lineCap = 'round';
+        signingCtx.lineJoin = 'round';
 
         canvas.onmousedown = canvas.ontouchstart = (e) => {
-          sigDrawing = true;
+          signingDrawing = true;
           const pos = getSigPos(e);
-          sigCtx.beginPath();
-          sigCtx.moveTo(pos.x, pos.y);
+          signingCtx.beginPath();
+          signingCtx.moveTo(pos.x, pos.y);
         };
         canvas.onmousemove = canvas.ontouchmove = (e) => {
-          if (!sigDrawing) return;
+          if (!signingDrawing) return;
           e.preventDefault();
           const pos = getSigPos(e);
-          sigCtx.lineTo(pos.x, pos.y);
-          sigCtx.stroke();
+          signingCtx.lineTo(pos.x, pos.y);
+          signingCtx.stroke();
         };
         canvas.onmouseup = canvas.ontouchend = () => {
-          sigDrawing = false;
+          signingDrawing = false;
           signingState.sigDataUrl = canvas.toDataURL('image/png');
           generateInitials();
           updateStampPreviews();
         };
         // FIX: stop drawing when mouse leaves canvas
         canvas.onmouseleave = () => {
-          if (sigDrawing) {
-            sigDrawing = false;
+          if (signingDrawing) {
+            signingDrawing = false;
             signingState.sigDataUrl = canvas.toDataURL('image/png');
             generateInitials();
             updateStampPreviews();
@@ -6844,7 +6844,7 @@
 
       function clearSigPad() {
         const canvas = document.getElementById('sig-canvas');
-        sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+        signingCtx.clearRect(0, 0, canvas.width, canvas.height);
         signingState.sigDataUrl = null;
         signingState.initialsDataUrl = null;
         updateStampPreviews();
@@ -6855,11 +6855,11 @@
         if (!name) return;
         const canvas = document.getElementById('sig-canvas');
         const rect = canvas.parentElement.getBoundingClientRect();
-        sigCtx.clearRect(0, 0, canvas.width, canvas.height);
-        sigCtx.font = "italic 28px 'Brush Script MT', 'Segoe Script', cursive";
-        sigCtx.fillStyle = '#1a1a2e';
-        const m = sigCtx.measureText(name);
-        sigCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
+        signingCtx.clearRect(0, 0, canvas.width, canvas.height);
+        signingCtx.font = "italic 28px 'Brush Script MT', 'Segoe Script', cursive";
+        signingCtx.fillStyle = '#1a1a2e';
+        const m = signingCtx.measureText(name);
+        signingCtx.fillText(name, Math.max(8, (rect.width - m.width) / 2), rect.height * 0.65);
         signingState.sigDataUrl = canvas.toDataURL('image/png');
         generateInitials();
         updateStampPreviews();
