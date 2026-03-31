@@ -2496,13 +2496,7 @@
 
     <!-- STAMPS -->
     <div class="panel-section">
-      <div class="panel-section-title">Tools</div>
-      <div style="margin-bottom:8px;">
-        <button id="move-tool-btn" onclick="clearMode()" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:10px;background:rgba(255,255,255,0.6);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
-          <span style="font-size:16px;">🔀</span> Select & Move
-        </button>
-      </div>
-      <div class="panel-section-title" style="margin-top:4px;">Click to Place</div>
+      <div class="panel-section-title">Click to Place</div>
       <div class="stamp-grid" id="stamp-grid"></div>
     </div>
 
@@ -6451,9 +6445,7 @@
         scroll.classList.add('placing', 'placing-' + id);
         document.getElementById('mode-label').textContent = 'Click on PDF to place: ' + stamp.label;
         document.getElementById('mode-indicator').classList.add('visible');
-        // Deactivate move tool button
-        const moveBtn = document.getElementById('move-tool-btn');
-        if (moveBtn) { moveBtn.style.borderColor = '#e5e7eb'; moveBtn.style.background = 'rgba(255,255,255,0.6)'; moveBtn.style.boxShadow = 'none'; }
+        // (move tool removed — stamps are always draggable)
       }
 
       function clearMode() {
@@ -6462,13 +6454,6 @@
         const scroll = document.getElementById('signing-pdf-scroll');
         scroll.className = scroll.className.replace(/\bplacing[\w-]*/g, '').trim();
         document.getElementById('mode-indicator').classList.remove('visible');
-        // Highlight move tool as active
-        const moveBtn = document.getElementById('move-tool-btn');
-        if (moveBtn) {
-          moveBtn.style.borderColor = '#6366f1';
-          moveBtn.style.background = 'rgba(237,233,254,0.9)';
-          moveBtn.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.2)';
-        }
       }
 
       // Keyboard shortcuts: Escape exits mode, Arrow keys nudge selected field
@@ -6535,6 +6520,8 @@
           h: stamp.h,
           value: value,
         };
+        // Auto-enter editing mode for custom text stamps
+        if (field.stampId === 'text') field._editing = true;
         signingState.placedFields.push(field);
         renderOverlays();
         updatePlacedList();
@@ -6610,29 +6597,35 @@
           } else if (f.stampId === 'initials' && signingState.initialsDataUrl) {
             div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">';
           } else if (f.stampId === 'text') {
-            // Multiline editable textarea
-            div.classList.add('field-textarea-wrap');
-            const ta = document.createElement('textarea');
-            ta.className = 'field-inline-textarea';
-            ta.value = (f.value === '__EDITABLE__') ? '' : f.value;
-            ta.placeholder = 'Type here...';
-            ta.onmousedown = (e) => e.stopPropagation();
-            ta.onclick = (e) => e.stopPropagation();
-            ta.oninput = () => {
-              f.value = ta.value;
-              updatePlacedList();
-              // Auto-grow height
-              ta.style.height = 'auto';
-              const newH = Math.max(f.h * scale, ta.scrollHeight);
-              ta.style.height = newH + 'px';
-              div.style.height = newH + 'px';
-              f.h = newH / scale;
-            };
-            if (f.value === '__EDITABLE__') {
-              f.value = '';
+            // Custom text: show as draggable span by default, double-click to edit
+            if (f._editing) {
+              div.classList.add('field-textarea-wrap');
+              const ta = document.createElement('textarea');
+              ta.className = 'field-inline-textarea';
+              ta.value = (f.value === '__EDITABLE__') ? '' : f.value;
+              ta.placeholder = 'Type here...';
+              ta.onmousedown = (e) => e.stopPropagation();
+              ta.onclick = (e) => e.stopPropagation();
+              ta.oninput = () => {
+                f.value = ta.value;
+                updatePlacedList();
+                ta.style.height = 'auto';
+                const newH = Math.max(f.h * scale, ta.scrollHeight);
+                ta.style.height = newH + 'px';
+                div.style.height = newH + 'px';
+                f.h = newH / scale;
+              };
+              ta.onblur = () => {
+                f._editing = false;
+                if (!f.value || f.value === '__EDITABLE__') f.value = 'Custom text';
+                renderOverlays();
+              };
               setTimeout(() => ta.focus(), 50);
+              div.appendChild(ta);
+            } else {
+              const displayVal = (!f.value || f.value === '__EDITABLE__') ? 'Custom text' : f.value;
+              div.innerHTML = '<span class="field-value">' + escHTML(displayVal) + '</span>';
             }
-            div.appendChild(ta);
           } else {
             div.innerHTML = '<span class="field-value">' + escHTML(f.value) + '</span>';
           }
@@ -6685,6 +6678,28 @@
             const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
+          };
+
+          // Double-click: custom text → edit inline, info fields → scroll to panel input
+          div.ondblclick = (e) => {
+            e.stopPropagation();
+            if (f.stampId === 'text') {
+              // Activate inline editing for custom text
+              f._editing = true;
+              renderOverlays();
+            } else if (['address', 'name', 'email', 'phone'].includes(f.stampId)) {
+              // Scroll the signing tools panel to the corresponding input field
+              const inputMap = { address: 'prof-address', name: 'prof-name', email: 'prof-email', phone: 'prof-phone' };
+              const inputId = inputMap[f.stampId];
+              const input = document.getElementById(inputId);
+              if (input) {
+                const panel = document.getElementById('floating-panel');
+                if (panel) panel.scrollTop = 0;
+                input.focus();
+                input.select();
+                signingToast('Edit ' + f.stampId + ' above, then re-place the stamp');
+              }
+            }
           };
 
           // Right-click context menu (NOT auto-duplicate)
