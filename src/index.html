@@ -7024,6 +7024,9 @@
         const panel = document.getElementById('floating-panel');
         if (panel) panel.style.display = 'block';
 
+        // Initialize signature pad AFTER panel is visible (needs non-zero dimensions)
+        setTimeout(initSigPad, 50);
+
         // Reset state
         signingState.pdfDoc = null;
         signingState.pdfLibDoc = null;
