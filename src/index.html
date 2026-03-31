@@ -6606,6 +6606,7 @@
               ta.placeholder = 'Type here...';
               ta.onmousedown = (e) => e.stopPropagation();
               ta.onclick = (e) => e.stopPropagation();
+              ta.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); ta.blur(); } };
               ta.oninput = () => {
                 f.value = ta.value;
                 updatePlacedList();
