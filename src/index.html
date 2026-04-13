@@ -823,7 +823,7 @@
 
     /* ===== SIGNATURE PAD ===== */
     .signature-pad-container {
-      border: 1px solid var(--border);
+      border: 1px dashed var(--border);
       border-radius: 8px;
       overflow: hidden;
       background: white;
@@ -4563,6 +4563,30 @@
     // ===== SIGNATURE =====
     let sigPadCanvas, sigPadCtx, sigDrawing = false, sigColor = '#000';
 
+    // Strip white/near-white background from a canvas, making it transparent
+    function stripWhiteBackground(canvas) {
+      const w = canvas.width, h = canvas.height;
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      const out = document.createElement('canvas');
+      out.width = w; out.height = h;
+      const outCtx = out.getContext('2d');
+      const outData = outCtx.createImageData(w, h);
+      const od = outData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+        if (a < 10 || (r > 240 && g > 240 && b > 240)) {
+          // Transparent — white or near-white or already transparent
+          od[i] = od[i+1] = od[i+2] = od[i+3] = 0;
+        } else {
+          od[i] = r; od[i+1] = g; od[i+2] = b; od[i+3] = a;
+        }
+      }
+      outCtx.putImageData(outData, 0, 0);
+      return out.toDataURL('image/png');
+    }
+
     function openSignatureModal() {
       if (!state.isDocLoaded) {
         showToast('Open a document first', 'error');
@@ -4579,8 +4603,7 @@
     function initSignaturePad() {
       sigPadCanvas = document.getElementById('signature-pad');
       sigPadCtx = sigPadCanvas.getContext('2d');
-      sigPadCtx.fillStyle = 'white';
-      sigPadCtx.fillRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
+      sigPadCtx.clearRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
       sigPadCtx.strokeStyle = sigColor;
       sigPadCtx.lineWidth = 2;
       sigPadCtx.lineCap = 'round';
@@ -4601,8 +4624,7 @@
 
     function clearSignaturePad() {
       if (sigPadCtx) {
-        sigPadCtx.fillStyle = 'white';
-        sigPadCtx.fillRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
+        sigPadCtx.clearRect(0, 0, sigPadCanvas.width, sigPadCanvas.height);
       }
     }
 
@@ -4663,8 +4685,8 @@
       const sigTop = state.fabricCanvas.height * 0.78;
 
       if (drawTab.style.display !== 'none') {
-        // Use drawn signature
-        const dataUrl = sigPadCanvas.toDataURL();
+        // Use drawn signature — strip white background for transparent PNG
+        const dataUrl = stripWhiteBackground(sigPadCanvas);
         fabric.Image.fromURL(dataUrl, (img) => {
           img.set({
             left: sigLeft,
@@ -7423,6 +7445,7 @@
       }
 
       // Create a tightly cropped data URL from a canvas (trims whitespace around ink)
+      // Also strips white/near-white pixels to transparent for clean PDF embedding
       function getCroppedSigDataUrl(canvas) {
         const ctx = canvas.getContext('2d');
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -7448,7 +7471,17 @@
         const sh = Math.min(canvas.height - sy, (bottom - top) + pad * 2);
         const cropped = document.createElement('canvas');
         cropped.width = sw; cropped.height = sh;
-        cropped.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+        const cCtx = cropped.getContext('2d');
+        cCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+        // Strip white/near-white pixels to transparent so no box appears in PDF
+        const cData = cCtx.getImageData(0, 0, sw, sh);
+        const cd = cData.data;
+        for (let i = 0; i < cd.length; i += 4) {
+          if (cd[i] > 240 && cd[i+1] > 240 && cd[i+2] > 240) {
+            cd[i+3] = 0; // Make white pixels fully transparent
+          }
+        }
+        cCtx.putImageData(cData, 0, 0);
         return cropped.toDataURL('image/png');
       }
 

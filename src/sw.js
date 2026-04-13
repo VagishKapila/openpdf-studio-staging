@@ -1,4 +1,4 @@
-const CACHE_NAME = 'docpix-v4';
+const CACHE_NAME = 'docpix-v5';
 const ASSETS = [
   './',
   './index.html',
